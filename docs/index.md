@@ -1,6 +1,6 @@
 # Introduction
 ## Background
-sark65 api is a fairly vanilla OAS JSON API. It allows you to programmatically do anything you can do manually at the SARK V6 browser. <br/>
+pbx3api is a fairly vanilla OAS JSON API. It allows you to programmatically do anything you can do manually at the SARK V6 browser. <br/>
 
 Using the API you may...
 

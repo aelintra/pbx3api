@@ -2,7 +2,7 @@
 
 ##Methods
 
-sark65api uses the methods GET,POST,PUT,DELETE
+pbx3api uses the methods GET,POST,PUT,DELETE
 
 * GET is used for retrieval but there are some exceptions, in particular where it is used to issue commands of some description
 * POST is used to create NEW instances 
@@ -50,8 +50,8 @@ You can freely supply non-required variables during a POST if you wish but you M
 
 ##HTTP Status Codes
 
-sark65api will return a standard HTTP status code with each response.  For more information see here:-  https://www.restapitutorial.com/httpstatuscodes.html<br/>
+pbx3api will return a standard HTTP status code with each response.  For more information see here:-  https://www.restapitutorial.com/httpstatuscodes.html<br/>
 
-Additionally, when required, sark65api will return error messages in JSON format
+Additionally, when required, pbx3api will return error messages in JSON format
 
 *_________________________________________________________________________________________________*
