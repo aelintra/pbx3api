@@ -20,7 +20,7 @@
     
     
       
-        <title>API Digest - api3 API</title>
+        <title>API Digest - pbx3api API</title>
       
     
     
@@ -86,7 +86,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="api3 API" class="md-header__button md-logo" aria-label="api3 API" data-md-component="logo">
+    <a href=".." title="pbx3api API" class="md-header__button md-logo" aria-label="pbx3api API" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 89">
@@ -105,7 +105,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            api3 API
+            pbx3api API
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -310,7 +310,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="api3 API" class="md-nav__button md-logo" aria-label="api3 API" data-md-component="logo">
+    <a href=".." title="pbx3api API" class="md-nav__button md-logo" aria-label="pbx3api API" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 89">
@@ -321,7 +321,7 @@
 </svg>
 
     </a>
-    api3 API
+    pbx3api API
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3240,7 +3240,7 @@
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;
 </span></code></pre></div></p>
 <h4 id="post-extensionsprovisioned">POST /extensions/provisioned<a class="headerlink" href="#post-extensionsprovisioned" title="Permanent link">&para;</a></h4>
-<p>Create a new sark65api provisioned instance</p>
+<p>Create a new pbx3api provisioned instance</p>
 <p><strong>Body:</strong>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;,
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;
@@ -3291,7 +3291,7 @@
 <h4 id="delete-extensionsextension">DELETE /extensions/{extension}<a class="headerlink" href="#delete-extensionsextension" title="Permanent link">&para;</a></h4>
 <hr />
 <h2 id="firewalls">Firewalls<a class="headerlink" href="#firewalls" title="Permanent link">&para;</a></h2>
-<p>sark65api uses the Shorewall firewall to protect its resources.   The API operates on the entire ruleset as a simple array.   GET will return the rules, POST will update the rules and validate them (using shorewall itself) and PUT will restart the firewall.</p>
+<p>pbx3api uses the Shorewall firewall to protect its resources.   The API operates on the entire ruleset as a simple array.   GET will return the rules, POST will update the rules and validate them (using shorewall itself) and PUT will restart the firewall.</p>
 <h4 id="get-firewallsipv4">GET /firewalls/ipv4<a class="headerlink" href="#get-firewallsipv4" title="Permanent link">&para;</a></h4>
 <p>return the IPV4 firewall rules</p>
 <h4 id="post-firewallsipv4">POST /firewalls/ipv4<a class="headerlink" href="#post-firewallsipv4" title="Permanent link">&para;</a></h4>
@@ -3460,7 +3460,7 @@
 <h4 id="delete-queuesqueue">DELETE  /queues/{queue}<a class="headerlink" href="#delete-queuesqueue" title="Permanent link">&para;</a></h4>
 <hr />
 <h2 id="snapshots">Snapshots<a class="headerlink" href="#snapshots" title="Permanent link">&para;</a></h2>
-<p>A snapshot is an instance of the sark65api db. </p>
+<p>A snapshot is an instance of the pbx3api db. </p>
 <h4 id="get-snapshots">GET /snapshots<a class="headerlink" href="#get-snapshots" title="Permanent link">&para;</a></h4>
 <p>return a list of available snapshots on the server</p>
 <h4 id="get-snapshotssnapshot">GET /snapshots/{snapshot}<a class="headerlink" href="#get-snapshotssnapshot" title="Permanent link">&para;</a></h4>
@@ -3735,8 +3735,8 @@
 <h4 id="delete-trunkstrunk">DELETE /trunks/{trunk}<a class="headerlink" href="#delete-trunkstrunk" title="Permanent link">&para;</a></h4>
 <hr />
 <h2 id="asterisk-ami-functions-exposed-by-the-api">Asterisk AMI functions exposed by the API<a class="headerlink" href="#asterisk-ami-functions-exposed-by-the-api" title="Permanent link">&para;</a></h2>
-<p>sark65api gives you access to a range of functions from the Asterisk Manager Interface(AMI).  This allows you to examine, and in some cases change, state information from the running PBX. <br />
-<strong>N.B.</strong> sark65api implements blocking AMI requests.  if you want to access non-blocking AMI streams then you can look at something like PAMI.</p>
+<p>pbx3api gives you access to a range of functions from the Asterisk Manager Interface(AMI).  This allows you to examine, and in some cases change, state information from the running PBX. <br />
+<strong>N.B.</strong> pbx3api implements blocking AMI requests.  if you want to access non-blocking AMI streams then you can look at something like PAMI.</p>
 <ul>
 <li>Most of the AMI functions use GET.   They return either an instance list or a single instance.  </li>
 <li>The AMI ''''Originate'''' bridging function uses POST </li>
