@@ -1,4 +1,4 @@
-site_name: sark65 API
+site_name: api3 API
 site_author: CoCoKraft
 copyright: Copyright &copy; 2024 CoCoKraft.com
 theme:
@@ -58,7 +58,7 @@ theme:
     logo: logo
 # Additional configuration
 extra:
-  pname: Sark65API
+  pname: API3
   nav:
      - Home: index.md
      - Getting started:

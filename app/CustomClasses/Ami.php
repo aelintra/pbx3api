@@ -643,7 +643,7 @@ public function Hangup($technology,$channel) {
 
 
 
-/*	Haven't done this yet - sark doesn't need it
+/*	Haven't done this yet - PBX doesn't need it
  * 
 	public function GetFamilyDB($family) {
 	$wrets = $this->Query("Action: Command\r\nCommand: database show $family\r\n\r\n");
