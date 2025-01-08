@@ -22,7 +22,7 @@
     
     
       
-        <title>Authorization - sark65 API</title>
+        <title>Authorization - api3 API</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="sark65 API" class="md-header__button md-logo" aria-label="sark65 API" data-md-component="logo">
+    <a href=".." title="api3 API" class="md-header__button md-logo" aria-label="api3 API" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 89">
@@ -107,7 +107,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            sark65 API
+            api3 API
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -312,7 +312,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="sark65 API" class="md-nav__button md-logo" aria-label="sark65 API" data-md-component="logo">
+    <a href=".." title="api3 API" class="md-nav__button md-logo" aria-label="api3 API" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 89">
@@ -323,7 +323,7 @@
 </svg>
 
     </a>
-    sark65 API
+    api3 API
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -948,7 +948,14 @@ The existing Bearer Token is destroyed</p>
 <h2 id="register">Register<a class="headerlink" href="#register" title="Permanent link">&para;</a></h2>
 <p>An authorised user who is also an admin may create a new user with a register request.  The returned details may be passed to the end-user either as a UID/PWD pair or as a bearer token.</p>
 <h4 id="post-authregister">POST /auth/register<a class="headerlink" href="#post-authregister" title="Permanent link">&para;</a></h4>
-<p>Returns 200 OK and a Bearer Token on success<br/></p>
+<p>Body
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>&#39;name&#39; =&gt; &#39;alpha_dash&#39;,
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>&#39;email&#39; =&gt; &#39;email&#39;,
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>&#39;password&#39; =&gt; &#39;alpha_dash&#39;,
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&#39;role&#39; =&gt; &#39;NULL|isAdmin&#39;,
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>&#39;endpoint&#39; =&gt; &#39;NULL|integer&#39;
+</span></code></pre></div>
+Returns 200 OK and a Bearer Token on success<br/></p>
 <h2 id="users">Users<a class="headerlink" href="#users" title="Permanent link">&para;</a></h2>
 <p>Perform various operations upon the Users relation as follows:-</p>
 <h4 id="get-authusers">GET /auth/users<a class="headerlink" href="#get-authusers" title="Permanent link">&para;</a></h4>
