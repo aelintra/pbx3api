@@ -1,0 +1,3885 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+        <meta name="author" content="CoCoKraft">
+      
+      
+      
+        <link rel="prev" href="../auth/">
+      
+      
+      
+      <link rel="icon" href="../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+    
+    
+      
+        <title>API Digest - api3 API</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.3cba04c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-digest" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="api3 API" class="md-header__button md-logo" aria-label="api3 API" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 89">
+  <path d="M3.136,17.387l0,42.932l42.932,21.467l-42.932,-64.399Z" />
+  <path d="M21.91,8l42.933,64.398l-18.775,9.388l-42.932,-64.399l18.774,-9.387Z" style="fill-opacity: 0.5" />
+  <path d="M67.535,17.387l-27.262,18.156l21.878,32.818l5.384,2.691l0,-53.665Z" />
+  <path d="M67.535,17.387l0,53.666l18.774,-9.388l0,-53.665l-18.774,9.387Z" style="fill-opacity: 0.25" />
+</svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            api3 API
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Digest
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../api/" class="md-tabs__link">
+        
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../auth/" class="md-tabs__link">
+        
+  
+    
+  
+  Authorization
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+    
+  
+  API Digest
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="api3 API" class="md-nav__button md-logo" aria-label="api3 API" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89 89">
+  <path d="M3.136,17.387l0,42.932l42.932,21.467l-42.932,-64.399Z" />
+  <path d="M21.91,8l42.933,64.398l-18.775,9.388l-42.932,-64.399l18.774,-9.387Z" style="fill-opacity: 0.5" />
+  <path d="M67.535,17.387l-27.262,18.156l21.878,32.818l5.384,2.691l0,-53.665Z" />
+  <path d="M67.535,17.387l0,53.666l18.774,-9.388l0,-53.665l-18.774,9.387Z" style="fill-opacity: 0.25" />
+</svg>
+
+    </a>
+    api3 API
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../auth/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authorization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    API Digest
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    API Digest
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agents
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agents">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-agentsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /agents/{agent?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /agents
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-agentsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /agents/{agent}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-agentsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /agents/{agent}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backups
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /backups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-backupsbackup" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /backups/{backup}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-backupsnew" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /backups/new
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /backups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-backupsbackup" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /backups/{backup}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-backupsbackup" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /backups/{backup}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#class-of-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      Class of Service
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coscloses" class="md-nav__link">
+    <span class="md-ellipsis">
+      coscloses
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="coscloses">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-coscloses" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /coscloses
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-cosclosescosclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /coscloses/{cosclose}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-cosclosescosclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /coscloses/{cosclose}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletecosclosescosclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE/coscloses/{cosclose}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cosopens" class="md-nav__link">
+    <span class="md-ellipsis">
+      cosopens
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cosopens">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-cosopens" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosopens
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-cosopenscosopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosopens/{cosopen}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-cosopenescosopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /cosopenes/{cosopen}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletecosopenscosopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE/cosopens/{cosopen}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cosrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      cosrules
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cosrules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-cosrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosrules
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-cosrulescosrule" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosrules/{cosrule}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-cosrulescosrule" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /cosrules/{cosrule}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletecosrulescosrule" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE/cosrules/{cosrule}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Apps
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Custom Apps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-customappscustomapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /customapps/{customapp?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-customapps" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /customapps
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-customappscustomapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /customapps/{customapp}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-customappscustomapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /customapps/{customapp}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recurring-timers-daytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recurring Timers (Daytimers)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recurring Timers (Daytimers)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-daytimerdaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /daytimer/{daytimer?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-daytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /daytimers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-daytimersdaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /daytimers/{daytimer}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-daytimersdaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /daytimers/{daytimer}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#destinations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Destinations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Destinations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-destinations" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /destinations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extensions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-extensionsextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /extensions/{extension?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-extensionsextensionruntime" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /extensions/{extension}/runtime
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionsmailbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/mailbox
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionsprovisioned" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/provisioned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionsunprovisioned" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/unprovisioned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionswebrtc" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/webrtc
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-extensionsextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /extensions/{extension}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-extensionsextensionruntime" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /extensions/{extension}/runtime
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-extensionsextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /extensions/{extension}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firewalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      Firewalls
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Firewalls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-firewallsipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /firewalls/ipv4
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-firewallsipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /firewalls/ipv4
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-firewallsipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /firewalls/ipv4
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-firewallsipv6" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /firewalls/ipv6
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-firewallsipv6" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /firewalls/ipv6
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-firewallsipv6" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /firewalls/ipv6
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#greetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Greetings
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Greetings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-greetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /greetings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-greetingsgreeting" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /greetings/{greeting}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-greetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /greetings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-greetingsgreeting" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /greetings/{greeting}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-recurring-timers-holidaytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Non Recurring Timers (Holidaytimers)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Non Recurring Timers (Holidaytimers)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-holidaytimersholidaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /holidaytimers{holidaytimer?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-holidaytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /holidaytimers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-holidaytimersholidaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /holidaytimers/{holidaytimer}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-holidaytimersholidaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /holidaytimers/{holidaytimer}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inbound-routes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inbound Routes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inbound Routes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-inboundroutesinboundroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /inboundroutes/{inboundroute?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-inboundroutes" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /inboundroutes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-inboundroutesinboundroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /inboundroutes/{inboundroute}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-inboundroutesinboundroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /inboundroutes/{inboundroute}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ivrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      IVRs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="IVRs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-ivrsivr" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /ivrs/{ivr?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-ivrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /ivrs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-ivrsivr" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /ivrs/{ivr}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-ivrsivr" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /ivrs/{ivr}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logscdrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Logs/CDRs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logs/CDRs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-logscdrslimit" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /logs/cdrs/{limit?}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#queues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Queues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Queues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-queuesqueue" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /queues{queue?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-queues" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /queues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-queuesqueue" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /queues/{queue}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-queuesqueue" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /queues/{queue}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      Snapshots
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshots">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /snapshots
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-snapshotssnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /snapshots/{snapshot}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-snapshotsnew" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /snapshots/new
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /snapshots
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-snapshotssnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /snapshots/{snapshot}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-snapshotssnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /snapshots/{snapshot}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#routes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Routes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Routes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-routesroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /routes/{route?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-route" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /route
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-routesroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /routes/{route}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-routesroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /routes/{route}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Commands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-syscommandscommand" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /syscommands/{command}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-globals" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Globals
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Globals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-sysglobals" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /sysglobals
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-sysglobals" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /sysglobals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-templatestemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /templates/{template?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /templates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-templatesstemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /templatess/{template}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-templatesstemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE //templatess/{template}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tenants" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tenants
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tenants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-tenantstenants" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /tenants/{tenants?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-tenants" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /tenants
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-tenantstenant" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /tenants/{tenant}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-tenantstenant" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /tenants/{tenant}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Trunks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Trunks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-trunkstrunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /trunks/{trunk?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-trunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /trunks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-trunkstrunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /trunks/{trunk}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-trunkstrunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /trunks/{trunk}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asterisk-ami-functions-exposed-by-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asterisk AMI functions exposed by the API
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asterisk AMI functions exposed by the API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#list-ami-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      List AMI Functions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-astamis" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /astamis/
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instance-ami-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Instance AMI Functions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-astamisoriginate" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /astamis/originate
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asterisk-internal-db-astdb-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asterisk internal DB (AstDB) functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asterisk internal DB (AstDB) functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-astamisdbpgetidkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /astamis/DBPGet/{id}/{key}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-astamisdbputidkeyvalue" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /astamis/DBPut/{id}/{key}(value)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-astamisdbdelidkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /astamis/DBdel/{id}/{key}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asterisk-soft-hangup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asterisk soft Hangup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asterisk soft Hangup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#delete-astamishangupidkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /astamis/Hangup/{id}/{key}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agents
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agents">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-agentsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /agents/{agent?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /agents
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-agentsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /agents/{agent}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-agentsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /agents/{agent}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backups
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /backups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-backupsbackup" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /backups/{backup}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-backupsnew" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /backups/new
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /backups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-backupsbackup" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /backups/{backup}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-backupsbackup" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /backups/{backup}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#class-of-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      Class of Service
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coscloses" class="md-nav__link">
+    <span class="md-ellipsis">
+      coscloses
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="coscloses">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-coscloses" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /coscloses
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-cosclosescosclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /coscloses/{cosclose}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-cosclosescosclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /coscloses/{cosclose}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletecosclosescosclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE/coscloses/{cosclose}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cosopens" class="md-nav__link">
+    <span class="md-ellipsis">
+      cosopens
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cosopens">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-cosopens" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosopens
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-cosopenscosopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosopens/{cosopen}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-cosopenescosopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /cosopenes/{cosopen}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletecosopenscosopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE/cosopens/{cosopen}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cosrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      cosrules
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cosrules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-cosrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosrules
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-cosrulescosrule" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /cosrules/{cosrule}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-cosrulescosrule" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /cosrules/{cosrule}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletecosrulescosrule" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE/cosrules/{cosrule}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Apps
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Custom Apps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-customappscustomapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /customapps/{customapp?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-customapps" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /customapps
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-customappscustomapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /customapps/{customapp}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-customappscustomapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /customapps/{customapp}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recurring-timers-daytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recurring Timers (Daytimers)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recurring Timers (Daytimers)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-daytimerdaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /daytimer/{daytimer?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-daytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /daytimers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-daytimersdaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /daytimers/{daytimer}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-daytimersdaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /daytimers/{daytimer}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#destinations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Destinations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Destinations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-destinations" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /destinations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extensions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-extensionsextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /extensions/{extension?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-extensionsextensionruntime" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /extensions/{extension}/runtime
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionsmailbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/mailbox
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionsprovisioned" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/provisioned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionsunprovisioned" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/unprovisioned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-extensionswebrtc" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /extensions/webrtc
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-extensionsextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /extensions/{extension}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-extensionsextensionruntime" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /extensions/{extension}/runtime
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-extensionsextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /extensions/{extension}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firewalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      Firewalls
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Firewalls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-firewallsipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /firewalls/ipv4
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-firewallsipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /firewalls/ipv4
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-firewallsipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /firewalls/ipv4
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-firewallsipv6" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /firewalls/ipv6
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-firewallsipv6" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /firewalls/ipv6
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-firewallsipv6" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /firewalls/ipv6
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#greetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Greetings
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Greetings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-greetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /greetings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-greetingsgreeting" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /greetings/{greeting}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-greetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /greetings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-greetingsgreeting" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /greetings/{greeting}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-recurring-timers-holidaytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Non Recurring Timers (Holidaytimers)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Non Recurring Timers (Holidaytimers)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-holidaytimersholidaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /holidaytimers{holidaytimer?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-holidaytimers" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /holidaytimers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-holidaytimersholidaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /holidaytimers/{holidaytimer}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-holidaytimersholidaytimer" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /holidaytimers/{holidaytimer}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inbound-routes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inbound Routes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inbound Routes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-inboundroutesinboundroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /inboundroutes/{inboundroute?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-inboundroutes" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /inboundroutes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-inboundroutesinboundroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /inboundroutes/{inboundroute}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-inboundroutesinboundroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /inboundroutes/{inboundroute}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ivrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      IVRs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="IVRs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-ivrsivr" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /ivrs/{ivr?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-ivrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /ivrs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-ivrsivr" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /ivrs/{ivr}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-ivrsivr" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /ivrs/{ivr}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logscdrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Logs/CDRs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logs/CDRs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-logscdrslimit" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /logs/cdrs/{limit?}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#queues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Queues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Queues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-queuesqueue" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /queues{queue?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-queues" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /queues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-queuesqueue" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /queues/{queue}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-queuesqueue" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /queues/{queue}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      Snapshots
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshots">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /snapshots
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-snapshotssnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /snapshots/{snapshot}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-snapshotsnew" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /snapshots/new
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /snapshots
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-snapshotssnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /snapshots/{snapshot}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-snapshotssnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /snapshots/{snapshot}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#routes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Routes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Routes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-routesroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /routes/{route?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-route" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /route
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-routesroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /routes/{route}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-routesroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /routes/{route}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Commands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-syscommandscommand" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /syscommands/{command}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-globals" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Globals
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Globals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-sysglobals" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /sysglobals
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-sysglobals" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /sysglobals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-templatestemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /templates/{template?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /templates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-templatesstemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /templatess/{template}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-templatesstemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE //templatess/{template}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tenants" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tenants
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tenants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-tenantstenants" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /tenants/{tenants?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-tenants" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /tenants
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-tenantstenant" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /tenants/{tenant}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-tenantstenant" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /tenants/{tenant}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Trunks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Trunks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-trunkstrunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /trunks/{trunk?}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-trunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /trunks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-trunkstrunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /trunks/{trunk}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-trunkstrunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /trunks/{trunk}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asterisk-ami-functions-exposed-by-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asterisk AMI functions exposed by the API
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asterisk AMI functions exposed by the API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#list-ami-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      List AMI Functions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-astamis" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /astamis/
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instance-ami-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Instance AMI Functions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-astamisoriginate" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /astamis/originate
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asterisk-internal-db-astdb-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asterisk internal DB (AstDB) functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asterisk internal DB (AstDB) functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-astamisdbpgetidkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /astamis/DBPGet/{id}/{key}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#put-astamisdbputidkeyvalue" class="md-nav__link">
+    <span class="md-ellipsis">
+      PUT /astamis/DBPut/{id}/{key}(value)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-astamisdbdelidkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /astamis/DBdel/{id}/{key}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asterisk-soft-hangup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asterisk soft Hangup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asterisk soft Hangup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#delete-astamishangupidkey" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /astamis/Hangup/{id}/{key}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="api-digest">API Digest<a class="headerlink" href="#api-digest" title="Permanent link">&para;</a></h1>
+<h2 id="agents">Agents<a class="headerlink" href="#agents" title="Permanent link">&para;</a></h2>
+<h4 id="get-agentsagent">GET /agents/{agent?}<a class="headerlink" href="#get-agentsagent" title="Permanent link">&para;</a></h4>
+<h4 id="post-agents">POST /agents<a class="headerlink" href="#post-agents" title="Permanent link">&para;</a></h4>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>&#39;pkey&#39; =&gt; &#39;required|integer|min:1000|max:9999&#39;;
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster&#39;;
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>&#39;name&#39; =&gt; &#39;required|alpha_dash&#39;;
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>&#39;passwd&#39; =&gt; &#39;required|integer|min:1000|max:9999&#39;;
+</span></code></pre></div></p>
+<h4 id="put-agentsagent">PUT /agents/{agent}<a class="headerlink" href="#put-agentsagent" title="Permanent link">&para;</a></h4>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>&#39;name&#39; =&gt; &#39;alpha_dash&#39;,
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>&#39;passwd&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>&#39;queue1&#39; =&gt; &#39;exists:queue|nullable&#39;,
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>&#39;queue2&#39; =&gt; &#39;exists:queue|nullable&#39;,
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>&#39;queue3&#39; =&gt; &#39;exists:queue|nullable&#39;,
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>&#39;queue4&#39; =&gt; &#39;exists:queue|nullable&#39;,
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>&#39;queue5&#39; =&gt; &#39;exists:queue|nullable&#39;,
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>&#39;queue6&#39; =&gt; &#39;exists:queue|nullable&#39;
+</span></code></pre></div></p>
+<h4 id="delete-agentsagent">DELETE /agents/{agent}<a class="headerlink" href="#delete-agentsagent" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="backups">Backups<a class="headerlink" href="#backups" title="Permanent link">&para;</a></h2>
+<h4 id="get-backups">GET /backups<a class="headerlink" href="#get-backups" title="Permanent link">&para;</a></h4>
+<p>return a list of available backups on the server</p>
+<h4 id="get-backupsbackup">GET /backups/{backup}<a class="headerlink" href="#get-backupsbackup" title="Permanent link">&para;</a></h4>
+<p>Download an existing backup from the server</p>
+<h4 id="get-backupsnew">GET /backups/new<a class="headerlink" href="#get-backupsnew" title="Permanent link">&para;</a></h4>
+<p>Request a new backup be taken and saved in the backup set</p>
+<h4 id="post-backups">POST /backups<a class="headerlink" href="#post-backups" title="Permanent link">&para;</a></h4>
+<p>Upload a local zipped backup to the backup set on the server
+<strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>&#39;uploadzip&#39; =&gt; &#39;required|file|mimetypesapplication/zip&#39;
+</span></code></pre></div></p>
+<h4 id="put-backupsbackup">PUT /backups/{backup}<a class="headerlink" href="#put-backupsbackup" title="Permanent link">&para;</a></h4>
+<p>Restore an existing backup from the backup set to the live system.  Choose which elements of the backup set you want to restore by setting the corresponding element to true (N.B. this is JSON true - i.e. no quotes)
+<strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>&#39;restoredb&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>&#39;restoreasterisk&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>&#39;restoreusergreeting&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>&#39;restorevmail&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>&#39;restoreldap&#39; =&gt; &#39;boolean&#39;
+</span></code></pre></div></p>
+<h4 id="delete-backupsbackup">DELETE /backups/{backup}<a class="headerlink" href="#delete-backupsbackup" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="class-of-service">Class of Service<a class="headerlink" href="#class-of-service" title="Permanent link">&para;</a></h2>
+<p>There are three elements to CoS:-</p>
+<ul>
+<li>A rule (cosrule) which defines a particular dialplan set to be tested</li>
+<li>A closed instance of an egress rule (cosclose) which applies to a particular endpoint(extension)</li>
+<li>An open instance of an egress rule (cosopen) which applies to a particular endpoint(extension)</li>
+</ul>
+<p>Class of service instances are accessed using the extension number as the key (NOT the Class of Service key)</p>
+<h2 id="coscloses">coscloses<a class="headerlink" href="#coscloses" title="Permanent link">&para;</a></h2>
+<h4 id="get-coscloses">GET /coscloses<a class="headerlink" href="#get-coscloses" title="Permanent link">&para;</a></h4>
+<p>returns a list of the cosrule/extension intersections from the database</p>
+<h4 id="get-cosclosescosclose">GET /coscloses/{cosclose}<a class="headerlink" href="#get-cosclosescosclose" title="Permanent link">&para;</a></h4>
+<h4 id="post-cosclosescosclose">POST /coscloses/{cosclose}<a class="headerlink" href="#post-cosclosescosclose" title="Permanent link">&para;</a></h4>
+<p>create a new cosclose instance
+<strong>Body:</strong>
+'IPphone_pkey' =&gt; 'exists:ipphone,pkey',
+'COS_pkey' =&gt; 'exists:cos,pkey'</p>
+<h4 id="deletecosclosescosclose">DELETE/coscloses/{cosclose}<a class="headerlink" href="#deletecosclosescosclose" title="Permanent link">&para;</a></h4>
+<h2 id="cosopens">cosopens<a class="headerlink" href="#cosopens" title="Permanent link">&para;</a></h2>
+<h4 id="get-cosopens">GET /cosopens<a class="headerlink" href="#get-cosopens" title="Permanent link">&para;</a></h4>
+<p>returns a list of the cosrule/extension intersections from the database</p>
+<h4 id="get-cosopenscosopen">GET /cosopens/{cosopen}<a class="headerlink" href="#get-cosopenscosopen" title="Permanent link">&para;</a></h4>
+<h4 id="post-cosopenescosopen">POST /cosopenes/{cosopen}<a class="headerlink" href="#post-cosopenescosopen" title="Permanent link">&para;</a></h4>
+<p>create a new cosopen instance
+<strong>Body:</strong>
+'IPphone_pkey' =&gt; 'exists:ipphone,pkey',
+'COS_pkey' =&gt; 'exists:cos,pkey'</p>
+<h4 id="deletecosopenscosopen">DELETE/cosopens/{cosopen}<a class="headerlink" href="#deletecosopenscosopen" title="Permanent link">&para;</a></h4>
+<h2 id="cosrules">cosrules<a class="headerlink" href="#cosrules" title="Permanent link">&para;</a></h2>
+<h4 id="get-cosrules">GET /cosrules<a class="headerlink" href="#get-cosrules" title="Permanent link">&para;</a></h4>
+<p>returns a list of the cosrules from the database</p>
+<h4 id="get-cosrulescosrule">GET /cosrules/{cosrule}<a class="headerlink" href="#get-cosrulescosrule" title="Permanent link">&para;</a></h4>
+<h4 id="post-cosrulescosrule">POST /cosrules/{cosrule}<a class="headerlink" href="#post-cosrulescosrule" title="Permanent link">&para;</a></h4>
+<p>create a new cosrule instance
+<strong>Body:</strong>
+'pkey' =&gt; 'required|alpha_dashy',
+'dialplan' =&gt; 'required'</p>
+<h4 id="deletecosrulescosrule">DELETE/cosrules/{cosrule}<a class="headerlink" href="#deletecosrulescosrule" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="custom-apps">Custom Apps<a class="headerlink" href="#custom-apps" title="Permanent link">&para;</a></h2>
+<h4 id="get-customappscustomapp">GET /customapps/{customapp?}<a class="headerlink" href="#get-customappscustomapp" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of a custom app</p>
+<h4 id="post-customapps">POST /customapps<a class="headerlink" href="#post-customapps" title="Permanent link">&para;</a></h4>
+<p>Create a new custom app
+<strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>key&#39; =&gt; &#39;required&#39;
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>luster&#39; =&gt; &#39;required&#39;
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>esc&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>xtcode&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>span&#39; =&gt; &#39;in:Internal,External,Both,Neither&#39;,
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>&#39;striptags&#39; =&gt; &#39;in:YES,NO&#39;
+</span></code></pre></div></p>
+<h4 id="put-customappscustomapp">PUT /customapps/{customapp}<a class="headerlink" href="#put-customappscustomapp" title="Permanent link">&para;</a></h4>
+<p>update a custom app
+<strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>&#39;desc&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>&#39;extcode&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>&#39;span&#39; =&gt; &#39;in:Internal,External,Both,Neither&#39;,
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>&#39;striptags&#39; =&gt; &#39;in:YES,NO&#39;
+</span></code></pre></div></p>
+<h4 id="delete-customappscustomapp">DELETE  /customapps/{customapp}<a class="headerlink" href="#delete-customappscustomapp" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="recurring-timers-daytimers">Recurring Timers (Daytimers)<a class="headerlink" href="#recurring-timers-daytimers" title="Permanent link">&para;</a></h2>
+<h4 id="get-daytimerdaytimer">GET /daytimer/{daytimer?}<a class="headerlink" href="#get-daytimerdaytimer" title="Permanent link">&para;</a></h4>
+<h4 id="post-daytimers">POST /daytimers<a class="headerlink" href="#post-daytimers" title="Permanent link">&para;</a></h4>
+<p>Create a new daytimer
+<strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;,
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>&#39;datemonth&#39; =&gt; &#39;in:*,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31&#39;,
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>&#39;dayofweek&#39; =&gt; &#39;in:*,mon,tue,wed,thu,fri,sat,sun&#39;,
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a> &#39;desc&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>&#39;month&#39; =&gt; &#39;in:*,jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec&#39;,
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>&#39;timespan&#39; =&gt; [
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>&#39;regex:/^\*|(2[0-3]|[01][0-9]):([0-5][0-9])\-(2[0-3]|[01][0-9]):([0-5][0-9])$/&#39;
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>]
+</span></code></pre></div></p>
+<h4 id="put-daytimersdaytimer">PUT /daytimers/{daytimer}<a class="headerlink" href="#put-daytimersdaytimer" title="Permanent link">&para;</a></h4>
+<p>update a timer
+<strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;,
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>&#39;datemonth&#39; =&gt; &#39;in:*,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31&#39;,
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>&#39;dayofweek&#39; =&gt; &#39;in:*,mon,tue,wed,thu,fri,sat,sun&#39;,
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>&#39;desc&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>&#39;month&#39; =&gt; &#39;in:*,jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec&#39;,
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>&#39;timespan&#39; =&gt; [
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>&#39;regex:/^\*|(2[0-3]|[01][0-9]):([0-5][0-9])\-(2[0-3]|[01][0-9]):([0-5][0-9])$/&#39;
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>]
+</span></code></pre></div></p>
+<h4 id="delete-daytimersdaytimer">DELETE  /daytimers/{daytimer}<a class="headerlink" href="#delete-daytimersdaytimer" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="destinations">Destinations<a class="headerlink" href="#destinations" title="Permanent link">&para;</a></h2>
+<p>Destinations provides a list of all currently valid destinations within the database.  It has only one method.</p>
+<h4 id="get-destinations">GET /destinations<a class="headerlink" href="#get-destinations" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="extensions">Extensions<a class="headerlink" href="#extensions" title="Permanent link">&para;</a></h2>
+<p>Extensions have some extra functions to deal with multiple extension types and runtime information</p>
+<h4 id="get-extensionsextension">GET /extensions/{extension?}<a class="headerlink" href="#get-extensionsextension" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of an extension</p>
+<h4 id="get-extensionsextensionruntime">GET /extensions/{extension}/runtime<a class="headerlink" href="#get-extensionsextensionruntime" title="Permanent link">&para;</a></h4>
+<p>Returns runtime information about  the extension from the PBX (i.e. CFIM, CFBS, ringdelay)</p>
+<h4 id="post-extensionsmailbox">POST /extensions/mailbox<a class="headerlink" href="#post-extensionsmailbox" title="Permanent link">&para;</a></h4>
+<p>Create a new mailbox instance</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;,
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;
+</span></code></pre></div></p>
+<h4 id="post-extensionsprovisioned">POST /extensions/provisioned<a class="headerlink" href="#post-extensionsprovisioned" title="Permanent link">&para;</a></h4>
+<p>Create a new sark65api provisioned instance</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;,
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>&#39;macaddr&#39; =&gt; &#39;required|regex:/^[0-9a-fA-F]{12}$/&#39;
+</span></code></pre></div></p>
+<h4 id="post-extensionsunprovisioned">POST /extensions/unprovisioned<a class="headerlink" href="#post-extensionsunprovisioned" title="Permanent link">&para;</a></h4>
+<p>Create a new uprovisioned instance</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;,
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;
+</span></code></pre></div></p>
+<h4 id="post-extensionswebrtc">POST /extensions/webrtc<a class="headerlink" href="#post-extensionswebrtc" title="Permanent link">&para;</a></h4>
+<p>Create a new webrtc instance</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;,
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,pkey&#39;
+</span></code></pre></div></p>
+<h4 id="put-extensionsextension">PUT /extensions/{extension}<a class="headerlink" href="#put-extensionsextension" title="Permanent link">&para;</a></h4>
+<p>Update an instance</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>&#39;active&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>&#39;callbackto&#39; =&gt; &#39;in:desk,cell&#39;,
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>&#39;callerid&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>&#39;cellphone&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>&#39;celltwin&#39; =&gt; &#39;in:ON,OFF&#39;,
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>&#39;devicerec&#39; =&gt; &#39;in:None,OTR,OTRR,Inbound.Outbound,Both&#39;,
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>&#39;dvrvmail&#39; =&gt; &#39;exists:ipphone,pkey|nullable&#39;,
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>&#39;location&#39; =&gt; &#39;in:local,remote&#39;,
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>&#39;protocol&#39; =&gt; &#39;in:IPV4,IPV6&#39;,
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>&#39;provision&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>&#39;provisionwith&#39; =&gt; &#39;in:IP,FQDN&#39;,
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>&#39;sndcreds&#39; =&gt; &#39;in:No,Once,Always&#39;,
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>&#39;transport&#39; =&gt; &#39;in:udp,tcp,tls,wss&#39;,
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>&#39;vmailfwd&#39; =&gt; &#39;email|nullable&#39;
+</span></code></pre></div></p>
+<h4 id="put-extensionsextensionruntime">PUT /extensions/{extension}/runtime<a class="headerlink" href="#put-extensionsextensionruntime" title="Permanent link">&para;</a></h4>
+<p>Update runtime information for an instance</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>&#39;cfim&#39; =&gt; :
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    [&#39;regex:/^\+?\d+$/&#39;],
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    [&#39;nullable&#39;],
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>&#39;cfbs&#39; =&gt; 
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    [&#39;regex:/^\+?\d+$/&#39;],
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    [&#39;nullable&#39;],            
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>&#39;ringdelay&#39; =&gt; &#39;integer|nullable&#39;
+</span></code></pre></div></p>
+<h4 id="delete-extensionsextension">DELETE /extensions/{extension}<a class="headerlink" href="#delete-extensionsextension" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="firewalls">Firewalls<a class="headerlink" href="#firewalls" title="Permanent link">&para;</a></h2>
+<p>sark65api uses the Shorewall firewall to protect its resources.   The API operates on the entire ruleset as a simple array.   GET will return the rules, POST will update the rules and validate them (using shorewall itself) and PUT will restart the firewall.</p>
+<h4 id="get-firewallsipv4">GET /firewalls/ipv4<a class="headerlink" href="#get-firewallsipv4" title="Permanent link">&para;</a></h4>
+<p>return the IPV4 firewall rules</p>
+<h4 id="post-firewallsipv4">POST /firewalls/ipv4<a class="headerlink" href="#post-firewallsipv4" title="Permanent link">&para;</a></h4>
+<p>Upload a rules array to the server and validate it.</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>&#39;rules&#39; =&gt; &#39;required&#39;
+</span></code></pre></div></p>
+<h4 id="put-firewallsipv4">PUT /firewalls/ipv4<a class="headerlink" href="#put-firewallsipv4" title="Permanent link">&para;</a></h4>
+<p>Restart the IPV4 firewall</p>
+<h4 id="get-firewallsipv6">GET /firewalls/ipv6<a class="headerlink" href="#get-firewallsipv6" title="Permanent link">&para;</a></h4>
+<p>return the IPV6 firewall rules</p>
+<h4 id="post-firewallsipv6">POST /firewalls/ipv6<a class="headerlink" href="#post-firewallsipv6" title="Permanent link">&para;</a></h4>
+<p>Upload a rules array to the server and validate it.</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>&#39;rules&#39; =&gt; &#39;required&#39;
+</span></code></pre></div></p>
+<h4 id="put-firewallsipv6">PUT /firewalls/ipv6<a class="headerlink" href="#put-firewallsipv6" title="Permanent link">&para;</a></h4>
+<p>Restart the IPV6 firewall</p>
+<hr />
+<h2 id="greetings">Greetings<a class="headerlink" href="#greetings" title="Permanent link">&para;</a></h2>
+<h4 id="get-greetings">GET /greetings<a class="headerlink" href="#get-greetings" title="Permanent link">&para;</a></h4>
+<p>Returns a list of greetings</p>
+<h4 id="get-greetingsgreeting">GET /greetings/{greeting}<a class="headerlink" href="#get-greetingsgreeting" title="Permanent link">&para;</a></h4>
+<p>Download a greeting</p>
+<h4 id="post-greetings">POST  /greetings<a class="headerlink" href="#post-greetings" title="Permanent link">&para;</a></h4>
+<p>Upload a new greeting</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>&#39;greeting&#39; =&gt; &#39;required|file|mimes:wav,mpeg&#39;
+</span></code></pre></div></p>
+<h4 id="delete-greetingsgreeting">DELETE /greetings/{greeting}<a class="headerlink" href="#delete-greetingsgreeting" title="Permanent link">&para;</a></h4>
+<p>Delete a greeting</p>
+<h2 id="non-recurring-timers-holidaytimers">Non Recurring Timers (Holidaytimers)<a class="headerlink" href="#non-recurring-timers-holidaytimers" title="Permanent link">&para;</a></h2>
+<h4 id="get-holidaytimersholidaytimer">GET /holidaytimers{holidaytimer?}<a class="headerlink" href="#get-holidaytimersholidaytimer" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of HolidayTimer.   Times are stored as epoch seconds.</p>
+<h4 id="post-holidaytimers">POST /holidaytimers<a class="headerlink" href="#post-holidaytimers" title="Permanent link">&para;</a></h4>
+<p>Create a new Holidaytimer</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>&#39;route&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>&#39;desc&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>&#39;stime&#39; =&gt; &#39;digits:10|nullable&#39;,
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>&#39;etime&#39; =&gt; &#39;digits:10|nullable&#39;
+</span></code></pre></div></p>
+<h4 id="put-holidaytimersholidaytimer">PUT /holidaytimers/{holidaytimer}<a class="headerlink" href="#put-holidaytimersholidaytimer" title="Permanent link">&para;</a></h4>
+<p>update a timer</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>&#39;route&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>&#39;desc&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>&#39;stime&#39; =&gt; &#39;digits:10|nullable&#39;,
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>&#39;etime&#39; =&gt; &#39;digits:10|nullable&#39;
+</span></code></pre></div></p>
+<h4 id="delete-holidaytimersholidaytimer">DELETE  /holidaytimers/{holidaytimer}<a class="headerlink" href="#delete-holidaytimersholidaytimer" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="inbound-routes">Inbound Routes<a class="headerlink" href="#inbound-routes" title="Permanent link">&para;</a></h2>
+<p>Inbound routes (DDI's or DiD's) control the initial ingress into the PBX core</p>
+<h4 id="get-inboundroutesinboundroute">GET /inboundroutes/{inboundroute?}<a class="headerlink" href="#get-inboundroutesinboundroute" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of InboundRoute</p>
+<h4 id="post-inboundroutes">POST /inboundroutes<a class="headerlink" href="#post-inboundroutes" title="Permanent link">&para;</a></h4>
+<p>Create a new inboundroute</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>&#39;carrier&#39; =&gt; &#39;required|in:DiD,CLID&#39;
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster&#39;
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>&#39;trunkname&#39; =&gt; &#39;required&#39;
+</span></code></pre></div></p>
+<h4 id="put-inboundroutesinboundroute">PUT /inboundroutes/{inboundroute}<a class="headerlink" href="#put-inboundroutesinboundroute" title="Permanent link">&para;</a></h4>
+<p>update an inboundroute</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>&#39;active&#39; =&gt; &#39;in:YES,NO&#39;, 
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>&#39;alertinfo&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>&#39;carrier&#39; =&gt; &#39;in:DiD,CLID&#39;,
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>&#39;closeroute&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>&#39;description&#39; =&gt; &#39;alpha_num&#39;,
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>&#39;disa&#39; =&gt; &#39;in:DISA,CALLBACK|nullable&#39;,
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>&#39;disapass&#39; =&gt; &#39;alpha_num|nullable&#39;,
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>&#39;inprefix&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>&#39;moh&#39; =&gt; &#39;in:ON,OFF&#39;,
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>&#39;openroute&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>&#39;swoclip&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>&#39;tag&#39; =&gt; &#39;alpha_num|nullable&#39;,
+</span></code></pre></div></p>
+<h4 id="delete-inboundroutesinboundroute">DELETE  /inboundroutes/{inboundroute}<a class="headerlink" href="#delete-inboundroutesinboundroute" title="Permanent link">&para;</a></h4>
+<h2 id="ivrs">IVRs<a class="headerlink" href="#ivrs" title="Permanent link">&para;</a></h2>
+<p>IVRs optionally control ACD into the PBX core</p>
+<h4 id="get-ivrsivr">GET /ivrs/{ivr?}<a class="headerlink" href="#get-ivrsivr" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of Ivr</p>
+<h4 id="post-ivrs">POST /ivrs<a class="headerlink" href="#post-ivrs" title="Permanent link">&para;</a></h4>
+<p>Create a new ivr</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster&#39;
+</span></code></pre></div></p>
+<h4 id="put-ivrsivr">PUT /ivrs/{ivr}<a class="headerlink" href="#put-ivrsivr" title="Permanent link">&para;</a></h4>
+<p>update an ivr</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>&#39;alert0&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>&#39;alert1&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>&#39;alert2&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>&#39;alert3&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>&#39;alert4&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>&#39;alert5&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>&#39;alert6&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>&#39;alert7&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>&#39;alert8&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>&#39;alert9&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>&#39;alert10&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>&#39;alert11&#39; =&gt; &#39;string|nullable&#39;,            
+</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>&#39;description&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-14"><a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-22-15"><a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a>&#39;greetnum&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-22-16"><a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a>&#39;listenforext&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-22-17"><a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>&#39;option0&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-18"><a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a>&#39;option1&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-19"><a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a>&#39;option2&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-20"><a id="__codelineno-22-20" name="__codelineno-22-20" href="#__codelineno-22-20"></a>&#39;option3&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-21"><a id="__codelineno-22-21" name="__codelineno-22-21" href="#__codelineno-22-21"></a>&#39;option4&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-22"><a id="__codelineno-22-22" name="__codelineno-22-22" href="#__codelineno-22-22"></a>&#39;option5&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-23"><a id="__codelineno-22-23" name="__codelineno-22-23" href="#__codelineno-22-23"></a>&#39;option6&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-24"><a id="__codelineno-22-24" name="__codelineno-22-24" href="#__codelineno-22-24"></a>&#39;option7&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-25"><a id="__codelineno-22-25" name="__codelineno-22-25" href="#__codelineno-22-25"></a>&#39;option8&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-26"><a id="__codelineno-22-26" name="__codelineno-22-26" href="#__codelineno-22-26"></a>&#39;option9&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-27"><a id="__codelineno-22-27" name="__codelineno-22-27" href="#__codelineno-22-27"></a>&#39;option10&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-28"><a id="__codelineno-22-28" name="__codelineno-22-28" href="#__codelineno-22-28"></a>&#39;option11&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-29"><a id="__codelineno-22-29" name="__codelineno-22-29" href="#__codelineno-22-29"></a>&#39;tag0&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-30"><a id="__codelineno-22-30" name="__codelineno-22-30" href="#__codelineno-22-30"></a>&#39;tag1&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-31"><a id="__codelineno-22-31" name="__codelineno-22-31" href="#__codelineno-22-31"></a>&#39;tag2&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-32"><a id="__codelineno-22-32" name="__codelineno-22-32" href="#__codelineno-22-32"></a>&#39;tag3&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-33"><a id="__codelineno-22-33" name="__codelineno-22-33" href="#__codelineno-22-33"></a>&#39;tag4&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-34"><a id="__codelineno-22-34" name="__codelineno-22-34" href="#__codelineno-22-34"></a>&#39;tag5&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-35"><a id="__codelineno-22-35" name="__codelineno-22-35" href="#__codelineno-22-35"></a>&#39;tag6&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-36"><a id="__codelineno-22-36" name="__codelineno-22-36" href="#__codelineno-22-36"></a>&#39;tag7&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-37"><a id="__codelineno-22-37" name="__codelineno-22-37" href="#__codelineno-22-37"></a>&#39;tag8&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-38"><a id="__codelineno-22-38" name="__codelineno-22-38" href="#__codelineno-22-38"></a>&#39;tag9&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-39"><a id="__codelineno-22-39" name="__codelineno-22-39" href="#__codelineno-22-39"></a>&#39;tag10&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-22-40"><a id="__codelineno-22-40" name="__codelineno-22-40" href="#__codelineno-22-40"></a>&#39;tag11&#39; =&gt; &#39;string|nullable&#39;,            
+</span><span id="__span-22-41"><a id="__codelineno-22-41" name="__codelineno-22-41" href="#__codelineno-22-41"></a>&#39;timeout&#39; =&gt; &#39;operator&#39;,
+</span></code></pre></div></p>
+<h4 id="delete-ivrsivr">DELETE  /ivrs/{ivr}<a class="headerlink" href="#delete-ivrsivr" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="logscdrs">Logs/CDRs<a class="headerlink" href="#logscdrs" title="Permanent link">&para;</a></h2>
+<p>Here is a placeholder for general logs.   In the initial out it only has a method to retrieve CDR.</p>
+<h4 id="get-logscdrslimit">GET /logs/cdrs/{limit?}<a class="headerlink" href="#get-logscdrslimit" title="Permanent link">&para;</a></h4>
+<p>Download the CDR log.   If {limit} is specified, download the last {limit} rows</p>
+<hr />
+<h2 id="queues">Queues<a class="headerlink" href="#queues" title="Permanent link">&para;</a></h2>
+<p>Queues optionally control ACD into the PBX core</p>
+<h4 id="get-queuesqueue">GET /queues{queue?}<a class="headerlink" href="#get-queuesqueue" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of Queue</p>
+<h4 id="post-queues">POST /queues<a class="headerlink" href="#post-queues" title="Permanent link">&para;</a></h4>
+<p>Create a new queue</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster&#39;
+</span></code></pre></div></p>
+<h4 id="put-queuesqueue">PUT /queues/{queue}<a class="headerlink" href="#put-queuesqueue" title="Permanent link">&para;</a></h4>
+<p>update a queue</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>&#39;conf&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>&#39;devicerec&#39; =&gt; &#39;in:None,OTR,OTRR,Inbound&#39;,
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>&#39;greetnum&#39; =&gt; &#39;regex:/^usergreeting\d{4}$&#39;,
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>&#39;options&#39; =&gt; &#39;alpha&#39;,
+</span></code></pre></div></p>
+<h4 id="delete-queuesqueue">DELETE  /queues/{queue}<a class="headerlink" href="#delete-queuesqueue" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="snapshots">Snapshots<a class="headerlink" href="#snapshots" title="Permanent link">&para;</a></h2>
+<p>A snapshot is an instance of the sark65api db. </p>
+<h4 id="get-snapshots">GET /snapshots<a class="headerlink" href="#get-snapshots" title="Permanent link">&para;</a></h4>
+<p>return a list of available snapshots on the server</p>
+<h4 id="get-snapshotssnapshot">GET /snapshots/{snapshot}<a class="headerlink" href="#get-snapshotssnapshot" title="Permanent link">&para;</a></h4>
+<p>Download an existing snapshot from the server</p>
+<h4 id="get-snapshotsnew">GET /snapshots/new<a class="headerlink" href="#get-snapshotsnew" title="Permanent link">&para;</a></h4>
+<p>Request a new snapshot be taken and saved in the snapshot set</p>
+<h4 id="post-snapshots">POST /snapshots<a class="headerlink" href="#post-snapshots" title="Permanent link">&para;</a></h4>
+<p>Upload a local snapshot to the snapshot set on the server</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>&#39;uploadsnap&#39; =&gt; &#39;required|file|mimetypes:application/zip&#39;
+</span></code></pre></div></p>
+<h4 id="put-snapshotssnapshot">PUT /snapshots/{snapshot}<a class="headerlink" href="#put-snapshotssnapshot" title="Permanent link">&para;</a></h4>
+<p>Restore an existing snapshot from the snapshot set to the live system.</p>
+<h4 id="delete-snapshotssnapshot">DELETE /snapshots/{snapshot}<a class="headerlink" href="#delete-snapshotssnapshot" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="routes">Routes<a class="headerlink" href="#routes" title="Permanent link">&para;</a></h2>
+<h4 id="get-routesroute">GET /routes/{route?}<a class="headerlink" href="#get-routesroute" title="Permanent link">&para;</a></h4>
+<p>return a list or instance of ringgroup</p>
+<h4 id="post-route">POST /route<a class="headerlink" href="#post-route" title="Permanent link">&para;</a></h4>
+<p>Create a new route</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>&#39;cluster&#39; = &#39;required|exists:cluster,&#39;
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>&#39;outcome&#39; = &#39;required;
+</span></code></pre></div></p>
+<h4 id="put-routesroute">PUT /routes/{route}<a class="headerlink" href="#put-routesroute" title="Permanent link">&para;</a></h4>
+<p>Update an existing route</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>&#39;active&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>&#39;auth&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>&#39;desc&#39; =&gt; &#39;alpha_dash&#39;,
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>&#39;dialplan&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>&#39;path1&#39; =&gt; &#39;exists:lineio,pkey|nullable&#39;,
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>&#39;path2&#39; =&gt; &#39;exists:lineio,pkey|nullable&#39;,
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>&#39;path3&#39; =&gt; &#39;exists:lineio,pkey|nullable&#39;,
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>&#39;path4&#39; =&gt; &#39;exists:lineio,pkey|nullable&#39;,
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>&#39;strategy&#39; =&gt; &#39;in:hunt,balance&#39;
+</span></code></pre></div></p>
+<h4 id="delete-routesroute">DELETE /routes/{route}<a class="headerlink" href="#delete-routesroute" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="system-commands">System Commands<a class="headerlink" href="#system-commands" title="Permanent link">&para;</a></h2>
+<p>System commands use the GET method</p>
+<h4 id="get-syscommandscommand">GET /syscommands/{command}<a class="headerlink" href="#get-syscommandscommand" title="Permanent link">&para;</a></h4>
+<p>Available Commands</p>
+<ul>
+<li>commit</li>
+<li>reboot</li>
+<li>pbxrunstate</li>
+<li>pbxstart</li>
+<li>pbxstop</li>
+</ul>
+<hr />
+<h2 id="system-globals">System Globals<a class="headerlink" href="#system-globals" title="Permanent link">&para;</a></h2>
+<p>Globals are system wide variables which control PBX default behaviours.  They cannot be created or deleted.</p>
+<h4 id="get-sysglobals">GET /sysglobals<a class="headerlink" href="#get-sysglobals" title="Permanent link">&para;</a></h4>
+<p>return a list of global settings</p>
+<h4 id="put-sysglobals">PUT /sysglobals<a class="headerlink" href="#put-sysglobals" title="Permanent link">&para;</a></h4>
+<p>update Global settings</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>&#39;ABSTIMEOUT&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>&#39;ACL&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>&#39;AGENTSTART&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>&#39;ALERT&#39; =&gt; &#39;email&#39;,
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>&#39;ALLOWHASHXFER&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>&#39;BLINDBUSY&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>&#39;BOUNCEALERT&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>&#39;CALLPARKING&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>&#39;CALLRECORD1&#39; =&gt; &#39;in:None,OTR,OTRR,Inbound.Outbound,Both&#39;,
+</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>&#39;CAMPONQONOFF&#39; =&gt; &#39;in:OFF,ON&#39;,
+</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a>&#39;CAMPONQOPT&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-28-12"><a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a>&#39;CFWDEXTRNRULE&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-28-13"><a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a>&#39;CFWDPROGRESS&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-28-14"><a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a>&#39;CFWDANSWER&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-28-15"><a id="__codelineno-28-15" name="__codelineno-28-15" href="#__codelineno-28-15"></a>&#39;CLUSTER&#39; =&gt; &#39;in:ON,OFF&#39;,
+</span><span id="__span-28-16"><a id="__codelineno-28-16" name="__codelineno-28-16" href="#__codelineno-28-16"></a>&#39;CONFTYPE&#39; =&gt; &#39;in:simple,hosted&#39;,
+</span><span id="__span-28-17"><a id="__codelineno-28-17" name="__codelineno-28-17" href="#__codelineno-28-17"></a>&#39;COSSTART&#39; =&gt; &#39;in:ON,OFF&#39;,
+</span><span id="__span-28-18"><a id="__codelineno-28-18" name="__codelineno-28-18" href="#__codelineno-28-18"></a>&#39;COUNTRYCODE&#39; =&gt; &#39;alpha|size:2&#39;,
+</span><span id="__span-28-19"><a id="__codelineno-28-19" name="__codelineno-28-19" href="#__codelineno-28-19"></a>&#39;EURL&#39; =&gt; &#39;regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/&#39;,
+</span><span id="__span-28-20"><a id="__codelineno-28-20" name="__codelineno-28-20" href="#__codelineno-28-20"></a>&#39;EMERGENCY&#39; =&gt; &#39;digits:3&#39;,
+</span><span id="__span-28-21"><a id="__codelineno-28-21" name="__codelineno-28-21" href="#__codelineno-28-21"></a>&#39;FQDN&#39; =&gt; &#39;regex:/^(?!:\/\/)(?=.{1,255}$)((.{1,63}\.){1,127}(?![0-9]*$)[a-z0-9-]+\.?)$/i&#39;,
+</span><span id="__span-28-22"><a id="__codelineno-28-22" name="__codelineno-28-22" href="#__codelineno-28-22"></a>&#39;FQDNINSPECT&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-23"><a id="__codelineno-28-23" name="__codelineno-28-23" href="#__codelineno-28-23"></a>&#39;FQDNPROV&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-24"><a id="__codelineno-28-24" name="__codelineno-28-24" href="#__codelineno-28-24"></a>&#39;INTRINGDELAY&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-25"><a id="__codelineno-28-25" name="__codelineno-28-25" href="#__codelineno-28-25"></a>&#39;IVRKEYWAIT&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-28-26"><a id="__codelineno-28-26" name="__codelineno-28-26" href="#__codelineno-28-26"></a>&#39;IVRDIGITWAIT&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-28-27"><a id="__codelineno-28-27" name="__codelineno-28-27" href="#__codelineno-28-27"></a>&#39;LACL&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-28"><a id="__codelineno-28-28" name="__codelineno-28-28" href="#__codelineno-28-28"></a>&#39;LDAPBASE&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-28-29"><a id="__codelineno-28-29" name="__codelineno-28-29" href="#__codelineno-28-29"></a>&#39;LDAPOU&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-28-30"><a id="__codelineno-28-30" name="__codelineno-28-30" href="#__codelineno-28-30"></a>&#39;LDAPUSER&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-28-31"><a id="__codelineno-28-31" name="__codelineno-28-31" href="#__codelineno-28-31"></a>&#39;LDAPPASS&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-28-32"><a id="__codelineno-28-32" name="__codelineno-28-32" href="#__codelineno-28-32"></a>&#39;LEASEHDTIME&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-33"><a id="__codelineno-28-33" name="__codelineno-28-33" href="#__codelineno-28-33"></a>&#39;LOCALIP&#39; =&gt; &#39;ip&#39;,
+</span><span id="__span-28-34"><a id="__codelineno-28-34" name="__codelineno-28-34" href="#__codelineno-28-34"></a>&#39;LOGLEVEL&#39; =&gt; &#39;integer&#39;,        
+</span><span id="__span-28-35"><a id="__codelineno-28-35" name="__codelineno-28-35" href="#__codelineno-28-35"></a>&#39;LOGSIPDISPSIZE&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-36"><a id="__codelineno-28-36" name="__codelineno-28-36" href="#__codelineno-28-36"></a>&#39;LOGSIPNUMFILES&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-37"><a id="__codelineno-28-37" name="__codelineno-28-37" href="#__codelineno-28-37"></a>&#39;LOGSIPFILESIZE&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-38"><a id="__codelineno-28-38" name="__codelineno-28-38" href="#__codelineno-28-38"></a>&#39;LTERM&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-39"><a id="__codelineno-28-39" name="__codelineno-28-39" href="#__codelineno-28-39"></a>&#39;MAXIN&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-40"><a id="__codelineno-28-40" name="__codelineno-28-40" href="#__codelineno-28-40"></a>&#39;MIXMONITOR&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-41"><a id="__codelineno-28-41" name="__codelineno-28-41" href="#__codelineno-28-41"></a>&#39;MONITOROUT&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-28-42"><a id="__codelineno-28-42" name="__codelineno-28-42" href="#__codelineno-28-42"></a>&#39;MONITORSTAGE&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-28-43"><a id="__codelineno-28-43" name="__codelineno-28-43" href="#__codelineno-28-43"></a>&#39;MONITORTYPE&#39; =&gt; &#39;in:monitor,mixmonitor&#39;,
+</span><span id="__span-28-44"><a id="__codelineno-28-44" name="__codelineno-28-44" href="#__codelineno-28-44"></a>&#39;NATDEFAULT&#39; =&gt; &#39;in:local,remote&#39;,
+</span><span id="__span-28-45"><a id="__codelineno-28-45" name="__codelineno-28-45" href="#__codelineno-28-45"></a>&#39;OPERATOR&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-46"><a id="__codelineno-28-46" name="__codelineno-28-46" href="#__codelineno-28-46"></a>&#39;PWDLEN&#39; =&gt; &#39;integer&#39;,    
+</span><span id="__span-28-47"><a id="__codelineno-28-47" name="__codelineno-28-47" href="#__codelineno-28-47"></a>&#39;PLAYBEEP&#39; =&gt; &#39;in:YES.NO&#39;,
+</span><span id="__span-28-48"><a id="__codelineno-28-48" name="__codelineno-28-48" href="#__codelineno-28-48"></a>&#39;PLAYBUSY&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-28-49"><a id="__codelineno-28-49" name="__codelineno-28-49" href="#__codelineno-28-49"></a>&#39;PLAYCONGESTED&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-28-50"><a id="__codelineno-28-50" name="__codelineno-28-50" href="#__codelineno-28-50"></a>&#39;PLAYTRANSFER&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-28-51"><a id="__codelineno-28-51" name="__codelineno-28-51" href="#__codelineno-28-51"></a>&#39;RECFINALDEST&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-28-52"><a id="__codelineno-28-52" name="__codelineno-28-52" href="#__codelineno-28-52"></a>&#39;RECLIMIT&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-53"><a id="__codelineno-28-53" name="__codelineno-28-53" href="#__codelineno-28-53"></a>&#39;RECQDITHER&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-54"><a id="__codelineno-28-54" name="__codelineno-28-54" href="#__codelineno-28-54"></a>&#39;RECQSEARCHLIM&#39; =&gt; &#39;integer&#39;,       
+</span><span id="__span-28-55"><a id="__codelineno-28-55" name="__codelineno-28-55" href="#__codelineno-28-55"></a>&#39;RINGDELAY&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-56"><a id="__codelineno-28-56" name="__codelineno-28-56" href="#__codelineno-28-56"></a>&#39;SESSIONTIMOUT&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-57"><a id="__codelineno-28-57" name="__codelineno-28-57" href="#__codelineno-28-57"></a>&#39;SENDEDOMAIN&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-28-58"><a id="__codelineno-28-58" name="__codelineno-28-58" href="#__codelineno-28-58"></a>&#39;SIPIAXSTART&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-59"><a id="__codelineno-28-59" name="__codelineno-28-59" href="#__codelineno-28-59"></a>&#39;SIPFLOOD&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-60"><a id="__codelineno-28-60" name="__codelineno-28-60" href="#__codelineno-28-60"></a>&#39;SPYPASS&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-61"><a id="__codelineno-28-61" name="__codelineno-28-61" href="#__codelineno-28-61"></a>&#39;SUPEMAIL&#39; =&gt; &#39;email|nullable&#39;,
+</span><span id="__span-28-62"><a id="__codelineno-28-62" name="__codelineno-28-62" href="#__codelineno-28-62"></a>&#39;SYSOP&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-63"><a id="__codelineno-28-63" name="__codelineno-28-63" href="#__codelineno-28-63"></a>&#39;SYSPASS&#39; =&gt; &#39;integer&#39;,    
+</span><span id="__span-28-64"><a id="__codelineno-28-64" name="__codelineno-28-64" href="#__codelineno-28-64"></a>&#39;TLSPORT&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-65"><a id="__codelineno-28-65" name="__codelineno-28-65" href="#__codelineno-28-65"></a>&#39;USEROTP&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-28-66"><a id="__codelineno-28-66" name="__codelineno-28-66" href="#__codelineno-28-66"></a>&#39;USERCREATE&#39; =&gt; &#39;in:NO,YES&#39;,
+</span><span id="__span-28-67"><a id="__codelineno-28-67" name="__codelineno-28-67" href="#__codelineno-28-67"></a>&#39;VDELAY&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-68"><a id="__codelineno-28-68" name="__codelineno-28-68" href="#__codelineno-28-68"></a>&#39;VMAILAGE&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-69"><a id="__codelineno-28-69" name="__codelineno-28-69" href="#__codelineno-28-69"></a>&#39;VOICEINSTR&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-28-70"><a id="__codelineno-28-70" name="__codelineno-28-70" href="#__codelineno-28-70"></a>&#39;VOIPMAX&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-28-71"><a id="__codelineno-28-71" name="__codelineno-28-71" href="#__codelineno-28-71"></a>&#39;VXT&#39; =&gt; &#39;in:0,1&#39;,
+</span><span id="__span-28-72"><a id="__codelineno-28-72" name="__codelineno-28-72" href="#__codelineno-28-72"></a>&#39;ZTP&#39; =&gt; &#39;in:disabled,enabled&#39;
+</span></code></pre></div></p>
+<hr />
+<h2 id="templates">Templates<a class="headerlink" href="#templates" title="Permanent link">&para;</a></h2>
+<p>Templates are used to create provisioning streams</p>
+<h4 id="get-templatestemplate">GET /templates/{template?}<a class="headerlink" href="#get-templatestemplate" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of Template</p>
+<h4 id="post-templates">POST /templates<a class="headerlink" href="#post-templates" title="Permanent link">&para;</a></h4>
+<p>Create a new template</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>&#39;technology&#39; =&gt; &#39;required|in:SIP,Descriptor,BLF Template&#39;;
+</span></code></pre></div></p>
+<h4 id="put-templatesstemplate">PUT /templatess/{template}<a class="headerlink" href="#put-templatesstemplate" title="Permanent link">&para;</a></h4>
+<p>update a template</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>&#39;blfkeyname&#39; =&gt; &#39;exists:device,pkey|nullable&#39;,
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>&#39;desc&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>&#39;provision&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>&#39;technology&#39; =&gt; &#39;in:SIP,Descriptor,BLF Template&#39;;
+</span></code></pre></div></p>
+<h4 id="delete-templatesstemplate">DELETE //templatess/{template}<a class="headerlink" href="#delete-templatesstemplate" title="Permanent link">&para;</a></h4>
+<p>Delete a template.  Only user created templates can be deleted.  System templates can not.</p>
+<hr />
+<h2 id="tenants">Tenants<a class="headerlink" href="#tenants" title="Permanent link">&para;</a></h2>
+<p>Tenants are used to define classes of  PBX resources.  Usually, but not always, they are customers.  For historical reasons, Tenants are internally referred to as clusters.</p>
+<h4 id="get-tenantstenants">GET /tenants/{tenants?}<a class="headerlink" href="#get-tenantstenants" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of Tenant</p>
+<h4 id="post-tenants">POST /tenants<a class="headerlink" href="#post-tenants" title="Permanent link">&para;</a></h4>
+<p>Create a new tenant</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>&#39;pkey&#39; =&gt; &#39;string|required&#39;
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>&#39;description&#39; =&gt; &#39;string|required&#39;
+</span></code></pre></div></p>
+<h4 id="put-tenantstenant">PUT /tenants/{tenant}<a class="headerlink" href="#put-tenantstenant" title="Permanent link">&para;</a></h4>
+<p>update a tenant</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>            &#39;abstimeout&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>            &#39;allow_hash_xfer&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>            &#39;callrecord1&#39; =&gt; &#39;in:None,In,Out,Both&#39;,
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>            &#39;cfwdextern_rule&#39; =&gt; &#39;In:YES,NO&#39;,
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>            &#39;cfwd_progress&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>            &#39;cfwd_answer&#39; =&gt; &#39;in:enabled,disabled&#39;,
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>            &#39;clusterclid&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>            &#39;chanmax&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>            &#39;countrycode&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a>            &#39;dynamicfeatures&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-11"><a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a>            &#39;description&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-12"><a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a>            &#39;emergency&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-13"><a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a>            &#39;int_ring_delay&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-14"><a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a>            &#39;ivr_key_wait&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-15"><a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a>            &#39;ivr_digit_wait&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-16"><a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a>            &#39;language&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-17"><a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a>            &#39;ldapanonbind&#39; =&gt; &#39;YES&#39;,
+</span><span id="__span-32-18"><a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>            &#39;ldapbase&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-19"><a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a>            &#39;ldaphost&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-20"><a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>            &#39;ldapou&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-21"><a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a>            &#39;ldapuser&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-22"><a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>            &#39;ldappass&#39; =&gt; &#39;sarkstring&#39;,
+</span><span id="__span-32-23"><a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a>            &#39;ldaptls&#39; =&gt; &#39;in:on,off&#39;,
+</span><span id="__span-32-24"><a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a>            &#39;localarea&#39; =&gt; &#39;numeric|nullable&#39;,
+</span><span id="__span-32-25"><a id="__codelineno-32-25" name="__codelineno-32-25" href="#__codelineno-32-25"></a>            &#39;localdplan&#39; =&gt; [
+</span><span id="__span-32-26"><a id="__codelineno-32-26" name="__codelineno-32-26" href="#__codelineno-32-26"></a>                    &#39;regex:/^_X+$/&#39;,
+</span><span id="__span-32-27"><a id="__codelineno-32-27" name="__codelineno-32-27" href="#__codelineno-32-27"></a>                    &#39;nullable&#39;
+</span><span id="__span-32-28"><a id="__codelineno-32-28" name="__codelineno-32-28" href="#__codelineno-32-28"></a>            ],
+</span><span id="__span-32-29"><a id="__codelineno-32-29" name="__codelineno-32-29" href="#__codelineno-32-29"></a>            &#39;lterm&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-32-30"><a id="__codelineno-32-30" name="__codelineno-32-30" href="#__codelineno-32-30"></a>            &#39;leasedhdtime&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-32-31"><a id="__codelineno-32-31" name="__codelineno-32-31" href="#__codelineno-32-31"></a>            &#39;masteroclo&#39; =&gt; &#39;in:AUTO,CLOSED&#39;,
+</span><span id="__span-32-32"><a id="__codelineno-32-32" name="__codelineno-32-32" href="#__codelineno-32-32"></a>            &#39;max_in&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-33"><a id="__codelineno-32-33" name="__codelineno-32-33" href="#__codelineno-32-33"></a>            &#39;monitor_out&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-34"><a id="__codelineno-32-34" name="__codelineno-32-34" href="#__codelineno-32-34"></a>            &#39;operator&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-35"><a id="__codelineno-32-35" name="__codelineno-32-35" href="#__codelineno-32-35"></a>            &#39;pickupgroup&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-36"><a id="__codelineno-32-36" name="__codelineno-32-36" href="#__codelineno-32-36"></a>            &#39;play_beep&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-32-37"><a id="__codelineno-32-37" name="__codelineno-32-37" href="#__codelineno-32-37"></a>            &#39;play_busy&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-32-38"><a id="__codelineno-32-38" name="__codelineno-32-38" href="#__codelineno-32-38"></a>            &#39;play_congested&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-32-39"><a id="__codelineno-32-39" name="__codelineno-32-39" href="#__codelineno-32-39"></a>            &#39;play_transfer&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-32-40"><a id="__codelineno-32-40" name="__codelineno-32-40" href="#__codelineno-32-40"></a>            &#39;rec_age&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-41"><a id="__codelineno-32-41" name="__codelineno-32-41" href="#__codelineno-32-41"></a>            &#39;rec_final_dest&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-42"><a id="__codelineno-32-42" name="__codelineno-32-42" href="#__codelineno-32-42"></a>            &#39;rec_file_dlim&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-32-43"><a id="__codelineno-32-43" name="__codelineno-32-43" href="#__codelineno-32-43"></a>            &#39;rec_grace&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-44"><a id="__codelineno-32-44" name="__codelineno-32-44" href="#__codelineno-32-44"></a>            &#39;rec_limit&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-45"><a id="__codelineno-32-45" name="__codelineno-32-45" href="#__codelineno-32-45"></a>            &#39;rec_mount&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-46"><a id="__codelineno-32-46" name="__codelineno-32-46" href="#__codelineno-32-46"></a>            &#39;recmaxage&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-47"><a id="__codelineno-32-47" name="__codelineno-32-47" href="#__codelineno-32-47"></a>            &#39;recmaxsize&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-48"><a id="__codelineno-32-48" name="__codelineno-32-48" href="#__codelineno-32-48"></a>            &#39;recused&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-49"><a id="__codelineno-32-49" name="__codelineno-32-49" href="#__codelineno-32-49"></a>            &#39;ringdelay&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-50"><a id="__codelineno-32-50" name="__codelineno-32-50" href="#__codelineno-32-50"></a>            &#39;routeoverride&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-51"><a id="__codelineno-32-51" name="__codelineno-32-51" href="#__codelineno-32-51"></a>            &#39;spy_pass&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-52"><a id="__codelineno-32-52" name="__codelineno-32-52" href="#__codelineno-32-52"></a>            &#39;sysop&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-53"><a id="__codelineno-32-53" name="__codelineno-32-53" href="#__codelineno-32-53"></a>            &#39;syspass&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-54"><a id="__codelineno-32-54" name="__codelineno-32-54" href="#__codelineno-32-54"></a>            &#39;usemohcustom&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-32-55"><a id="__codelineno-32-55" name="__codelineno-32-55" href="#__codelineno-32-55"></a>            &#39;vmail_age&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-32-56"><a id="__codelineno-32-56" name="__codelineno-32-56" href="#__codelineno-32-56"></a>            &#39;voice_instr&#39; =&gt; &#39;boolean&#39;,
+</span><span id="__span-32-57"><a id="__codelineno-32-57" name="__codelineno-32-57" href="#__codelineno-32-57"></a>            &#39;voip_max&#39; =&gt; &#39;integer&#39;
+</span></code></pre></div></p>
+<h4 id="delete-tenantstenant">DELETE /tenants/{tenant}<a class="headerlink" href="#delete-tenantstenant" title="Permanent link">&para;</a></h4>
+<p>Deleting a tenant will delete ALL of its dependencies.</p>
+<hr />
+<h2 id="trunks">Trunks<a class="headerlink" href="#trunks" title="Permanent link">&para;</a></h2>
+<p>Trunks are used to define peers.   Mostly you can think of them as axes of egress from the PBX (Ingress is usually defined by DDI/DiD abstractions)</p>
+<h4 id="get-trunkstrunk">GET /trunks/{trunk?}<a class="headerlink" href="#get-trunkstrunk" title="Permanent link">&para;</a></h4>
+<p>Return a list or instance of Trunks</p>
+<h4 id="post-trunks">POST /trunks<a class="headerlink" href="#post-trunks" title="Permanent link">&para;</a></h4>
+<p>Create a new trunk</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>&#39;pkey&#39; =&gt; &#39;required&#39;
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>&#39;carrier&#39; =&gt; &#39;required|in:GeneralSIP,GeneralIAX2&#39;
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>&#39;cluster&#39; =&gt; &#39;required|exists:cluster,&#39; . $request-&gt;cluster
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>&#39;username&#39; =&gt; &#39;required&#39;
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>&#39;host&#39; =&gt; &#39;required&#39;
+</span></code></pre></div></p>
+<h4 id="put-trunkstrunk">PUT /trunks/{trunk}<a class="headerlink" href="#put-trunkstrunk" title="Permanent link">&para;</a></h4>
+<p>update a trunk</p>
+<p><strong>Body:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>&#39;active&#39; =&gt; &#39;in:YES,NO&#39;, 
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>&#39;alertinfo&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>&#39;callerid&#39; =&gt; &#39;integer&#39;,
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>&#39;callprogress&#39; =&gt; &#39;in:ON,OFF&#39;,
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>&#39;cluster&#39; =&gt; &#39;exists:cluster,pkey&#39;,
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>&#39;description&#39; =&gt; &#39;alpha_num&#39;,
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>&#39;devicerec&#39; =&gt; &#39;in:None,OTR,OTRR,Inbound.Outbound,Both&#39;,
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>&#39;disa&#39; =&gt; &#39;in:DISA,CALLBACK|nullable&#39;,
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>&#39;disapass&#39; =&gt; &#39;alpha_num|nullable&#39;,
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>&#39;host&#39; =&gt; &#39;string&#39;, 
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>&#39;inprefix&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>&#39;match&#39; =&gt; &#39;integer|nullable&#39;,
+</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>&#39;moh&#39; =&gt; &#39;in:ON,OFF&#39;,
+</span><span id="__span-34-14"><a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>&#39;password&#39; =&gt; &#39;alpha_num|nullable&#39;,
+</span><span id="__span-34-15"><a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a>&#39;peername&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-34-16"><a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a>&#39;register&#39; =&gt; &#39;string|nullable&#39;,
+</span><span id="__span-34-17"><a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a>&#39;sipiaxpeer&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-34-18"><a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a>&#39;sipiaxuser&#39; =&gt; &#39;string&#39;,
+</span><span id="__span-34-19"><a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a>&#39;swoclip&#39; =&gt; &#39;in:YES,NO&#39;,
+</span><span id="__span-34-20"><a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>&#39;tag&#39; =&gt; &#39;alpha_num|nullable&#39;,
+</span><span id="__span-34-21"><a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a>&#39;transform&#39; =&gt; [
+</span><span id="__span-34-22"><a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a>:&#39;regex:/$(\d+?:\d+?\s*)+&#39;,
+</span><span id="__span-34-23"><a id="__codelineno-34-23" name="__codelineno-34-23" href="#__codelineno-34-23"></a>:&#39;nullable&#39;
+</span><span id="__span-34-24"><a id="__codelineno-34-24" name="__codelineno-34-24" href="#__codelineno-34-24"></a>],
+</span><span id="__span-34-25"><a id="__codelineno-34-25" name="__codelineno-34-25" href="#__codelineno-34-25"></a>&#39;trunkname&#39; =&gt; &#39;alpha_num&#39;,
+</span></code></pre></div></p>
+<h4 id="delete-trunkstrunk">DELETE /trunks/{trunk}<a class="headerlink" href="#delete-trunkstrunk" title="Permanent link">&para;</a></h4>
+<hr />
+<h2 id="asterisk-ami-functions-exposed-by-the-api">Asterisk AMI functions exposed by the API<a class="headerlink" href="#asterisk-ami-functions-exposed-by-the-api" title="Permanent link">&para;</a></h2>
+<p>sark65api gives you access to a range of functions from the Asterisk Manager Interface(AMI).  This allows you to examine, and in some cases change, state information from the running PBX. <br />
+<strong>N.B.</strong> sark65api implements blocking AMI requests.  if you want to access non-blocking AMI streams then you can look at something like PAMI.</p>
+<ul>
+<li>Most of the AMI functions use GET.   They return either an instance list or a single instance.  </li>
+<li>The AMI ''''Originate'''' bridging function uses POST </li>
+<li>Asterisk internal database ''''DBPut'''' uses PUT</li>
+<li>Asterisk internal database ''''DBDel'''' uses DELETE</li>
+<li>AMI function names are case sensitive for consistency with the Asterisk AMI documentation (of which, there is very little).  </li>
+<li>We have not documented the returned variables so you will need to run the requests using something like Postman and decide what you want by examination.</li>
+</ul>
+<h4 id="list-ami-functions">List AMI Functions<a class="headerlink" href="#list-ami-functions" title="Permanent link">&para;</a></h4>
+<p>Each of these functions will return a JSON array</p>
+<h4 id="get-astamis">GET /astamis/<a class="headerlink" href="#get-astamis" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Agents</li>
+<li>ConfbridgeList/{''room-number''} </li>
+<li>ConfbridgeListRooms       </li>
+<li>CoreShowChannels</li>
+<li>DeviceStateList</li>
+<li>ExtensionStateList</li>
+<li>IAXpeers</li>
+<li>IAXregistry</li>
+<li>QueueStatus  </li>
+<li>QueueSummary                </li>
+<li>SIPpeers </li>
+<li>SIPshowregistry</li>
+<li>Status</li>
+<li>VoicemailUsersList</li>
+</ul>
+<h4 id="instance-ami-functions">Instance AMI Functions<a class="headerlink" href="#instance-ami-functions" title="Permanent link">&para;</a></h4>
+<p>GET /astamis/ </p>
+<ul>
+<li>CoreSettings</li>
+<li>CoreStatus</li>
+<li>ExtensionState/{''id''}{''context?''}</li>
+<li>MailboxCount/{''id''}</li>
+<li>MailboxStatus/{''id''}</li>
+<li>QueueStatus/{''id''}</li>
+<li>QueueSummary/{''id}''</li>
+<li>Reload</li>
+<li>SIPshowpeer/{''id''}</li>
+</ul>
+<h4 id="post-astamisoriginate">POST /astamis/originate<a class="headerlink" href="#post-astamisoriginate" title="Permanent link">&para;</a></h4>
+<p>originate a new bridge</p>
+<p><strong>Body:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>target = &#39;required|integer&#39;;
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>caller = &#39;required|numeric&#39;;
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>context = &#39;required|alpha_dash&#39;
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>clid = &#39;required|numeric&#39;;
+</span></code></pre></div>
+<h2 id="asterisk-internal-db-astdb-functions">Asterisk internal DB (AstDB) functions<a class="headerlink" href="#asterisk-internal-db-astdb-functions" title="Permanent link">&para;</a></h2>
+<h4 id="get-astamisdbpgetidkey">GET /astamis/DBPGet/{id}/{key}<a class="headerlink" href="#get-astamisdbpgetidkey" title="Permanent link">&para;</a></h4>
+<h4 id="put-astamisdbputidkeyvalue">PUT /astamis/DBPut/{id}/{key}(value)<a class="headerlink" href="#put-astamisdbputidkeyvalue" title="Permanent link">&para;</a></h4>
+<h4 id="delete-astamisdbdelidkey">DELETE /astamis/DBdel/{id}/{key}<a class="headerlink" href="#delete-astamisdbdelidkey" title="Permanent link">&para;</a></h4>
+<hr />
+<h3 id="asterisk-soft-hangup">Asterisk soft Hangup<a class="headerlink" href="#asterisk-soft-hangup" title="Permanent link">&para;</a></h3>
+<h4 id="delete-astamishangupidkey">DELETE /astamis/Hangup/{id}/{key}<a class="headerlink" href="#delete-astamishangupidkey" title="Permanent link">&para;</a></h4>
+<p>Hangup perfoms a "soft" hangup on a running channel.  The actual channel can be either side of the call bridge, it doesn't matter which you choose in a regular two-party call.  As an example, let's say we wish to hangup a channel called PJSIP/44107-00000155.   Here's what you would send:-</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>https://sip.mypbx.com:44300/api/astamis/Hangup/PJSIP/44107-00000155
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../auth/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Authorization">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Authorization
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 CoCoKraft.com
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["announce.dismiss", "content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      
+    
+  </body>
+</html>
