@@ -179,7 +179,7 @@ Create a new mailbox instance
 'cluster' => 'required|exists:cluster,pkey'
 ```
 ####POST /extensions/provisioned
-Create a new sark65api provisioned instance
+Create a new pbx3api provisioned instance
 
 **Body:**
 ```
@@ -245,7 +245,7 @@ Update runtime information for an instance
 ----------------
 
 ##Firewalls
-sark65api uses the Shorewall firewall to protect its resources.   The API operates on the entire ruleset as a simple array.   GET will return the rules, POST will update the rules and validate them (using shorewall itself) and PUT will restart the firewall.
+pbx3api uses the Shorewall firewall to protect its resources.   The API operates on the entire ruleset as a simple array.   GET will return the rules, POST will update the rules and validate them (using shorewall itself) and PUT will restart the firewall.
 
 ####GET /firewalls/ipv4
 return the IPV4 firewall rules
@@ -455,7 +455,7 @@ update a queue
 ------------------------------------------
 
 ##Snapshots##
-A snapshot is an instance of the sark65api db. 
+A snapshot is an instance of the pbx3api db. 
 ####GET /snapshots
 return a list of available snapshots on the server
 ####GET /snapshots/{snapshot}
@@ -766,8 +766,8 @@ update a trunk
 --------------------------------------------------
 
 ##Asterisk AMI functions exposed by the API
-sark65api gives you access to a range of functions from the Asterisk Manager Interface(AMI).  This allows you to examine, and in some cases change, state information from the running PBX.   
-**N.B.** sark65api implements blocking AMI requests.  if you want to access non-blocking AMI streams then you can look at something like PAMI.
+pbx3api gives you access to a range of functions from the Asterisk Manager Interface(AMI).  This allows you to examine, and in some cases change, state information from the running PBX.   
+**N.B.** pbx3api implements blocking AMI requests.  if you want to access non-blocking AMI streams then you can look at something like PAMI.
 
 * Most of the AMI functions use GET.   They return either an instance list or a single instance.  
 * The AMI ''''Originate'''' bridging function uses POST 

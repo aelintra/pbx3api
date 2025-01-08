@@ -13,4 +13,4 @@ Using the API you may...
 All of these things are possible with the API.
 
 ## Requirements
-sark6api requires a SARK V65 instance running php 8.2 or later.  Only 64 bit architectures are supported for both X86 and ARM and the API uses the Laravel 11 framework. The support code is written in a mix of standalone PHP, bash and C code.
+pbx3api requires a SARK V65 instance running php 8.2 or later.  Only 64 bit architectures are supported for both X86 and ARM and the API uses the Laravel 11 framework. The support code is written in a mix of standalone PHP, bash and C code.
