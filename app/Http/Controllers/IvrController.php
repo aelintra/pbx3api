@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Ivr;
+use App\Models\Ivr;
 use Illuminate\Http\Request;
 use Response;
 use Validator;

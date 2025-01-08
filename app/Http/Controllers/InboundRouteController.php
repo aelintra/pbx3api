@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\InboundRoute;
+use App\Models\InboundRoute;
 use Illuminate\Http\Request;
 use Response;
 use Validator;

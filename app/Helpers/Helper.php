@@ -3,11 +3,34 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\CustomClasses\Ami;
+use Laravel\Sanctum\PersonalAccessToken;
 
-if (!function_exists('gcs_database_key_exists')) {
-    function gcs_database_key_exists($candidateKey) {
+if (!function_exists('sark_database_key_exists')) {
+    function sark_database_key_exists($candidateKey) {
         return DB::table('master_xref')->where('pkey', '=', $candidateKey)->count();    
     }
+}
+
+if (!function_exists('get_token_abilities')) {
+    function get_token_abilities() {
+        Log::info("In get_token_abilities");      
+        $token = request()->bearerToken();
+        
+        if (!isset ($token)) {
+            return false;
+        }
+        Log::info("Bearer token is " . $token);
+        $bits = preg_split("/\|/",$token);
+        $hashtoken = hash('sha256', $bits[1]);
+        Log::info("hash token is " . $hashtoken);
+        $abilities = DB::table('personal_access_tokens')->where('token', $hashtoken)->value('abilities');
+        Log::info("Abilities is " . $abilities);
+        if (preg_match("/isAdmin/",$abilities)) {
+            Log::info("ability is true");
+            return true;
+        }      
+        return false;
+    }    
 }
 
 if (!function_exists('move_request_to_model')) {
@@ -36,7 +59,6 @@ if (!function_exists('move_request_to_model')) {
 		return;
 
 	}
-
 }
 
 if (!function_exists('get_location')) {
@@ -94,16 +116,16 @@ if (!function_exists('create_new_backup')) {
     function create_new_backup() {
 
         $backupSet = [
-            '/opt/gcs/db/sqlite.db',
+            '/opt/sark/db/sqlite.db',
             '/usr/share/asterisk/sounds',
             '/var/spool/asterisk/voicemail',
             '/etc/asterisk',
             '/etc/shorewall',
-            '/tmp/gcs.local.ldif'
+            '/tmp/sark.local.ldif'
         ];
 
-        shell_exec('/usr/sbin/slapcat > /tmp/gcs.local.ldif');
-        $newBackupName = "gcsbak." . time() . ".zip";
+        shell_exec('/usr/sbin/slapcat > /tmp/sark.local.ldif');
+        $newBackupName = "sarkbak." . time() . ".zip";
        
         foreach($backupSet as $file) { 
             if(file_exists($file)) {
@@ -114,9 +136,9 @@ if (!function_exists('create_new_backup')) {
                 Log::info($file . " not found");
             }
         } 
-        shell_exec("/bin/mv /tmp/$newBackupName /opt/gcs/bkup/");
-        shell_exec("/bin/chown www-data:www-data /opt/gcs/bkup/$newBackupName ");
-        shell_exec("/bin/chmod 664 /opt/gcs/bkup/$newBackupName ");
+        shell_exec("/bin/mv /tmp/$newBackupName /opt/sark/bkup/");
+        shell_exec("/bin/chown www-data:www-data /opt/sark/bkup/$newBackupName ");
+        shell_exec("/bin/chmod 664 /opt/sark/bkup/$newBackupName ");
         return $newBackupName;  
 
     }
@@ -134,10 +156,10 @@ if (!function_exists('create_new_snapshot')) {
      * */
     function create_new_snapshot() {
 
-        $newSnapshotName = "gcs.db." . time();
-        shell_exec("/bin/cp /opt/gcs/db/gcs.db /opt/gcs/snap/$newSnapshotName");
-        shell_exec("/bin/chown www-data:www-data /opt/gcs/snap/$newSnapshotName");
-        shell_exec("/bin/chmod 664 /opt/gcs/snap/$newSnapshotName");
+        $newSnapshotName = "sark.db." . time();
+        shell_exec("/bin/cp /opt/sark/db/sark.db /opt/sark/snap/$newSnapshotName");
+        shell_exec("/bin/chown www-data:www-data /opt/sark/snap/$newSnapshotName");
+        shell_exec("/bin/chmod 664 /opt/sark/snap/$newSnapshotName");
         return $newSnapshotName;  
 
     }
@@ -152,7 +174,7 @@ function restore_from_backup($request) {
 /* 
  * Unzip the backup file
  */
-    if (!file_exists("/opt/gcs/bkup/" . $request->backup)) {
+    if (!file_exists("/opt/sark/bkup/" . $request->backup)) {
         Log::info("Requested restore set not found");
         return 404;
     }
@@ -163,7 +185,7 @@ function restore_from_backup($request) {
 
     $tempDname = "/tmp/bkup" . time();
     shell_exec("/bin/mkdir $tempDname");
-    $unzipCmd = "/usr/bin/unzip /opt/gcs/bkup/" . $request->backup . " -d $tempDname";
+    $unzipCmd = "/usr/bin/unzip /opt/sark/bkup/" . $request->backup . " -d $tempDname";
     shell_exec($unzipCmd);
     if (!file_exists($tempDname)) {
         Log::info("Restore unzip did not create a directory!");
@@ -174,13 +196,13 @@ function restore_from_backup($request) {
  * now we can begin the restore
  */     
     if ( $request->restoredb === true) {
-        if (file_exists($tempDname . '/opt/gcs/db/gcs.db')) {
-            Log::info("Restoring the Database from $tempDname/opt/gcs/db/gcs.db");
-            shell_exec("/bin/cp -f $tempDname/opt/gcs/db/gcs.db  /opt/gcs/db/gcs.db");
+        if (file_exists($tempDname . '/opt/sark/db/sark.db')) {
+            Log::info("Restoring the Database from $tempDname/opt/sark/db/sark.db");
+            shell_exec("/bin/cp -f $tempDname/opt/sark/db/sark.db  /opt/sark/db/sark.db");
             Log::info("Setting DB ownership");
-            shell_exec("/bin/chown www-data:www-data  /opt/gcs/db/gcs.db");
+            shell_exec("/bin/chown www-data:www-data  /opt/sark/db/sark.db");
             Log::info("Running the reloader to sync versions");
-            shell_exec("/bin/sh /opt/gcs/scripts/srkV4reloader.sh");      
+            shell_exec("/bin/sh /opt/sark/scripts/srkV4reloader.sh");      
             Log::info("Database restore complete");
             Log::info("Database RESTORED");
         }
@@ -246,10 +268,10 @@ function restore_from_backup($request) {
     }
     
     if ( $request->restoreldap === true) {
-        if (file_exists($tempDname . '/tmp/gcs.local.ldif')) {
+        if (file_exists($tempDname . '/tmp/sark.local.ldif')) {
             shell_exec("sudo /etc/init.d/slapd stop");
             shell_exec("sudo /bin/rm -rf /var/lib/ldap/*");
-            shell_exec("sudo /usr/sbin/slapadd -l " . $tempDname . "/tmp/gcs.local.ldif");
+            shell_exec("sudo /usr/sbin/slapadd -l " . $tempDname . "/tmp/sark.local.ldif");
             shell_exec("sudo /bin/chown openldap:openldap /var/lib/ldap/*");
             shell_exec("sudo /etc/init.d/slapd start");  
             Log::info("LDAP Directory RESTORED");
@@ -266,7 +288,7 @@ function restore_from_backup($request) {
     shell_exec("/bin/rm -rf $tempDname");
     Log::info("Temporary work files deleted");
     Log::info("Requesting Asterisk reload");
-    shell_exec("/bin/sh /opt/gcs/scripts/srkreload");
+    shell_exec("/bin/sh /opt/sark/scripts/srkreload");
     Log::info("System Regen complete");
 
     return 200; 
@@ -292,7 +314,7 @@ if (!function_exists('get_ami_handle')) {
             Response::make(['message' => 'Service Unavailable - Could not connect to the PBX'],599)->send();
         }
         else {
-            $amiHandle->login('gcs','mygcs');
+            $amiHandle->login('sark','mysark');
         } 
         return $amiHandle;  
     } 

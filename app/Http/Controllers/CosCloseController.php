@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\CosClose;
+use App\Models\CosClose;
 use Illuminate\Http\Request;
 use Response;
 use Validator;
@@ -118,8 +118,8 @@ class CosCloseController extends Controller
 
 
 /**
- * Delete  Agent instance
- * @param  Agent
+ * Delete  Cos instance
+ * @param  Cos
  * @return 204
  */
     public function delete(CosOpen $cosclose) {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\HolidayTimer;
+use App\Models\HolidayTimer;
 use Illuminate\Http\Request;
 use Response;
 use Validator;

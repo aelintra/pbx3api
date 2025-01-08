@@ -30,11 +30,10 @@ class AstAmiController extends Controller
                 'ExtensionStateList',
                 'IAXpeers',
                 'IAXregistry',
-                'ListCommands',
+//                'ListCommands',
+                'PJSIPShowEndpoints',
                 'QueueStatus',  
                 'QueueSummary',                 
-                'SIPpeers', 
-                'SIPshowregistry',
                 'Status',
                 'VoicemailUsersList'
             ];
@@ -48,7 +47,7 @@ class AstAmiController extends Controller
                 'ExtensionState' => [
                     'Exten' => null,
                     'Context' => 'extensions',
-                ],
+                ],               
                 'MailboxCount' => [
                     'Mailbox' => null
                 ],
@@ -61,9 +60,6 @@ class AstAmiController extends Controller
                 ],
                 'QueueSummary' => [
                     'Queue' => null
-                ],
-                'SIPshowpeer' => [
-                    'Peer' => null
                 ]
             ];
 
@@ -134,7 +130,14 @@ class AstAmiController extends Controller
         $amirets [$request->key] = $amiHandle->delDB($request->id,$request->key);
         $amiHandle->logout();
         return response()->json($amirets,200);       
-    }    
+    }  
+    
+    public function hangup (Request $request) {
+        $amiHandle = get_ami_handle();
+        $amirets [$request->key] = $amiHandle->Hangup($request->id,$request->key);
+        $amiHandle->logout();
+        return response()->json($amirets,200);           
+    }  
 
     public function reload (Request $request) {   
         $amiHandle = get_ami_handle();
@@ -176,15 +179,20 @@ class AstAmiController extends Controller
         $this->eventItem['QueueStatus']['Queue'] = $request->id;
         return $this->getinstance($request,'QueueStatus');
     } 
-
+/*
      public function sipshowpeer (Request $request) {
         $this->eventItem['SIPshowpeer']['Peer'] = $request->id;
         return $this->getinstance($request,'SIPshowpeer');
     }   
+*/
 
      public function coresettings (Request $request) {
         return $this->getinstance($request,'CoreSettings');
     }  
+
+    public function corechannels (Request $request) {
+        return $this->getinstance($request,'CoreShowChannels');
+    } 
 
     public function corestatus (Request $request) {
         return $this->getinstance($request,'CoreStatus');

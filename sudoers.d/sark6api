@@ -1,0 +1,9 @@
+www-data ALL=NOPASSWD: /etc/init.d/slapd stop
+www-data ALL=NOPASSWD: /etc/init.d/slapd start
+www-data ALL=NOPASSWD: /sbin/shorewall
+www-data ALL=NOPASSWD: /sbin/shorewall6
+www-data ALL=NOPASSWD: /sbin/reboot
+www-data ALL=NOPASSWD: /bin/rm -rf /etc/asterisk/*
+www-data ALL=NOPASSWD: /bin/rm -rf /var/lib/ldap/*
+www-data ALL=NOPASSWD: /bin/systemctl stop asterisk
+www-data ALL=NOPASSWD: /bin/systemctl start asterisk

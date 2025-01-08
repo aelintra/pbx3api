@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\CosOpen;
+use App\Models\CosOpen;
 use Illuminate\Http\Request;
 use Response;
 use Validator;
@@ -118,8 +118,8 @@ class CosOpenController extends Controller
 
 
 /**
- * Delete  Agent instance
- * @param  Agent
+ * Delete  CoS instance
+ * @param  CoS
  * @return 204
  */
     public function delete(CosOpen $cosopen) {

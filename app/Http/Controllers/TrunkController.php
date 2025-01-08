@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Trunk;
+use App\Models\Trunk;
 use Illuminate\Http\Request;
 use Response;
 use Validator;

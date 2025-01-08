@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Sysglobal;
+use App\Models\Sysglobal;
 use Illuminate\Http\Request;
 use Response;
 use Validator;

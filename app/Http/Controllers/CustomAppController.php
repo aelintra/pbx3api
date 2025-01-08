@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\CustomApp;
+use App\Models\CustomApp;
 use Illuminate\Http\Request;
 use Response;
 use Validator;
@@ -118,8 +118,8 @@ class CustomAppController extends Controller
 
 
 /**
- * Delete  Agent instance
- * @param  Agent
+ * Delete  app instance
+ * @param  app
  * @return 204
  */
     public function delete(CustomApp $customapp) {

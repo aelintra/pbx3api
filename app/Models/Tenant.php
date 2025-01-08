@@ -6,63 +6,32 @@ use Illuminate\Database\Eloquent\Model;
 
 class Tenant extends Model
 {
+    //
     protected $table = 'cluster';
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'pkey';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;
 
-/*    
-    protected $fillable = [
-      'pkey',
-      'description',
-    	'abstimeout',
-    	'chanmax',
-    	'masteroclo'
+    protected $attributes = [
+    	'abstimeout' => 14400,
+    	'chanmax' => '30',
+    	'masteroclo' => 'AUTO'
     ];
-*/    
-    
+
     // none user updateable columns
-/*    
     protected $guarded = [
-      'id',  
-      'name',
-      'oclo', 
-      'routeoverride',   	
+		'name',
+		'oclo', 
+		'routeclassoverride',
+		'routeoverride',   	
     	'z_created',
     	'z_updated'   	
     ];
-*/
 
     // hidden columns (mostly no longer used)
     protected $hidden = [
-		
-    "blind_busy",
-    "bounce_alert",
-    'callgroup',
-    "camp_on_q_onoff",
-    "camp_on_q_opt",
-    'cname',
-    'devicerec',
-    'dynamicfeatures',
-    'emailalert',
-    'EXTBLKLST',
-    'ext_lim',
-		'ext_len',
-    'include',
-    'mixmonitor',
-    'monitor_stage',
-    'monitor_type',
-    'name',
-    'number_range_regex',
-    'oclo',
-    'padminpass',
-    'puserpass',    		
-    'callgroup',
-    'include',
-    'pickupgroup',
-    'VDELAY',
-    'vxt'
-
+		'name',
+		'oclo'
     ];
 }

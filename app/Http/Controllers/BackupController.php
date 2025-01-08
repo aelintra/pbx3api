@@ -144,13 +144,13 @@ class BackupController extends Controller
     }   
 
 /**
- * Delete tenant instance
+ * Delete backup instance
  * @param  Backup
  * @return [type]
  */
     public function delete($backup) {
 
-// Don't allow deletion of default tenant
+// Don't allow deletion of default backup
 
         if (!file_exists("/opt/sark/bkup/$backup")) {
            return Response::json(['Error' => "$backup not found in backup set"],404); 

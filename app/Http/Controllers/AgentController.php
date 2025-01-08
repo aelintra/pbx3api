@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Agent;
+use App\Models\Agent;
 use Illuminate\Http\Request;
 use Response;
 use Validator;
@@ -46,7 +46,7 @@ class AgentController extends Controller
     }
 
 /**
- * Create a new queue instance
+ * Create a new Agent instance
  * 
  * @param  Request
  * @return New Did
