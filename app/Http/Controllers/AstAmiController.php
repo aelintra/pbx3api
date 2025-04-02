@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\SysCommand;
 use Illuminate\Http\Request;
-use Response;
-use Validator;
-use Log;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use App\CustomClasses\Ami;
 use Illuminate\Support\Facades\Route;
 

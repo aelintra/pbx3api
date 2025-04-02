@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\DayTimer;
 use Illuminate\Http\Request;
-use Response;
-use Validator;
-use DB;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class DayTimerController extends Controller
 {

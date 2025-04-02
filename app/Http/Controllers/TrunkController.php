@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Trunk;
 use Illuminate\Http\Request;
-use Response;
-use Validator;
-use DB;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Validator;
+use App\Models\Carrier;
+use App\Http\Requests\TrunkRequest;
 
 class TrunkController extends Controller
 {
@@ -73,7 +74,7 @@ class TrunkController extends Controller
  * @param  Request
  * @return New Trunk
  */
-    public function save(Request $request) {
+    public function save(TrunkRequest $request) {
 
 // validation 
   		$this->updateableColumns['pkey'] = 'required';
@@ -139,7 +140,7 @@ class TrunkController extends Controller
  * @param  Trunk
  * @return json response
  */
-    public function update(Request $request, Trunk $trunk) {
+    public function update(TrunkRequest $request, Trunk $trunk) {
 
 // Validate   
 
@@ -200,7 +201,7 @@ class TrunkController extends Controller
  
 // Get the templates from the carrier row
 
-        $template = DB::table('carrier')->where('pkey', $trunk->carrier)->first();
+        $template = Carrier::where('pkey', $trunk->carrier)->first();
 
         if (isset( $template->sipiaxpeer )) {
 

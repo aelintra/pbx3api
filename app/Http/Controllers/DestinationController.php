@@ -6,7 +6,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use DB;
+use App\Models\Application;
+use App\Models\IpPhone;
+use App\Models\IvrMenu;
+use App\Models\Queue;
+use App\Models\Speed;
+use App\Models\Trunk;
 
 class DestinationController extends Controller
 {
@@ -21,44 +26,18 @@ class DestinationController extends Controller
  */
     public function index () {
 
-    	$inboundRoutes = array();
-		
+        $inboundRoutes = [
+            'CustomApps' => Application::pluck('pkey')->toArray(),
+            'Extensions' => IpPhone::pluck('pkey')->toArray(),
+            'IVRs' => IvrMenu::pluck('pkey')->toArray(),
+            'Queues' => Queue::pluck('pkey')->toArray(),
+            'RingGroups' => Speed::pluck('pkey')->toArray(),
+            'Trunks' => Trunk::where('technology', 'SIP')
+                ->orWhere('technology', 'IAX2')
+                ->pluck('pkey')
+                ->toArray()
+        ];
 
-		$appl = DB::table('appl')->select('pkey')->get();
-		foreach ($appl as $value)  {
-			$inboundRoutes['CustomApps'][] =  $value->pkey;
-
-		}	
-
-		$ipphone = DB::table('ipphone')->select('pkey')->get();
-		foreach ($ipphone as  $value)  {
-			$inboundRoutes['Extensions'][] =  $value->pkey;
-		}
-
-		$ivrmenu = DB::table('ivrmenu')->select('pkey')->get();
-		foreach ($ivrmenu as  $value)  {
-			$inboundRoutes['IVRs'][] =  $value->pkey;
-		}
-
-		$queue = DB::table('queue')->select('pkey')->get();
-		foreach ($queue as  $value)  {
-			$inboundRoutes['Queues'][] =  $value->pkey;
-		}					
-		 
-		$speed = DB::table('speed')->select('pkey')->get();
-		foreach ($speed as $value)  {
-			$inboundRoutes['RingGroups'][] =  $value->pkey;
-
-		}	
-
-		$trunk = DB::table('lineio')
-				->select('pkey','technology')
-				->where ('technology', '=', 'SIP')
-				->orWhere ('technology', '=', 'IAX2')
-				->get();
-		foreach ($trunk as $value)  {
-				$inboundRoutes['Trunks'][] =  $value->pkey;
-		}
 				
 
 

@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 //use App\SysCommand;
 //use Illuminate\Http\Request;
-//use Response;
-//use Validator;
+//use Illuminate\Support\Facades\Response;
+//use Illuminate\Support\Facades\Validator;
 
 class SysCommandController extends Controller
 

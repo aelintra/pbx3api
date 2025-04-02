@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Extension;
 use Illuminate\Http\Request;
-use Response;
-use Validator;
-use DB;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Validator;
+use App\Models\IpPhoneCosOpen;
+use App\Models\IpPhoneCosClosed;
+use App\Models\IpPhoneFkey;
+use App\Models\Cos;
 use App\CustomClasses\Ami;
+use App\Http\Requests\ExtensionRequest;
 
 class ExtensionController extends Controller
 {
@@ -78,6 +82,15 @@ class ExtensionController extends Controller
  * @return New extension
  */
     public function mailbox(Request $request) {
+        $validator = Validator::make($request->all(), [
+            'pkey' => 'required|unique:ipphone,pkey',
+            'cluster' => 'required|exists:cluster,pkey',
+            'desc' => 'string|max:255'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
     	
     	$validator = Validator::make($request->all(),[
     		'pkey' => 'required',
@@ -289,10 +302,7 @@ class ExtensionController extends Controller
      * @param  Extension
      * @return response
      */
-    public function update(Request $request, Extension $extension) {
-
-// Validate         
-    	$validator = Validator::make($request->all(),$this->updateableColumns);
+    public function update(ExtensionRequest $request, Extension $extension) {
 
     	if ($validator->fails()) {
     		return response()->json($validator->errors(),422);
@@ -374,19 +384,13 @@ class ExtensionController extends Controller
 
 // delete any active Cos instances
 
-        DB::table('IPphoneCOSopen')
-        		->where('IPphone_pkey', '=', $extension->pkey)
-        		->delete();
+        IpPhoneCosOpen::where('IPphone_pkey', $extension->pkey)->delete();
 
-        DB::table('IPphoneCOSclosed')
-        		->where('IPphone_pkey', '=', $extension->pkey)
-        		->delete();
+        IpPhoneCosClosed::where('IPphone_pkey', $extension->pkey)->delete();
 
 // delete any function key instances
 
-        DB::table('IPphone_Fkey')
-        		->where('pkey', '=', $extension->pkey)
-        		->delete();	
+        IpPhoneFkey::where('pkey', $extension->pkey)->delete();	
 
 // delete the extension instance
 
@@ -538,20 +542,22 @@ class ExtensionController extends Controller
 
 	private function create_default_cos_instances($extension) {
 
-		$costable = DB::table('cos')->get();
+		$costable = Cos::all();
 
 		foreach ($costable as $cos) {
 
 			if ($cos->defaultopen == 'YES') {
-				DB::table('IPphoneCOSopen')->insert(
-    				[ 'IPphone_pkey' => $extension->pkey, 'COS_pkey' => $cos->pkey ]
-    				);
+				IpPhoneCosOpen::create([
+    				'IPphone_pkey' => $extension->pkey,
+    				'COS_pkey' => $cos->pkey
+    				]);
 			}
 
 			if ($cos->defaultclosed == 'YES') {
-				DB::table('IPphoneCOSclosed')->insert(
-    				[ 'IPphone_pkey' => $extension->pkey, 'COS_pkey' => $cos->pkey ]
-    				);
+				IpPhoneCosClosed::create([
+    				'IPphone_pkey' => $extension->pkey,
+    				'COS_pkey' => $cos->pkey
+    				]);
 			}		
 		}
 	}

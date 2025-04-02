@@ -17,7 +17,7 @@ use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\FirewallController;
 use App\Http\Controllers\GreetingController;
-use App\Http\Controllers\holidaytimerController;
+use App\Http\Controllers\HolidayTimerController;
 use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
 use App\Http\Controllers\LogController;
@@ -43,7 +43,7 @@ Route::group(['prefix' => 'auth'], function () {
         Route::get('whoami', [AuthController::class, 'user']);
     });
 
-    Route::group(['middleware' => 'auth:sanctum'], function() {
+    Route::group(['middleware' => ['auth:sanctum', 'validate.cluster']], function() {
 /**
  * Stuff which has to be logged in but does not need admin privileges
  */
@@ -200,11 +200,11 @@ Route::group(['middleware' => 'auth:sanctum'], function() {
     /**
      * Holiday Timers
      */
-        Route::get('holidaytimers', [holidaytimerController::class, 'index']);
-        Route::get('holidaytimers/{holidaytimer}', [holidaytimerController::class, 'show']);
-        Route::post('holidaytimers', [holidaytimerController::class, 'save']);
-        Route::put('holidaytimers/{holidaytimer}', [holidaytimerController::class, 'update']);
-        Route::delete('holidaytimers/{holidaytimer}', [holidaytimerController::class, 'delete']);
+        Route::get('holidaytimers', [HolidayTimerController::class, 'index']);
+        Route::get('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'show']);
+        Route::post('holidaytimers', [HolidayTimerController::class, 'save']);
+        Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
+        Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
 
     /**
      * Inbound Routes
