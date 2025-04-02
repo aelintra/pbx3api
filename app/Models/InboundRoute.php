@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class InboundRoute extends Model
 {
     //
-    protected $table = 'lineio';
+    protected $table = 'inroutes';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';
     public $incrementing = false;
@@ -127,7 +127,7 @@ class InboundRoute extends Model
 	'sipiaxpeer',
 	'sipiaxuser',
 	'speed',
-	'technology',
+//	'technology',
 	'transform',
 	'transformclip',
 	'trunk',

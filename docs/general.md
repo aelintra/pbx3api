@@ -672,13 +672,13 @@ update a tenant
 			'ldaphost' => 'string',
 			'ldapou' => 'string',
 			'ldapuser' => 'string',
-			'ldappass' => 'sarkstring',
+			'ldappass' => 'string',
 			'ldaptls' => 'in:on,off',
 			'localarea' => 'numeric|nullable',
 			'localdplan' => [
 					'regex:/^_X+$/',
 					'nullable'
-			],
+			]
 			'lterm' => 'boolean',
 			'leasedhdtime' => 'integer|nullable',
 			'masteroclo' => 'in:AUTO,CLOSED',

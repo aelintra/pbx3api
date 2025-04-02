@@ -32,7 +32,7 @@ class TenantController extends Controller
 			'ldaphost' => 'string',
 			'ldapou' => 'string',
 			'ldapuser' => 'string',
-			'ldappass' => 'sarkstring',
+			'ldappass' => 'pbx3string',
 			'ldaptls' => 'in:on,off',
 			'localarea' => 'numeric|nullable',
 			'localdplan' => [

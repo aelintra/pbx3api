@@ -412,7 +412,7 @@ class ExtensionController extends Controller
 
 		$findmac = $matches[1] . ":" . trim($matches[2]) . ':' . trim($matches[3]);
 
-		$vendorline = `grep -i $findmac /opt/sark/www/sark-common/manuf.txt`;
+		$vendorline = `grep -i $findmac /opt/pbx3/www/pbx3-common/manuf.txt`;
 
 		$delim="\t";
 		$short_vendor_cols = explode($delim,$vendorline,3);
@@ -434,7 +434,6 @@ class ExtensionController extends Controller
 		if (strcasecmp($short_vendor, 'yealink') == 0) {
 			$short_vendor = "Yealink";
 		}
-//		$this->helper->logit("GETV shortv is $short_vendor  ",5 );
 		return $short_vendor;
 
 }
@@ -450,8 +449,8 @@ class ExtensionController extends Controller
 	private function adjustAstProvSettings(Extension $extension) {
 
  	// Remove any old sipiax settings (from V5 or earlier)
-		$extension->sipiaxfriend = preg_replace( " /^\#include\s*sark_sip_tls.conf.*$/m ",'',$extension->sipiaxfriend);	
-		$extension->sipiaxfriend = preg_replace( " /^\#include\s*sark_sip_tcp.conf.*$/m ",'',$extension->sipiaxfriend);	
+		$extension->sipiaxfriend = preg_replace( " /^\#include\s*pbx3_sip_tls.conf.*$/m ",'',$extension->sipiaxfriend);	
+		$extension->sipiaxfriend = preg_replace( " /^\#include\s*pbx3_sip_tcp.conf.*$/m ",'',$extension->sipiaxfriend);	
 		$extension->sipiaxfriend = rtrim($extension->sipiaxfriend);	
 
 	// remove any existing TCP settings

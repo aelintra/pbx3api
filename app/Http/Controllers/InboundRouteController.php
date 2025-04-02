@@ -39,9 +39,7 @@ class InboundRouteController extends Controller
  */
     public function index () {
 
-    	return InboundRoute::where('technology', '=', 'DiD')
-    		->orWhere ('technology', '=', 'CLID' ) 		
-    		->orderBy('pkey','asc')->get();
+    	return InboundRoute::orderBy('pkey','asc')->get();
     }
 
 /**

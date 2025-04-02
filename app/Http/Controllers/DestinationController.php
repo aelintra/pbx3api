@@ -64,7 +64,7 @@ class DestinationController extends Controller
 
 /*		
 		$conferences = array();
-		$handle = fopen("/etc/asterisk/sark_meetme.conf", "r") or die('Could not read file!');
+		$handle = fopen("/etc/asterisk/pbx3_meetme.conf", "r") or die('Could not read file!');
 // get conference room list
 		while (!feof($handle)) {		
 			$row = trim(fgets($handle));		

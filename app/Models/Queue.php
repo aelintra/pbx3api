@@ -17,7 +17,8 @@ class Queue extends Model
 
     'conf' => "musiconhold=default
 strategy=ringall
-timeout=300\nretry=5
+timeout=300
+retry=5
 wrapuptime=0
 maxlen=0
 announce-frequency=30
@@ -35,7 +36,8 @@ announce-holdtime=yes",
 
     // none user updateable columns
     protected $guarded = [
-
+    'id',
+    'cname',
     'name',
     'outcome',
 	'z_created',
@@ -46,9 +48,8 @@ announce-holdtime=yes",
     // hidden columns (mostly no longer used)
     protected $hidden = [
     'name',
-    'home',
-    'id',
-    'outcome',
+ //   'id',
+ //   'outcome',
     'timeout'
 
     ];

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Trunk extends Model
 {
     //
-    protected $table = 'lineio';
+    protected $table = 'trunks';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';
     public $incrementing = false;

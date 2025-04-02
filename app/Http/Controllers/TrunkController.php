@@ -211,7 +211,7 @@ class TrunkController extends Controller
       		$template->sipiaxpeer = preg_replace ('/^\s+/',"", $template->sipiaxpeer);
       		$template->sipiaxpeer = preg_replace ('/\s+$/',"", $template->sipiaxpeer);
 
-            if ( $trunk->carrier == "InterSARK") {
+            if ( $trunk->carrier == "Interpbx3") {
 				$template->sipiaxpeer = preg_replace ('/mainmenu/',"priv_sibling", $template->sipiaxpeer);
 				$template->sipiaxpeer = preg_replace ('/trunk=yes/',"trunk=no", $template->sipiaxpeer);
             }  

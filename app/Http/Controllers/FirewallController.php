@@ -19,7 +19,7 @@ class FirewallController extends Controller
  */
     public function ipv4 () {
 
-        $file = file("/etc/shorewall/sark_rules",FILE_IGNORE_NEW_LINES);
+        $file = file("/etc/shorewall/pbx3_rules",FILE_IGNORE_NEW_LINES);
         return response()->json($this->set_output ($file),200);
     }
 
@@ -30,7 +30,7 @@ class FirewallController extends Controller
  */
     public function ipv6 () {
 
-        $file = file("/etc/shorewall6/sark_rules6",FILE_IGNORE_NEW_LINES);
+        $file = file("/etc/shorewall6/pbx3_rules6",FILE_IGNORE_NEW_LINES);
         return response()->json($this->set_output ($file),200);
     } 
 
@@ -66,9 +66,9 @@ class FirewallController extends Controller
 
         $tempFileName = $this->set_new_rules($request);
 
-        shell_exec("/bin/mv /tmp/$tempFileName /etc/shorewall/sark_rules");
+        shell_exec("/bin/mv /tmp/$tempFileName /etc/shorewall/pbx3_rules");
 
-		return response()->json(['message' => "saved sark_rules"], 200);
+		return response()->json(['message' => "saved pbx3_rules"], 200);
     }  
 
 /**
@@ -91,9 +91,9 @@ class FirewallController extends Controller
 
         $tempFileName = $this->set_new_rules($request);
 
-        shell_exec("/bin/mv /tmp/$tempFileName /etc/shorewall6/sark_rules6");
+        shell_exec("/bin/mv /tmp/$tempFileName /etc/shorewall6/pbx3_rules6");
 
-        return response()->json(['message' => "saved sark_rules"], 200);
+        return response()->json(['message' => "saved pbx3_rules"], 200);
     }
 
 /**

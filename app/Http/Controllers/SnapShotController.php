@@ -21,10 +21,10 @@ class SnapShotController extends Controller
     public function index () {
 
         $snap = array();
-    	if ($handle = opendir('/opt/sark/snap')) {
+    	if ($handle = opendir('/opt/pbx3/snap')) {
             while (false !== ($entry = readdir($handle))) {
                 if ($entry != '.' && $entry != '..') {
-                    if (preg_match (' /^sark\.db\.\d+$/ ', $entry)) {
+                    if (preg_match (' /^pbx3\.db\.\d+$/ ', $entry)) {
                         array_push($snap, $entry);
                     }
                 }
@@ -40,7 +40,7 @@ class SnapShotController extends Controller
         foreach ($snap as $file ) {
             preg_match( '/\.(\d+)$/',$file,$matches);       
             $rdate = date('D d M H:i:s Y', $matches[1]);
-            $fsize = filesize("/opt/sark/snap/".$file);
+            $fsize = filesize("/opt/pbx3/snap/".$file);
             $snaps[$file]["filesize"] = $fsize;
             $snaps[$file]["date"] = $rdate;                
         }
@@ -90,7 +90,7 @@ class SnapShotController extends Controller
 
         $fpath = $request->uploadzip->storeAs('snaps', $request->uploadzip->getClientOriginalName());
         $fullpath = storage_path() . "/app/" . $fpath;
-        shell_exec("/bin/mv $fullpath /opt/sark/snap");
+        shell_exec("/bin/mv $fullpath /opt/pbx3/snap");
         return Response::json(['Uploaded ' . $fpath],200);
 
     }
@@ -110,13 +110,13 @@ class SnapShotController extends Controller
 
 // Validate         	
 
-		if (!file_exists("/opt/sark/snap/$snapshot")) {
+		if (!file_exists("/opt/pbx3/snap/$snapshot")) {
             return Response::json(['Error' => "snapshot file not found"],404);
         } 
 
-        shell_exec("/bin/cp /opt/sark/snap/$snapshot /opt/sark/db/sark.db");
-        shell_exec("/bin/chown www-data:www-data /opt/sark/db/sark.db");
-        shell_exec("/bin/chmod 664 /opt/sark/db/sark.db");
+        shell_exec("/bin/cp /opt/pbx3/snap/$snapshot /opt/pbx3/db/pbx3.db");
+        shell_exec("/bin/chown www-data:www-data /opt/pbx3/db/pbx3.db");
+        shell_exec("/bin/chmod 664 /opt/pbx3/db/pbx3.db");
 
 		return response()->json(['restored' => $snapshot], 200);
     }   
@@ -130,11 +130,11 @@ class SnapShotController extends Controller
 
 // Don't allow deletion of default tenant
 
-        if (!file_exists("/opt/sark/snap/$snapshot")) {
+        if (!file_exists("/opt/pbx3/snap/$snapshot")) {
            return Response::json(['Error' => "$snapshot not found in snapshot set"],404); 
         }
 
-        shell_exec("/bin/rm -r /opt/sark/snap/$snapshot");
+        shell_exec("/bin/rm -r /opt/pbx3/snap/$snapshot");
 
         return response()->json(null, 204);
     }
