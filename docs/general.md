@@ -678,7 +678,7 @@ update a tenant
 			'localdplan' => [
 					'regex:/^_X+$/',
 					'nullable'
-			]
+			],
 			'lterm' => 'boolean',
 			'leasedhdtime' => 'integer|nullable',
 			'masteroclo' => 'in:AUTO,CLOSED',
