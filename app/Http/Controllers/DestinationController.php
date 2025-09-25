@@ -31,7 +31,7 @@ class DestinationController extends Controller
             'Extensions' => IpPhone::pluck('pkey')->toArray(),
             'IVRs' => IvrMenu::pluck('pkey')->toArray(),
             'Queues' => Queue::pluck('pkey')->toArray(),
-            'RingGroups' => Speed::pluck('pkey')->toArray(),
+//            'RingGroups' => Speed::pluck('pkey')->toArray(),
             'Trunks' => Trunk::where('technology', 'SIP')
                 ->orWhere('technology', 'IAX2')
                 ->pluck('pkey')
