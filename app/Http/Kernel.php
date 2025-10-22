@@ -16,6 +16,8 @@ class Kernel extends HttpKernel
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            // Add the tenant identification middleware to the API group
+            \App\Http\Middleware\IdentifyTenantFromClusterHeader::class,
         ],
     ];
 
@@ -31,5 +33,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'validate.cluster' => \App\Http\Middleware\ValidateClusterAccess::class,
+        'tenant' => \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
+        'tenant.cluster' => \App\Http\Middleware\IdentifyTenantFromClusterHeader::class,
     ];
 }

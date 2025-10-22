@@ -41,6 +41,14 @@ return [
             'journal_mode' => null,
             'synchronous' => null,
         ],
+        
+        // This is the tenant template connection
+        'tenant_template' => [
+            'driver' => 'sqlite',
+            'database' => database_path('tenant_template.sqlite'),
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ],
 
         'mysql' => [
             'driver' => 'mysql',

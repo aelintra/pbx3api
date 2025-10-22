@@ -4,6 +4,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 
+use App\Http\Controllers\TenancyTestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AstAmiController;
@@ -29,6 +30,9 @@ use App\Http\Controllers\SysglobalController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 
+// Test endpoint for tenancy
+Route::get('tenancy-test', [TenancyTestController::class, 'info'])
+    ->middleware(['auth:sanctum', 'validate.cluster']);
 
 Route::group(['prefix' => 'auth'], function () {
 /**

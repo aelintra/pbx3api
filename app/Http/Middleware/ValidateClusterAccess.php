@@ -5,21 +5,46 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Helpers\Helper;
+use Stancl\Tenancy\Tenancy;
 
 class ValidateClusterAccess
 {
+    protected $tenancy;
+    
+    public function __construct(Tenancy $tenancy)
+    {
+        $this->tenancy = $tenancy;
+    }
+    
     public function handle(Request $request, Closure $next)
     {
-        if ($request->has('cluster')) {
+        // Get the cluster/tenant from the request
+        $cluster = $request->header('X-Cluster') ?? $request->query('cluster');
+        
+        if ($cluster) {
             // Get the user's token abilities from the helper
             $abilities = Helper::getTokenAbilities($request->bearerToken());
             
             // Check if the user has access to this cluster
-            if (!in_array('cluster:' . $request->cluster, $abilities)) {
+            if (!in_array('cluster:' . $cluster, $abilities)) {
                 return response()->json([
                     'error' => 'Unauthorized cluster access',
                     'message' => 'You do not have permission to access this cluster'
                 ], 403);
+            }
+            
+            // If tenant isn't already initialized, initialize it
+            if (!$this->tenancy->initialized && $this->tenancy->getTenant() === null) {
+                $tenant = app(\App\Models\MultiTenant::class)::where('pkey', $cluster)->first();
+                
+                if ($tenant) {
+                    $this->tenancy->initialize($tenant);
+                } else {
+                    return response()->json([
+                        'error' => 'Invalid cluster',
+                        'message' => 'The requested cluster does not exist'
+                    ], 404);
+                }
             }
         }
         
