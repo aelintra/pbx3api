@@ -95,9 +95,8 @@ class TenancyServiceProvider extends ServiceProvider
     public function register()
     {
         // Register the tenant finder
-        $this->app->bind(\Stancl\Tenancy\Contracts\TenantFinder::class, function () {
-            return new \Stancl\Tenancy\TenantFinder();
-        });
+        // Bind the contract to the concrete class by name to avoid static analysis errors
+        $this->app->bind('Stancl\Tenancy\Contracts\TenantFinder', 'Stancl\Tenancy\TenantFinder');
     }
 
     public function boot()

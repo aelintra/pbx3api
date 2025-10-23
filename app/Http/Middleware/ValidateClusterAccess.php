@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Helpers\Helper;
 use Stancl\Tenancy\Tenancy;
 
 class ValidateClusterAccess
@@ -23,8 +22,12 @@ class ValidateClusterAccess
         
         if ($cluster) {
             // Get the user's token abilities from the helper
-            $abilities = Helper::getTokenAbilities($request->bearerToken());
-            
+            // Get the user's token abilities from the helper (guard if Helper class is absent)
+            $abilities = [];
+            $helperClass = 'App\\Helpers\\Helper';
+            if (class_exists($helperClass) && is_callable([$helperClass, 'getTokenAbilities'])) {
+                $abilities = call_user_func([$helperClass, 'getTokenAbilities'], $request->bearerToken());
+            }
             // Check if the user has access to this cluster
             if (!in_array('cluster:' . $cluster, $abilities)) {
                 return response()->json([
