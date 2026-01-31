@@ -129,7 +129,7 @@ Route::group(['middleware' => 'auth:sanctum'], function() {
      */
         Route::get('cosopens', [CosOpenController::class, 'index']);
         Route::get('cosopens/{cosopen}', [CosOpenController::class, 'show']);
-        Route::post('cosopens', [CosOPenController::class, 'save']);
+        Route::post('cosopens', [CosOpenController::class, 'save']);
         Route::put('cosopens/{cosopen}', [CosOpenController::class, 'update']);
         Route::delete('cosopens/{cosopen}', [CosOpenController::class, 'delete']);
 
