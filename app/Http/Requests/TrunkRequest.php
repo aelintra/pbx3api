@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class TrunkRequest extends FormRequest
 {
@@ -13,8 +14,12 @@ class TrunkRequest extends FormRequest
 
     public function rules()
     {
+        $pkeyRule = Rule::unique('lineio', 'pkey');
+        if ($this->route()->hasParameter('trunk')) {
+            $pkeyRule = $pkeyRule->ignore($this->route('trunk'));
+        }
         return [
-            'pkey' => 'required|unique:lineio,pkey,' . $this->route('trunk'),
+            'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',
             'carrier' => 'required|exists:carrier,pkey',
             'active' => 'in:YES,NO',
