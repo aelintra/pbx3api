@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Extension;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -35,13 +36,31 @@ class ExtensionController extends Controller
     	];
 
 /**
- * Return Extension Index in pkey order asc
- * 
+ * Return Extension Index in pkey order asc.
+ * Each extension includes tenant_pkey (cluster pkey for display) resolved from cluster/tenant.
+ *
  * @return Extensions
  */
     public function index () {
 
-    	return Extension::orderBy('pkey','asc')->get();
+    	$extensions = Extension::orderBy('pkey','asc')->get();
+    	$tenants = Tenant::all();
+    	$clusterToPkey = [];
+    	foreach ($tenants as $t) {
+    		if (isset($t->id)) {
+    			$clusterToPkey[(string) $t->id] = $t->pkey ?? $t->id;
+    		}
+    		if (isset($t->pkey)) {
+    			$clusterToPkey[(string) $t->pkey] = $t->pkey;
+    		}
+    	}
+    	foreach ($extensions as $ext) {
+    		$cluster = $ext->cluster ?? null;
+    		$ext->tenant_pkey = $cluster !== null && $cluster !== ''
+    			? ($clusterToPkey[(string) $cluster] ?? $cluster)
+    			: $cluster;
+    	}
+    	return $extensions;
     }
 
 /**
