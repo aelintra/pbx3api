@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Extension;
-use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use App\Models\IpPhoneCosOpen;
@@ -37,23 +37,50 @@ class ExtensionController extends Controller
 
 /**
  * Return Extension Index in pkey order asc.
- * Each extension includes tenant_pkey (cluster pkey for display) resolved from cluster/tenant.
+ * Each extension includes tenant_pkey (cluster pkey for display) resolved from cluster table.
  *
  * @return Extensions
  */
     public function index () {
 
     	$extensions = Extension::orderBy('pkey','asc')->get();
-    	$tenants = Tenant::all();
+
+    	// Build cluster id/shortuid/pkey -> tenant pkey map (id = KSUID, shortuid = 8-char, pkey = human-facing)
     	$clusterToPkey = [];
-    	foreach ($tenants as $t) {
-    		if (isset($t->id)) {
-    			$clusterToPkey[(string) $t->id] = $t->pkey ?? $t->id;
+    	try {
+    		$rows = DB::table('cluster')->get(['id', 'shortuid', 'pkey']);
+    		foreach ($rows as $row) {
+    			if (isset($row->id)) {
+    				$clusterToPkey[(string) $row->id] = $row->pkey ?? $row->id;
+    			}
+    			if (isset($row->shortuid)) {
+    				$clusterToPkey[(string) $row->shortuid] = $row->pkey ?? $row->shortuid;
+    			}
+    			if (isset($row->pkey)) {
+    				$clusterToPkey[(string) $row->pkey] = $row->pkey;
+    			}
     		}
-    		if (isset($t->pkey)) {
-    			$clusterToPkey[(string) $t->pkey] = $t->pkey;
+    	} catch (\Throwable $e) {
+    		try {
+    			$rows = DB::table('cluster')->get(['id', 'pkey']);
+    			foreach ($rows as $row) {
+    				if (isset($row->id)) {
+    					$clusterToPkey[(string) $row->id] = $row->pkey ?? $row->id;
+    				}
+    				if (isset($row->pkey)) {
+    					$clusterToPkey[(string) $row->pkey] = $row->pkey;
+    				}
+    			}
+    		} catch (\Throwable $e2) {
+    			$rows = DB::table('cluster')->get(['pkey']);
+    			foreach ($rows as $row) {
+    				if (isset($row->pkey)) {
+    					$clusterToPkey[(string) $row->pkey] = $row->pkey;
+    				}
+    			}
     		}
     	}
+
     	foreach ($extensions as $ext) {
     		$cluster = $ext->cluster ?? null;
     		$ext->tenant_pkey = $cluster !== null && $cluster !== ''
