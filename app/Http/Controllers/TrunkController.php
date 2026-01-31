@@ -70,11 +70,13 @@ class TrunkController extends Controller
 
 /**
  * Create a new Trunk instance
- * 
+ * Uses Request (not TrunkRequest) so route('trunk') is never invoked on POST;
+ * TrunkRequest references route('trunk') and can trigger ReflectionClass error when no {trunk} param exists.
+ *
  * @param  Request
  * @return New Trunk
  */
-    public function save(TrunkRequest $request) {
+    public function save(Request $request) {
 
 // validation 
   		$this->updateableColumns['pkey'] = 'required';
