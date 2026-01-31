@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use App\Models\IpPhoneCosOpen;
 use App\Models\IpPhoneCosClosed;
-use App\Models\IpPhoneFkey;
 use App\Models\Cos;
 use App\CustomClasses\Ami;
 use App\Http\Requests\ExtensionRequest;
@@ -436,17 +435,17 @@ class ExtensionController extends Controller
  */
     public function delete(Extension $extension) {
 
-// delete any active Cos instances
-
-        IpPhoneCosOpen::where('IPphone_pkey', $extension->pkey)->delete();
-
-        IpPhoneCosClosed::where('IPphone_pkey', $extension->pkey)->delete();
-
-// delete any function key instances
-
-        IpPhoneFkey::where('pkey', $extension->pkey)->delete();	
-
-// delete the extension instance
+        // Delete related rows only if tables exist; missing tables must not block extension delete
+        try {
+            IpPhoneCosOpen::where('IPphone_pkey', $extension->pkey)->delete();
+        } catch (\Throwable $e) {
+            // table may not exist
+        }
+        try {
+            IpPhoneCosClosed::where('IPphone_pkey', $extension->pkey)->delete();
+        } catch (\Throwable $e) {
+            // table may not exist
+        }
 
         $extension->delete();
 
