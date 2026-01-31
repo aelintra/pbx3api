@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Trunk extends Model
 {
     //
-    protected $table = 'trunks';
+    /** Trunk and DDI/CLID rows live in lineio (PBX3/SARK schema). */
+    protected $table = 'lineio';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';
     public $incrementing = false;
