@@ -24,6 +24,7 @@ class ExtensionController extends Controller
     		'cellphone' => 'integer|nullable',
     		'celltwin' => 'in:ON,OFF',
     		'cluster' => 'exists:cluster,pkey',
+    		'desc' => 'nullable|string|max:255',
     		'devicerec' => 'in:None,OTR,OTRR,Inbound.Outbound,Both',
     		'dvrvmail' => 'exists:ipphone,pkey|nullable',
     		'location' => 'in:local,remote',
@@ -91,13 +92,20 @@ class ExtensionController extends Controller
     }
 
 /**
- * Return named extension instance
- * 
+ * Return named extension instance. Resolves cluster to tenant_pkey for display.
+ *
  * @param  Extension
  * @return extension object
  */
     public function show (Extension $extension) {
 
+    	$cluster = $extension->cluster ?? null;
+    	if ($cluster !== null && $cluster !== '') {
+    		$row = DB::table('cluster')->where('pkey', $cluster)->orWhere('shortuid', $cluster)->orWhere('id', $cluster)->first(['pkey']);
+    		$extension->tenant_pkey = $row ? $row->pkey : $cluster;
+    	} else {
+    		$extension->tenant_pkey = $cluster;
+    	}
     	return $extension;
     }
 
