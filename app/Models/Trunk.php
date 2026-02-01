@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Trunk extends Model
 {
     //
-    /** Instance schema uses trunks table (sqlite_create_instance.sql). */
+    /** API runs against tenant schema (sqlite_create_tenant.sql). Trunks table follows tenant pattern (id, pkey, ...). */
     protected $table = 'trunks';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';

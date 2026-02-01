@@ -98,9 +98,13 @@ class TrunkController extends Controller
     		return response()->json($validator->errors(),422);
     	}
 
-    	$trunk = new Trunk;  	
+    	$trunk = new Trunk;
 
-    	move_request_to_model($request,$trunk,$this->updateableColumns); 
+    	move_request_to_model($request,$trunk,$this->updateableColumns);
+
+// Populate id (ksuid) and shortuid via helpers; both in tenant schema (sqlite_create_tenant.sql) and persisted
+    	$trunk->id = generate_ksuid();
+    	$trunk->shortuid = generate_shortuid();
 
 //  peername = username unless overriden by caller
     	if (empty($trunk->peername)) {
@@ -124,10 +128,10 @@ class TrunkController extends Controller
 			$this->copy_asterisk_stanzas_from_carrier($request, $trunk);
 		}
 
-// Instance trunks table (sqlite_create_instance.sql) has a fixed column set; omit any other attributes to avoid SQL error
+// Tenant schema (sqlite_create_tenant.sql) defines the column set; omit any other attributes to avoid SQL error
 		$omitFromInsert = [
 			'carrier', 'sipiaxpeer', 'sipiaxuser',  // used only for logic/template lookup
-			'faxdetect', 'lcl', 'monitor', 'routeable', 'routeclassopen', 'routeclassclosed',  // model defaults not in instance schema
+			'faxdetect', 'lcl', 'monitor', 'routeable', 'routeclassopen', 'routeclassclosed',  // model defaults not in tenant schema
 		];
 		foreach ($omitFromInsert as $key) {
 			$trunk->offsetUnset($key);

@@ -357,3 +357,29 @@ if (!function_exists('ret_password')) {
         return $password;
     }
 }
+
+if (!function_exists('generate_ksuid')) {
+    function generate_ksuid() {
+        return trim(`ksuid`);
+    }
+}
+
+if (!function_exists('generate_shortuid')) {
+    /**
+     * @param int    $length
+     * @param string $charset  Default: no vowels/similar chars (0/O, 1/I/l), low chance of rude words
+     *
+     * @return string
+     */
+    function generate_shortuid($length = 8, $charset = '')
+    {
+        $charset = $charset ?: '0123456789bcdfghjkmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ';
+        $charset_size = strlen($charset);
+        $uid = '';
+        while ($length-- > 0) {
+            $uid .= $charset[random_int(0, $charset_size - 1)];
+        }
+
+        return $uid;
+    }
+}
