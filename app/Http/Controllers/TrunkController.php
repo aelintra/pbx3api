@@ -121,11 +121,16 @@ class TrunkController extends Controller
 // Copy in the Asterisk stanzas    
 		$this->copy_asterisk_stanzas_from_carrier ($request, $trunk);
 
-// Instance trunks table has no sipiaxpeer/sipiaxuser columns; omit from INSERT to avoid SQL error
-		$trunk->offsetUnset('sipiaxpeer');
-		$trunk->offsetUnset('sipiaxuser');
+// Instance trunks table (sqlite_create_instance.sql) has a fixed column set; omit any other attributes to avoid SQL error
+		$omitFromInsert = [
+			'carrier', 'sipiaxpeer', 'sipiaxuser',  // used only for logic/template lookup
+			'faxdetect', 'lcl', 'monitor', 'routeable', 'routeclassopen', 'routeclassclosed',  // model defaults not in instance schema
+		];
+		foreach ($omitFromInsert as $key) {
+			$trunk->offsetUnset($key);
+		}
 
-// create the model			
+// create the model
     	try {
 
     		$trunk->save();
