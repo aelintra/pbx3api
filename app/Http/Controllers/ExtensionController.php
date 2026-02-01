@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Extension;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use App\Models\IpPhoneCosOpen;
@@ -152,7 +153,11 @@ class ExtensionController extends Controller
         try {
             $extension = Extension::create($attrs);
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()], 409);
+            Log::warning('Extension create failed', ['error' => $e->getMessage(), 'attrs_keys' => array_keys($attrs)]);
+            return response()->json([
+                'Error' => $e->getMessage(),
+                'message' => $e->getMessage(),
+            ], 409);
         }
 
         if ($protocol !== 'Mailbox') {
