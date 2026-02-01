@@ -59,17 +59,17 @@ class InboundRouteController extends Controller
  */
     public function save(Request $request) {
 
-// validate 
+// validate
         $this->updateableColumns['pkey'] = 'required';
         $this->updateableColumns['carrier'] = 'required|in:DiD,CLID';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
-        $this->updateableColumns['trunkname'] = 'required';
+        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
+        $this->updateableColumns['trunkname'] = 'nullable|alpha_num';
 
         $inboundroute = new InboundRoute;
         $inboundroute->openroute = 'None';
         $inboundroute->closeroute = 'None';
 
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator = Validator::make($request->all(), $this->updateableColumns);
 
         $validator->after(function ($validator) use ($request,$inboundroute) {
 
@@ -86,14 +86,17 @@ class InboundRouteController extends Controller
             return response()->json($validator->errors(),422);
         }
     
-// Move post variables to the model 
-        move_request_to_model($request,$inboundroute,$this->updateableColumns); 
+// Move post variables to the model
+        move_request_to_model($request, $inboundroute, $this->updateableColumns);
 
+        if (empty($inboundroute->trunkname)) {
+            $inboundroute->trunkname = $inboundroute->pkey;
+        }
 
-// Set technology
+        $inboundroute->id = generate_ksuid();
+        $inboundroute->shortuid = generate_shortuid();
         $inboundroute->technology = $inboundroute->carrier;
 
-// create the model         
         try {
             $inboundroute->save();
         } catch (\Exception $e) {

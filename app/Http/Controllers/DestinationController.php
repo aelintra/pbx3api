@@ -1,67 +1,53 @@
 <?php
 
 // Should be renamed endpoints
-// Should be throttled by cluster name
+// Throttled by cluster (tenant): ?cluster=pkey returns only destinations for that tenant.
+// No Trunks in response — destination lists (Inbound routes, IVRs) invoke endpoints, not trunks.
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Application;
 use App\Models\IpPhone;
-use App\Models\IvrMenu;
+use App\Models\Ivr;
 use App\Models\Queue;
-use App\Models\Speed;
-use App\Models\Trunk;
 
 class DestinationController extends Controller
 {
-    //
     /**
- * Return Endpont Index in a keyed array
- *
- * ToDo - Conferences
- * 		- Proper Mailbox render using really existing mailboxes
- * 
- * @return Sysglobals
- */
-    public function index () {
+     * Return endpoint index for destination dropdowns (Inbound routes, IVRs).
+     * Optional ?cluster={tenantPkey} — when present, only destinations for that tenant are returned.
+     * Trunks are excluded (destination lists invoke endpoints: queues, extensions, IVRs, custom apps).
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(Request $request)
+    {
+        $cluster = $request->query('cluster');
 
-        $inboundRoutes = [
-            'CustomApps' => Application::pluck('pkey')->toArray(),
-            'Extensions' => IpPhone::pluck('pkey')->toArray(),
-            'IVRs' => IvrMenu::pluck('pkey')->toArray(),
-            'Queues' => Queue::pluck('pkey')->toArray(),
-//            'RingGroups' => Speed::pluck('pkey')->toArray(),
-            'Trunks' => Trunk::where('technology', 'SIP')
-                ->orWhere('technology', 'IAX2')
-                ->pluck('pkey')
-                ->toArray()
+        $base = [
+            'CustomApps' => $this->pkeys(Application::query(), $cluster),
+            'Extensions' => $this->pkeys(IpPhone::query(), $cluster),
+            'IVRs' => $this->pkeys(Ivr::query(), $cluster),
+            'Queues' => $this->pkeys(Queue::query(), $cluster),
         ];
 
-				
+        return response()->json($base, 200);
+    }
 
-
-/*		
-		$conferences = array();
-		$handle = fopen("/etc/asterisk/pbx3_meetme.conf", "r") or die('Could not read file!');
-// get conference room list
-		while (!feof($handle)) {		
-			$row = trim(fgets($handle));		
-			if (preg_match (" /^;/ ", $row)) {
-				continue;
-			}		
-			if (preg_match (" /^conf\s*=>\s*(\d{3,4})/ ",$row,$matches)) {
-				array_push ($conferences,$matches[1]);
-			}				
-		}
-		if (is_array($conferences)) {
-			foreach ($conferences as $value)  {
-				$inboundRoutes['CONF ROOMS'][] = $value;
-		}
-	}	
-*/			
-		return response()->json($inboundRoutes, 200);
-	}
-
-
+    /**
+     * Apply optional cluster filter and return pkey list.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string|null  $cluster
+     * @return array
+     */
+    private function pkeys($query, $cluster)
+    {
+        if ($cluster !== null && $cluster !== '') {
+            $query->where('cluster', $cluster);
+        }
+        return $query->orderBy('pkey')->pluck('pkey')->toArray();
+    }
 }
