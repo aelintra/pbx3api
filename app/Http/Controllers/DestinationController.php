@@ -11,6 +11,7 @@ use App\Models\Application;
 use App\Models\IpPhone;
 use App\Models\Ivr;
 use App\Models\Queue;
+use App\Models\Tenant;
 
 class DestinationController extends Controller
 {
@@ -18,35 +19,65 @@ class DestinationController extends Controller
      * Return endpoint index for destination dropdowns (Inbound routes, IVRs).
      * Optional ?cluster={tenantPkey} — when present, only destinations for that tenant are returned.
      * Trunks are excluded (destination lists invoke endpoints: queues, extensions, IVRs, custom apps).
+     * Cluster filter matches both tenant pkey and tenant id (KSUID) so it works whether DB stores pkey or id.
      *
      * @param  Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
-        $cluster = $request->query('cluster');
+        $clusterParam = $request->query('cluster');
+        $clusterValues = $this->clusterValuesForFilter($clusterParam);
 
         $base = [
-            'CustomApps' => $this->pkeys(Application::query(), $cluster),
-            'Extensions' => $this->pkeys(IpPhone::query(), $cluster),
-            'IVRs' => $this->pkeys(Ivr::query(), $cluster),
-            'Queues' => $this->pkeys(Queue::query(), $cluster),
+            'CustomApps' => $this->pkeys(Application::query()->where('active', 'YES'), $clusterValues),
+            'Extensions' => $this->pkeys(IpPhone::query()->where('active', 'YES'), $clusterValues),
+            'IVRs' => $this->pkeys(Ivr::query()->where('active', 'YES'), $clusterValues),
+            'Queues' => $this->pkeys(Queue::query()->where('active', 'YES'), $clusterValues),
         ];
 
         return response()->json($base, 200);
     }
 
     /**
+     * Resolve cluster query param (tenant pkey) to values to match in DB.
+     * Returns [pkey, id, shortuid] so we match whether child tables store tenant pkey, id (KSUID), or shortuid.
+     *
+     * @param  string|null  $clusterParam
+     * @return array|null  [pkey, id?, shortuid?] or null if no filter
+     */
+    private function clusterValuesForFilter($clusterParam)
+    {
+        if ($clusterParam === null || $clusterParam === '') {
+            return null;
+        }
+        // Resolve tenant case-insensitively so display/capitalisation doesn't break lookup
+        // (child tables store cluster using the same value as in cluster table).
+        $tenant = Tenant::whereRaw('LOWER(pkey) = ?', [strtolower($clusterParam)])->first();
+        if ($tenant) {
+            $values = [ $tenant->pkey ];
+            if (! empty($tenant->id) && $tenant->id !== $tenant->pkey) {
+                $values[] = $tenant->id;
+            }
+            if (! empty($tenant->shortuid) && ! in_array($tenant->shortuid, $values, true)) {
+                $values[] = $tenant->shortuid;
+            }
+            return $values;
+        }
+        return [ $clusterParam ];
+    }
+
+    /**
      * Apply optional cluster filter and return pkey list.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string|null  $cluster
+     * @param  array|null  $clusterValues  [pkey, id?] or null for no filter
      * @return array
      */
-    private function pkeys($query, $cluster)
+    private function pkeys($query, $clusterValues)
     {
-        if ($cluster !== null && $cluster !== '') {
-            $query->where('cluster', $cluster);
+        if ($clusterValues !== null && count($clusterValues) > 0) {
+            $query->whereIn('cluster', $clusterValues);
         }
         return $query->orderBy('pkey')->pluck('pkey')->toArray();
     }
