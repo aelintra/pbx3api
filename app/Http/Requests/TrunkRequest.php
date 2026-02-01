@@ -21,7 +21,7 @@ class TrunkRequest extends FormRequest
         return [
             'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',
-            'carrier' => 'required|exists:carrier,pkey',
+            'carrier' => 'required|in:GeneralSIP,GeneralIAX2',
             'active' => 'in:YES,NO',
             'alertinfo' => 'string|nullable',
             'callerid' => 'integer|nullable',

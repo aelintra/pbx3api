@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Trunk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Carrier;
 use App\Http\Requests\TrunkRequest;
@@ -118,8 +119,10 @@ class TrunkController extends Controller
 			$trunk->technology = $trunk->peername;
 		}
 
-// Copy in the Asterisk stanzas    
-		$this->copy_asterisk_stanzas_from_carrier ($request, $trunk);
+// Copy in the Asterisk stanzas from carrier template when instance has carrier table (legacy/catalog DB)
+		if (Schema::hasTable('carrier')) {
+			$this->copy_asterisk_stanzas_from_carrier($request, $trunk);
+		}
 
 // Instance trunks table (sqlite_create_instance.sql) has a fixed column set; omit any other attributes to avoid SQL error
 		$omitFromInsert = [
