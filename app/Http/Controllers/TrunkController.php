@@ -123,6 +123,10 @@ class TrunkController extends Controller
 // Copy in the Asterisk stanzas    
 		$this->copy_asterisk_stanzas_from_carrier ($request, $trunk);
 
+// Instance trunks table has no sipiaxpeer/sipiaxuser columns; omit from INSERT to avoid SQL error
+		$trunk->offsetUnset('sipiaxpeer');
+		$trunk->offsetUnset('sipiaxuser');
+
 // create the model			
     	try {
 

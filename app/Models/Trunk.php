@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Trunk extends Model
 {
     //
-    /** Trunk and DDI/CLID rows live in lineio (PBX3/SARK schema). */
-    protected $table = 'lineio';
+    /** Instance schema uses trunks table (sqlite_create_instance.sql). Legacy lineio is pre-migration. */
+    protected $table = 'trunks';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';
     public $incrementing = false;

@@ -14,7 +14,7 @@ class TrunkRequest extends FormRequest
 
     public function rules()
     {
-        $pkeyRule = Rule::unique('lineio', 'pkey');
+        $pkeyRule = Rule::unique('trunks', 'pkey');
         if ($this->route()->hasParameter('trunk')) {
             $pkeyRule = $pkeyRule->ignore($this->route('trunk'));
         }

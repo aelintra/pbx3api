@@ -19,10 +19,10 @@ class RouteController extends Controller
         'cluster' => 'exists:cluster,pkey',
         'desc' => 'alpha_dash',
         'dialplan' => 'string',
-        'path1' => 'exists:lineio,pkey|nullable',
-        'path2' => 'exists:lineio,pkey|nullable',
-        'path3' => 'exists:lineio,pkey|nullable',
-        'path4' => 'exists:lineio,pkey|nullable',
+        'path1' => 'exists:trunks,pkey|nullable',
+        'path2' => 'exists:trunks,pkey|nullable',
+        'path3' => 'exists:trunks,pkey|nullable',
+        'path4' => 'exists:trunks,pkey|nullable',
         'strategy' => 'in:hunt,balance'
     ];
 
