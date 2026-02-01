@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Trunk extends Model
 {
     //
-    /** Instance schema uses trunks table (sqlite_create_instance.sql). Legacy lineio is pre-migration. */
+    /** Instance schema uses trunks table (sqlite_create_instance.sql). */
     protected $table = 'trunks';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';
