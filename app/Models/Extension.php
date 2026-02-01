@@ -22,7 +22,6 @@ class Extension extends Model
     	'devicerec' => 'default',
     	'cluster' => 'default',
     	'protocol' => 'IPV4',
-    	'provisionwith' => 'IP',
     	'sndcreds' => 'Always',
     	'transport' => 'udp',
         'technology' => 'SIP',
@@ -39,6 +38,7 @@ class Extension extends Model
     		'firstseen',
     		'lastseen',
 			'passwd',
+    		'provisionwith',  // not in tenant schema (sqlite_create_tenant.sql)
     		'z_created',
     		'z_updated',
     		'newformat',

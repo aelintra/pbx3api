@@ -124,10 +124,12 @@ class ExtensionController extends Controller
         $macaddr = $request->post('macaddr');
 
         $id = generate_ksuid();
+        $shortuid = generate_shortuid();
         $dvrvmail = $pkey;
 
         $attrs = [
             'id' => $id,
+            'shortuid' => $shortuid,
             'pkey' => $pkey,
             'cluster' => $cluster,
             'dvrvmail' => $dvrvmail,
