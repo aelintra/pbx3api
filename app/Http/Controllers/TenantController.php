@@ -112,7 +112,7 @@ class TenantController extends Controller
         }
 
     	$tenant = new Tenant;
-		$tenant->id = trim(`ksuid`);
+		$tenant->id = generate_ksuid();
 
 // Move post variables to the model 
 

@@ -91,6 +91,78 @@ class ExtensionController extends Controller
     }
 
 /**
+ * Create a new extension (single endpoint). Protocol: SIP | WebRTC | Mailbox.
+ * Sets id (ksuid), dvrvmail = pkey. Tenant schema (sqlite_create_tenant.sql).
+ *
+ * @param  Request  pkey, cluster, desc (name), protocol (SIP|WebRTC|Mailbox), macaddr (optional)
+ * @return New extension
+ */
+    public function save(Request $request) {
+        $validator = Validator::make($request->all(), [
+            'pkey' => 'required',
+            'cluster' => 'required|exists:cluster,pkey',
+            'desc' => 'nullable|string|max:255',
+            'protocol' => 'required|in:SIP,WebRTC,Mailbox',
+            'macaddr' => 'nullable|regex:/^[0-9a-fA-F]{12}$/',
+        ]);
+
+        $validator->after(function ($validator) use ($request) {
+            if (Extension::where('pkey', $request->pkey)->where('cluster', $request->cluster)->exists()) {
+                $validator->errors()->add('save', 'Duplicate extension - ' . $request->pkey . ' in this tenant.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $pkey = $request->post('pkey');
+        $cluster = $request->post('cluster');
+        $desc = $request->post('desc');
+        $protocol = $request->post('protocol');
+        $macaddr = $request->post('macaddr');
+
+        $id = generate_ksuid();
+        $dvrvmail = $pkey;
+
+        $attrs = [
+            'id' => $id,
+            'pkey' => $pkey,
+            'cluster' => $cluster,
+            'dvrvmail' => $dvrvmail,
+        ];
+
+        if ($protocol === 'Mailbox') {
+            $attrs['desc'] = $desc ?: 'MAILBOX';
+            $attrs['device'] = 'MAILBOX';
+        } elseif ($protocol === 'SIP') {
+            $attrs['desc'] = $desc ?: ('Ext' . $pkey);
+            $attrs['device'] = 'General SIP';
+            $attrs['transport'] = 'udp';
+        } else {
+            $attrs['desc'] = $desc ?: ('Ext' . $pkey);
+            $attrs['device'] = 'WebRTC';
+            $attrs['transport'] = 'wss';
+        }
+
+        if ($macaddr !== null && $macaddr !== '') {
+            $attrs['macaddr'] = $macaddr;
+        }
+
+        try {
+            $extension = Extension::create($attrs);
+        } catch (\Exception $e) {
+            return Response::json(['Error' => $e->getMessage()], 409);
+        }
+
+        if ($protocol !== 'Mailbox') {
+            $this->create_default_cos_instances($extension);
+        }
+
+        return response()->json($extension, 201);
+    }
+
+/**
  * Return named extension instance. Resolves cluster to tenant_pkey for display.
  *
  * @param  Extension
@@ -602,14 +674,16 @@ class ExtensionController extends Controller
 			if ($cos->defaultopen == 'YES') {
 				IpPhoneCosOpen::create([
     				'IPphone_pkey' => $extension->pkey,
-    				'COS_pkey' => $cos->pkey
+    				'COS_pkey' => $cos->pkey,
+    				'cluster' => $extension->cluster,
     				]);
 			}
 
 			if ($cos->defaultclosed == 'YES') {
 				IpPhoneCosClosed::create([
     				'IPphone_pkey' => $extension->pkey,
-    				'COS_pkey' => $cos->pkey
+    				'COS_pkey' => $cos->pkey,
+    				'cluster' => $extension->cluster,
     				]);
 			}		
 		}

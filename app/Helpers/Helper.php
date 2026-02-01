@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\CustomClasses\Ami;
 use Laravel\Sanctum\PersonalAccessToken;
+use Tuupola\Ksuid;
 
 if (!function_exists('pbx3_database_key_exists')) {
     function pbx3_database_key_exists($candidateKey) {
@@ -359,8 +360,10 @@ if (!function_exists('ret_password')) {
 }
 
 if (!function_exists('generate_ksuid')) {
+    /** Generate a KSUID string (base62) using tuupola/ksuid. */
     function generate_ksuid() {
-        return trim(`ksuid`);
+        $ksuid = new Ksuid();
+        return $ksuid->string();
     }
 }
 

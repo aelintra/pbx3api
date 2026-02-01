@@ -8,7 +8,7 @@ class IpPhoneCosOpen extends Model
 {
     protected $table = 'IPphoneCOSopen';
     public $timestamps = false;
-    protected $fillable = ['IPphone_pkey', 'COS_pkey'];
+    protected $fillable = ['IPphone_pkey', 'COS_pkey', 'cluster'];
 
     public function extension()
     {

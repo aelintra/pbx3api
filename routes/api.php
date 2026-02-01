@@ -170,11 +170,7 @@ Route::group(['middleware' => 'auth:sanctum'], function() {
         Route::get('extensions', [ExtensionController::class, 'index']);
         Route::get('extensions/{extension}', [ExtensionController::class, 'show']);
         Route::get('extensions/{extension}/runtime', [ExtensionController::class, 'showruntime']);
-        Route::post('extensions/mailbox', [ExtensionController::class, 'mailbox']);
-        Route::post('extensions/provisioned', [ExtensionController::class, 'provisioned']);
-        Route::post('extensions/vxt', [ExtensionController::class, 'vxt']);
-        Route::post('extensions/unprovisioned', [ExtensionController::class, 'unprovisioned']);
-        Route::post('extensions/webrtc', [ExtensionController::class, 'webrtc']);
+        Route::post('extensions', [ExtensionController::class, 'save']);
         Route::put('extensions/{extension}', [ExtensionController::class, 'update']);
         Route::put('extensions/{extension}/runtime', [ExtensionController::class, 'updateruntime']);
         Route::delete('extensions/{extension}', [ExtensionController::class, 'delete']);
