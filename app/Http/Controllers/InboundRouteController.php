@@ -30,12 +30,10 @@ class InboundRouteController extends Controller
     	];
 
 /**
- * Return Trunk Index in pkey order asc
- * Historically, the same relation is used to hold noth trun entries and DDI/CLID entries
- * ...so we must filter the relation.  
- * This will likley be addressed in V7 with a new relation purely for DDI
- * 
- * @return Trunks
+ * Return InboundRoute index in pkey order asc.
+ * Instance schema uses inroutes table (DDI/CLID); trunks are in trunks table.
+ *
+ * @return \Illuminate\Support\Collection
  */
     public function index () {
 

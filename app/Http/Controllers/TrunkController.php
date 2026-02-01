@@ -43,17 +43,15 @@ class TrunkController extends Controller
     	];
 
 /**
- * Return Trunk Index in pkey order asc
- * Historically, the same relation is used to hold noth trun entries and DDI/CLID entries
- * ...so we must filter the relation.  
- * This will likley be addressed in V7 with a new relation purely for DDI
- * 
- * @return Trunks
+ * Return Trunk index in pkey order asc.
+ * Instance schema uses trunks table only (DDI/CLID are in inroutes).
+ *
+ * @return \Illuminate\Support\Collection
  */
     public function index () {
 
     	return Trunk::where('technology', '=', 'SIP')
-    		->orWhere ('technology', '=', 'IAX2' ) 		
+    		->orWhere ('technology', '=', 'IAX2' )
     		->orderBy('pkey','asc')->get();
     }
 
@@ -197,7 +195,7 @@ class TrunkController extends Controller
 
  
 /**
- * Copies and sets Asterisk stanza template from Carrier into LineIO
+ * Copies and sets Asterisk stanza template from Carrier into trunk model
  * 
  * @param  REQUEST
  * @param  MODEL
