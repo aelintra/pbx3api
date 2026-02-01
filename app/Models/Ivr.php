@@ -45,18 +45,6 @@ class Ivr extends Model
 	'option7' => 'None',
 	'option8' => 'None',
 	'option9' => 'None',
-	'routeclass0' => 0,
-	'routeclass1' => 0,
-	'routeclass10' => 0,
-	'routeclass11' => 0,
-	'routeclass2' => 0,
-	'routeclass3' => 0,
-	'routeclass4' => 0,
-	'routeclass5' => 0,
-	'routeclass6' => 0,
-	'routeclass7' => 0,
-	'routeclass8' => 0,
-	'routeclass9' => 0,
 	'tag0' => null,
 	'tag1' => null,
 	'tag10' => null,
@@ -69,8 +57,7 @@ class Ivr extends Model
 	'tag7' => null,
 	'tag8' => null,
 	'tag9' => null,
-	'timeout' => 'operator',					
-	'timeoutrouteclass' => 100
+	'timeout' => 'operator'
 
     ];
 
@@ -87,17 +74,5 @@ class Ivr extends Model
     // hidden columns (mostly no longer used)
     protected $hidden = [
     'id',
-    "routeclass0",
-    "routeclass1",
-    "routeclass10",
-    "routeclass11",
-    "routeclass2",
-    "routeclass3",
-    "routeclass4",
-    "routeclass5",
-    "routeclass6",
-    "routeclass7",
-    "routeclass8",
-    "routeclass9"
     ];
 }

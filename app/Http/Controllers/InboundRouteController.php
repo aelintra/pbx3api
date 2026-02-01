@@ -71,15 +71,10 @@ class InboundRouteController extends Controller
 
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
-        $validator->after(function ($validator) use ($request,$inboundroute) {
-
-//Check if key exists
-            if ($inboundroute->where('pkey','=',$request->pkey)->count()) {
-                    $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
-                    return;
-            } 
-// check routes and get routeclass
-            $this->check_inbound_routes($request, $inboundroute, $validator);                      
+        $validator->after(function ($validator) use ($request, $inboundroute) {
+            if ($inboundroute->where('pkey', '=', $request->pkey)->count()) {
+                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
+            }
         });
 
         if ($validator->fails()) {
@@ -115,15 +110,7 @@ class InboundRouteController extends Controller
  */
     public function update(Request $request, InboundRoute $inboundroute) {
 
-// Validate   
-        $validator = Validator::make($request->all(),$this->updateableColumns);
-
-// Check if route targets have changed and set the routeclass if they have
-        $validator->after(function ($validator) use ($request,$inboundroute) {
-
-            $this->check_inbound_routes($request, $inboundroute, $validator);
-
-        });
+        $validator = Validator::make($request->all(), $this->updateableColumns);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
@@ -157,31 +144,5 @@ class InboundRouteController extends Controller
         $inboundroute->delete();
 
         return response()->json(null, 204);
-    }
-
-
-/**
- * @param  $request
- * @param  $inboundroute
- * @return NULL
- */
-    private function check_inbound_routes($request, $inboundroute, $validator) {
-
-            if (isset($request->openroute)) {
-                $inboundroute->routeclassopen = get_route_class($request->openroute);
-            }
-
-            if ($inboundroute->routeclassopen == 404) {
-                $validator->errors()->add('openroute', "The target could not be resolved " . $request->openroute);               
-            }
-
-            if (isset($request->closeroute)) {  
-                $inboundroute->routeclassclosed = get_route_class($request->closeroute);
-            }
-
-            if ($inboundroute->routeclassclosed == 404) {
-                $validator->errors()->add('closeroute', "The target could not be resolved " . $request->closeroute);             
-            }                      
-
     }
 }

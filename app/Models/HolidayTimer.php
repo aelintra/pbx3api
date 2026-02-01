@@ -15,7 +15,6 @@ class HolidayTimer extends Model
         'pkey' => null,
         'cluster' => 'default',
         'route' => 'None',
-        'routeclass' => '0',
         'stime' => null,
         'etime' => null
 
@@ -32,8 +31,5 @@ class HolidayTimer extends Model
     // hidden columns (mostly no longer used)
     protected $hidden = [
     'pkey',
-//    'routeclass',
-
-
     ];
 }

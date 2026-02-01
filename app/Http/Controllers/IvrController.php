@@ -54,8 +54,7 @@ class IvrController extends Controller
             'tag9' => 'string|nullable',
             'tag10' => 'string|nullable',
             'tag11' => 'string|nullable',            
-            'timeout' => 'operator',                    
-            'timeoutrouteclass' => '100',
+            'timeout' => 'operator',
             'z_updater' => 'alpha_num'
 
     	];
@@ -189,21 +188,7 @@ class IvrController extends Controller
  * @return NULL
  */
     private function check_options($request, $ivr) {
-
-            for ($i = 0; $i <= 12; $i++) {
-
-/*
-    Iterate over the key options (0->12) using PHP variable variables to poke the object ()
- */
-                if (isset($request->{'option' . $i} )) {
-                    $ivr->{'routeclass' . $i} = get_route_class($request->{'option' . $i} );
-                }
-
-                if ($ivr->{'routeclass' . $i} == 404) {
-                    return Response::json(['Error' =>'outcome', "The target could not be resolved " . $request->{'option' . $i} ]);               
-                } 
-            }                       
-
+        // routeclass no longer exists in schema; option0-11 / timeout are destination names only
     }
 
  

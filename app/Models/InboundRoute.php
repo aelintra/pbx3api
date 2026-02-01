@@ -24,8 +24,6 @@ class InboundRoute extends Model
 	'monitor' 		=> 'NO',
 	'openroute' 	=> 'operator',
 	'routeable' 	=> 'NO',
-    'routeclassopen' => 100,
-    'routeclassclosed' => 100,
 	'swoclip' 		=> 'YES'
     ];
 
@@ -66,8 +64,6 @@ class InboundRoute extends Model
 	'queue',
 	'remotenum',
 	'routeable',
-	'routeclassopen',
-	'routeclassclosed',
 	'service',
 	'speed',
 	'technology',
@@ -121,8 +117,6 @@ class InboundRoute extends Model
 	'remotenum',
 	'queue',
 	'routeable',
-//	'routeclassopen',
-//	'routeclassclosed',
 	'service',
 	'sipiaxpeer',
 	'sipiaxuser',

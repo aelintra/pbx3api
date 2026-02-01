@@ -17,7 +17,6 @@ class HolidayTimerController extends Controller
         'pkey' => 'string',
         'cluster' => 'exists:cluster,pkey',
         'route' => 'string',
-        'routeclass' => 'integer',
         'desc' => 'string',
         'stime' => 'digits:10|nullable',
         'etime' => 'digits:10|nullable'
@@ -58,17 +57,6 @@ class HolidayTimerController extends Controller
 
         $validator = Validator::make($request->all(),$this->updateableColumns);
 
-        $validator->after(function ($validator) use ($request,$holidaytimer) {
-
-           if (isset($request->route)) {
-                $holidaytimer->routeclass = get_route_class($request->route);
-            }
-            if ($holidaytimer->routeclass == 404) {
-                $validator->errors()->add('route', "The routing target could not be resolved " . $request->route);               
-            }            
-
-        });
-
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
         }
@@ -98,17 +86,6 @@ class HolidayTimerController extends Controller
 
 // Validate   
         $validator = Validator::make($request->all(),$this->updateableColumns);
-
-        $validator->after(function ($validator) use ($request,$holidaytimer) {
-
-           if (isset($request->route)) {
-                $holidaytimer->routeclass = get_route_class($request->route);
-            }
-            if ($holidaytimer->routeclass == 404) {
-                $validator->errors()->add('route', "The routing target could not be resolved " . $request->route);               
-            }            
-
-        });
 
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
