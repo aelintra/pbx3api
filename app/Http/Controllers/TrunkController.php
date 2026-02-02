@@ -120,7 +120,6 @@ class TrunkController extends Controller
     	$trunk->technology = 'SIP';
 		if ($trunk->carrier == 'GeneralIAX2') {
 			$trunk->technology = 'IAX2';
-			$trunk->technology = $trunk->peername;
 		}
 
 // Copy in the Asterisk stanzas from carrier template when instance has carrier table (legacy/catalog DB)
