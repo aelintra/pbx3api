@@ -13,17 +13,8 @@ class Queue extends Model
     public $incrementing = false;
     public $timestamps = false;
 
+    // queue table (full_schema.sql; no conf column)
     protected $attributes = [
-
-    'conf' => "musiconhold=default
-strategy=ringall
-timeout=300
-retry=5
-wrapuptime=0
-maxlen=0
-announce-frequency=30
-announce-holdtime=yes",
-
     'cluster' => 'default',
     'devicerec' => 'None',
     'greetnum' => null,
@@ -31,7 +22,6 @@ announce-holdtime=yes",
     'name' => null,
     'outcome' => null,
     'timeout' => 0
-
     ];
 
     // none user updateable columns

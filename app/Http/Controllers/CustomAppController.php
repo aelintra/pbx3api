@@ -15,7 +15,7 @@ class CustomAppController extends Controller
     private $updateableColumns = [
 
         'cluster' => 'exists:cluster,pkey',
-        'desc' => 'string|nullable',
+        'description' => 'string|nullable',
         'extcode' => 'string|nullable',
         'span' => 'in:Internal,External,Both,Neither',
         'striptags' => 'in:YES,NO'

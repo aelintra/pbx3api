@@ -13,17 +13,16 @@ class DayTimer extends Model
 //    public $incrementing = false;
     public $timestamps = false;
 
+    // dateseg table (full_schema.sql has description, not desc)
     protected $attributes = [
         'id' => null,
         'pkey' => null,
         'cluster' => 'default',
         'datemonth' => '*',
         'dayofweek' => '*',
-        'desc' => null,
         'month' => '*',
         'state' => 'IDLE',
         'timespan' => '*'
-
     ];
 
     // none user updateable columns

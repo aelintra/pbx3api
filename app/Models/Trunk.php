@@ -14,27 +14,20 @@ class Trunk extends Model
     public $incrementing = false;
     public $timestamps = false;
 
+    // Defaults for trunks table; only columns that exist in schema (full_schema.sql)
     protected $attributes = [
     'active' 		=> 'YES',
 	'callprogress'  => 'NO',
 	'closeroute' 	=> 'Operator',
 	'cluster' 		=> 'default',
-	'faxdetect'		=> 'NO',
-	'lcl' 			=> 'NO',
 	'moh' 			=> 'NO',
-	'monitor' 		=> 'NO',
 	'openroute' 	=> 'Operator',
-	'routeable' 	=> 'NO',
-    'routeclassopen' => 100,
-    'routeclassclosed' => 100,
 	'swoclip' 		=> 'YES'
     ];
 
-    // none user updateable columns
     protected $guarded = [
-    'callback',	
-    'carrier',
-	'channel', 	
+    'callback',
+	'channel',
 	'closecallback',
 	'closecustom',
 	'closedisa',
@@ -48,13 +41,10 @@ class Trunk extends Model
 	'custom',
 	'desc',
 	'didnumber',
-	'ext',	
-	'faxdetect',
+	'ext',
 	'forceivr',
-	'lcl',
 	'macaddr',
 	'method',
-	'monitor',
 	'openfirewall',
 	'opengreet',
 	'openroute',
@@ -66,9 +56,6 @@ class Trunk extends Model
 	'provision',
 	'queue',
 	'remotenum',
-	'routeable',
-	'routeclassopen',
-	'routeclassclosed',
 	'service',
 	'speed',
 	'technology',
@@ -80,10 +67,9 @@ class Trunk extends Model
 	'z_updater'
     ];
 
-    // hidden columns (mostly no longer used)
     protected $hidden = [
     'callback',
-	'channel', 
+	'channel',
 	'closecallback',
 	'closecustom',
 	'closedisa',
@@ -97,13 +83,10 @@ class Trunk extends Model
 	'custom',
 	'didnumber',
 	'desc',
-	'ext',	
-	'faxdetect',
+	'ext',
 	'forceivr',
-	'lcl',
 	'macaddr',
 	'method',
-	'monitor',
 	'openfirewall',
 	'opengreet',
 	'openroute',
@@ -115,15 +98,11 @@ class Trunk extends Model
 	'provision',
 	'remotenum',
 	'queue',
-	'routeable',
-	'routeclassopen',
-	'routeclassclosed',
 	'service',
 	'speed',
 	'technology',
 	'transformclip',
-	'trunk',	
+	'trunk',
 	'zapcaruser'
-
     ];
 }

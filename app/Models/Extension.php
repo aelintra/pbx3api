@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Extension (ipphone table). Table has both "desc" and "description".
+ * "desc" is the SIP username; the Asterisk generator uses it to build Asterisk objects — do not remove.
+ * TODO: Rename "desc" to something more appropriate (e.g. sip_username) in schema and Asterisk generator when feasible.
+ */
 class Extension extends Model
 {
-    
     protected $table = 'ipphone';
     protected $primaryKey = 'pkey';
     protected $keyType = 'string';

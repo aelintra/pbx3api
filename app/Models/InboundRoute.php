@@ -13,25 +13,21 @@ class InboundRoute extends Model
     public $incrementing = false;
     public $timestamps = false;
 
+    // Defaults for inroutes table; only columns that exist in schema (full_schema.sql)
     protected $attributes = [
     'active' 		=> 'YES',
 	'callprogress'  => 'NO',
 	'closeroute' 	=> 'operator',
 	'cluster' 		=> 'default',
-	'faxdetect'		=> 'NO',
-	'lcl' 			=> 'NO',
 	'moh' 			=> 'NO',
-	'monitor' 		=> 'NO',
 	'openroute' 	=> 'operator',
-	'routeable' 	=> 'NO',
 	'swoclip' 		=> 'YES'
     ];
 
-    // none user updateable columns
+    // Columns not mass-assigned from request (schema: full_schema.sql inroutes)
     protected $guarded = [
-    'callback',	
-    'carrier',
-	'channel', 	
+    'callback',
+	'channel',
 	'closecallback',
 	'closecustom',
 	'closedisa',
@@ -45,13 +41,10 @@ class InboundRoute extends Model
 	'custom',
 	'desc',
 	'didnumber',
-	'ext',	
-	'faxdetect',
+	'ext',
 	'forceivr',
-	'lcl',
 	'macaddr',
 	'method',
-	'monitor',
 	'openfirewall',
 	'opengreet',
 	'openroute',
@@ -63,7 +56,6 @@ class InboundRoute extends Model
 	'provision',
 	'queue',
 	'remotenum',
-	'routeable',
 	'service',
 	'speed',
 	'technology',
@@ -75,12 +67,12 @@ class InboundRoute extends Model
 	'z_updater'
     ];
 
-    // hidden columns (mostly no longer used)
+    // Hidden from JSON (schema: full_schema.sql inroutes)
     protected $hidden = [
     'callback',
     'callerid',
     'callprogress',
-	'channel', 
+	'channel',
 	'closecallback',
 	'closecustom',
 	'closedisa',
@@ -94,15 +86,12 @@ class InboundRoute extends Model
 	'didnumber',
 	'disa',
 	'desc',
-	'ext',	
-	'faxdetect',
+	'ext',
 	'forceivr',
 	'host',
-	'lcl',
 	'macaddr',
 	'match',
 	'method',
-	'monitor',
 	'openfirewall',
 	'opengreet',
 	'opensibling',
@@ -116,17 +105,14 @@ class InboundRoute extends Model
 	'register',
 	'remotenum',
 	'queue',
-	'routeable',
 	'service',
 	'sipiaxpeer',
 	'sipiaxuser',
 	'speed',
-//	'technology',
 	'transform',
 	'transformclip',
 	'trunk',
-	'username',	
+	'username',
 	'zapcaruser'
-
     ];
 }

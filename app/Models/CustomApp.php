@@ -13,15 +13,14 @@ class CustomApp extends Model
     public $incrementing = false;
     public $timestamps = false;
 
+    // appl table (full_schema.sql has description, not desc)
     protected $attributes = [
-
     'cluster' => 'default',
-    'desc' => null,
+    'description' => null,
     'extcode' => null,
     'name' => null,
     'span' => 'Neither',
     'striptags' => 'NO'
-
     ];
 
     // none user updateable columns

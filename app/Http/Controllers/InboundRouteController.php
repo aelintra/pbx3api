@@ -11,18 +11,18 @@ use Illuminate\Support\Facades\DB;
 class InboundRouteController extends Controller
 {
     //
+    	// Only columns that exist in inroutes table (full_schema.sql). 'carrier' is request-only → stored as technology.
     	private $updateableColumns = [
-    		'active' => 'in:YES,NO', 
+    		'active' => 'in:YES,NO',
 			'alertinfo' => 'string',
-            'carrier' => 'in:DiD,CLID',
-            'closeroute' => 'string',
+			'closeroute' => 'string',
 			'cluster' => 'exists:cluster,pkey',
 			'description' => 'alpha_num',
 			'disa' => 'in:DISA,CALLBACK|nullable',
 			'disapass' => 'alpha_num|nullable',
 			'inprefix' => 'integer|nullable',
 			'moh' => 'in:ON,OFF',
-            'openroute' => 'string',
+			'openroute' => 'string',
 			'swoclip' => 'in:YES,NO',
 			'tag' => 'alpha_num|nullable',
 			'trunkname' => 'alpha_num',
@@ -59,17 +59,19 @@ class InboundRouteController extends Controller
  */
     public function save(Request $request) {
 
-// validate
-        $this->updateableColumns['pkey'] = 'required';
-        $this->updateableColumns['carrier'] = 'required|in:DiD,CLID';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
-        $this->updateableColumns['trunkname'] = 'nullable|alpha_num';
+// validate (carrier is request-only, stored as technology in DB)
+        $rules = array_merge($this->updateableColumns, [
+            'pkey' => 'required',
+            'carrier' => 'required|in:DiD,CLID',
+            'cluster' => 'required|exists:cluster,pkey',
+            'trunkname' => 'nullable|alpha_num',
+        ]);
 
         $inboundroute = new InboundRoute;
         $inboundroute->openroute = 'None';
         $inboundroute->closeroute = 'None';
 
-        $validator = Validator::make($request->all(), $this->updateableColumns);
+        $validator = Validator::make($request->all(), $rules);
 
         $validator->after(function ($validator) use ($request, $inboundroute) {
             if ($inboundroute->where('pkey', '=', $request->pkey)->count()) {
@@ -80,8 +82,7 @@ class InboundRouteController extends Controller
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
         }
-    
-// Move post variables to the model
+
         move_request_to_model($request, $inboundroute, $this->updateableColumns);
 
         if (empty($inboundroute->trunkname)) {
@@ -90,7 +91,7 @@ class InboundRouteController extends Controller
 
         $inboundroute->id = generate_ksuid();
         $inboundroute->shortuid = generate_shortuid();
-        $inboundroute->technology = $inboundroute->carrier;
+        $inboundroute->technology = $request->input('carrier', 'DiD');
 
         try {
             $inboundroute->save();
@@ -116,11 +117,12 @@ class InboundRouteController extends Controller
             return response()->json($validator->errors(),422);
         }
 
-// Move post variables to the model   
-        move_request_to_model($request,$inboundroute,$this->updateableColumns);
+        move_request_to_model($request, $inboundroute, $this->updateableColumns);
+        if ($request->has('carrier')) {
+            $inboundroute->technology = $request->input('carrier');
+        }
 
-
-// store the model if it has changed
+        // store the model if it has changed
         try {
             if ($inboundroute->isDirty()) {
                 $inboundroute->update();

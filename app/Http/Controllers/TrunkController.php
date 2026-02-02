@@ -128,11 +128,8 @@ class TrunkController extends Controller
 			$this->copy_asterisk_stanzas_from_carrier($request, $trunk);
 		}
 
-// Tenant schema (sqlite_create_tenant.sql) defines the column set; omit any other attributes to avoid SQL error
-		$omitFromInsert = [
-			'carrier', 'sipiaxpeer', 'sipiaxuser',  // used only for logic/template lookup
-			'faxdetect', 'lcl', 'monitor', 'routeable', 'routeclassopen', 'routeclassclosed',  // model defaults not in tenant schema
-		];
+		// Omit request-only / template-only attributes not in trunks table (full_schema.sql)
+		$omitFromInsert = [ 'carrier', 'sipiaxpeer', 'sipiaxuser' ];
 		foreach ($omitFromInsert as $key) {
 			$trunk->offsetUnset($key);
 		}

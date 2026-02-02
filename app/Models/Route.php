@@ -14,20 +14,18 @@ class Route extends Model
     public $incrementing = false;
     public $timestamps = false;
 
+    // Defaults for route table (full_schema.sql has description, not desc)
     protected $attributes = [
-
     'active' => 'YES',
     'alternate' => null,
     'auth' => 'NO',
     'cluster' => 'default',
-    'desc' => null,
     'dialplan' => null,
     'path1' => null,
     'path2' => null,
     'path3' => null,
     'path4' => null,
     'strategy' => 'hunt'
-
     ];
 
     // none user updateable columns
