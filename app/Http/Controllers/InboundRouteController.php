@@ -6,13 +6,14 @@ use App\Models\InboundRoute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class InboundRouteController extends Controller
 {
-    //
-    	// Only columns that exist in inroutes table (full_schema.sql). 'carrier' is request-only → stored as technology.
-    	private $updateableColumns = [
+    /** Asterisk dialplan extension format: literal digits, pattern _[XZN.!]+, or special s|i|t */
+    private const PKEY_EXTENSION_REGEX = '/^(\d+|_[XZN.!]+|[sit])$/';
+
+    // Only columns that exist in inroutes table (full_schema.sql). 'carrier' is request-only → stored as technology.
+    private $updateableColumns = [
     		'active' => 'in:YES,NO',
 			'alertinfo' => 'string',
 			'closeroute' => 'string',
@@ -59,9 +60,9 @@ class InboundRouteController extends Controller
  */
     public function save(Request $request) {
 
-// validate (carrier is request-only, stored as technology in DB)
+// validate (carrier is request-only, stored as technology in DB; pkey must be valid Asterisk extension)
         $rules = array_merge($this->updateableColumns, [
-            'pkey' => 'required',
+            'pkey' => ['required', 'regex:' . self::PKEY_EXTENSION_REGEX],
             'carrier' => 'required|in:DiD,CLID',
             'cluster' => 'required|exists:cluster,pkey',
             'trunkname' => 'nullable|alpha_num',
@@ -71,11 +72,20 @@ class InboundRouteController extends Controller
         $inboundroute->openroute = 'None';
         $inboundroute->closeroute = 'None';
 
-        $validator = Validator::make($request->all(), $rules);
+        $messages = [
+            'pkey.regex' => 'Number must be a valid Asterisk extension: digits only, pattern _XZN.! (e.g. _2XXX), or special s/i/t.',
+        ];
+        $validator = Validator::make($request->all(), $rules, $messages);
+        $validator->setAttributeNames(['pkey' => 'Number (DiD/CLiD)']);
 
         $validator->after(function ($validator) use ($request, $inboundroute) {
             if ($inboundroute->where('pkey', '=', $request->pkey)->count()) {
                 $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
+            }
+            // Reject single "0" — not a valid DiD/CLiD
+            $pkey = trim((string) $request->input('pkey', ''));
+            if ($pkey === '0') {
+                $validator->errors()->add('pkey', 'Number cannot be a single 0.');
             }
         });
 
@@ -84,6 +94,8 @@ class InboundRouteController extends Controller
         }
 
         move_request_to_model($request, $inboundroute, $this->updateableColumns);
+        // Set pkey from request (may be "0" — valid DiD/CLiD; don't use empty() here)
+        $inboundroute->pkey = trim((string) $request->input('pkey', ''));
 
         if (empty($inboundroute->trunkname)) {
             $inboundroute->trunkname = $inboundroute->pkey;

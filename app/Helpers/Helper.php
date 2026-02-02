@@ -51,15 +51,14 @@ if (!function_exists('move_request_to_model')) {
      *
      * */
     function move_request_to_model($request, $model, $updateableColumns) {
-
-        foreach ($request->post() as $key => $value) {
-    		if (array_key_exists($key,$updateableColumns)) {
-    			$model->$key = trim($value);
-    		} 
-    	}
-		return;
-
-	}
+        // Use all() so JSON request body is read (post() is empty for application/json)
+        foreach ($request->all() as $key => $value) {
+            if (array_key_exists($key, $updateableColumns)) {
+                $model->$key = is_string($value) ? trim($value) : $value;
+            }
+        }
+        return;
+    }
 }
 
 if (!function_exists('get_location')) {
