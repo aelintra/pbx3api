@@ -1,4 +1,7 @@
 # Introduction
+
+**For AI/agent context and recent session summary** (schema yardstick, API conventions, what's done/left), see **pbx3-frontend/workingdocs/README.md** (then SESSION_HANDOFF.md and PROJECT_PLAN.md).
+
 ## Background
 pbx3api is a fairly vanilla OAS JSON API. It allows you to programmatically do anything you can do manually at the pbx3 browser. <br/>
 
