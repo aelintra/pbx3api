@@ -91,7 +91,7 @@ class IvrController extends Controller
     public function save(Request $request) {
 
 // validation 
-  		$this->updateableColumns['pkey'] = 'required';
+  		$this->updateableColumns['pkey'] = 'required|digits_between:3,5';
 		$this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
 
     	$validator = Validator::make($request->all(),$this->updateableColumns);
