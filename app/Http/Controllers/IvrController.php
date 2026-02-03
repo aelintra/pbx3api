@@ -13,6 +13,9 @@ class IvrController extends Controller
     	private $updateableColumns = [
 
             'pkey' => 'string|nullable',
+            'active' => 'in:YES,NO',
+            'cname' => 'string|nullable',
+            'name' => 'string|nullable',
             'alert0' => 'string|nullable',
             'alert1' => 'string|nullable',
             'alert2' => 'string|nullable',
