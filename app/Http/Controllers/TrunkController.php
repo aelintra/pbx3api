@@ -34,6 +34,7 @@ class TrunkController extends Controller
 			'sipiaxuser' => 'string',
 			'swoclip' => 'in:YES,NO',
 			'tag' => 'alpha_num|nullable',
+			'transport' => 'in:udp,tcp,tls,wss',
 			'transform' => [
 				'regex:/$(\d+?:\d+?\s*)+',
 				'nullable'

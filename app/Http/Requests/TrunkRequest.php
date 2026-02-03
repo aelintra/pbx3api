@@ -41,6 +41,7 @@ class TrunkRequest extends FormRequest
             'sipiaxuser' => 'string|required',
             'swoclip' => 'in:YES,NO',
             'tag' => 'string|nullable',
+            'transport' => 'in:udp,tcp,tls,wss',
             'transform' => ['regex:/^(\d+?:\d+?\s*)+$/', 'nullable'],
             'trunkname' => 'required|string|max:255',
             'username' => 'string|nullable',
