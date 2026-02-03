@@ -110,6 +110,10 @@ class IvrController extends Controller
     	move_request_to_model($request,$ivr,$this->updateableColumns); 
         $this->check_options($request, $ivr);
 
+        // Populate id (KSUID) and shortuid per ivrmenu schema (same pattern as Trunk/InboundRoute)
+        $ivr->id = generate_ksuid();
+        $ivr->shortuid = generate_shortuid();
+
 // create the model			
     	try {
 
