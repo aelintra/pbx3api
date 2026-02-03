@@ -14,7 +14,7 @@ class Ivr extends Model
     public $timestamps = false;
 
     protected $attributes = [
-
+	// id and shortuid not set here so Eloquent hydrates them from DB like Tenant/Trunk/Extension
 	'pkey' => null,
 	'alert0' => null,
 	'alert1' => null,
@@ -71,8 +71,6 @@ class Ivr extends Model
 	'z_updater'
     ];
 
-    // hidden columns (mostly no longer used)
-    protected $hidden = [
-    'id',
-    ];
+    // Hidden from JSON (none; id and shortuid shown in list/detail like Trunk/InboundRoute)
+    protected $hidden = [];
 }

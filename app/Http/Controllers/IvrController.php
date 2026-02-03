@@ -6,7 +6,6 @@ use App\Models\Ivr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class IvrController extends Controller
 {
@@ -64,9 +63,9 @@ class IvrController extends Controller
  * 
  * @return Ivrs
  */
-    public function index () {
-
-    	return Ivr::orderBy('pkey','asc')->get();
+    public function index ()
+    {
+        return Ivr::orderBy('pkey', 'asc')->get();
     }
 
 /**
@@ -75,9 +74,9 @@ class IvrController extends Controller
  * @param  Extension
  * @return extension object
  */
-    public function show (Ivr $ivr) {
-
-    	return $ivr;
+    public function show (Ivr $ivr)
+    {
+        return $ivr;
     }
 
 /**
