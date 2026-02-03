@@ -54,7 +54,7 @@ class IvrController extends Controller
             'tag9' => 'string|nullable',
             'tag10' => 'string|nullable',
             'tag11' => 'string|nullable',            
-            'timeout' => 'operator',
+            'timeout' => 'string|nullable',
             'z_updater' => 'alpha_num'
 
     	];
