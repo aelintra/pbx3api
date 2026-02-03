@@ -95,19 +95,10 @@ class IvrController extends Controller
     	$validator = Validator::make($request->all(),$this->updateableColumns);
 
         $validator->after(function ($validator) use ($request) {
-//Check if key exists
-            if (IVR::where('pkey','=',$request->pkey)->count()) {
+            // Check if key exists (no $ivr yet on create)
+            if (Ivr::where('pkey', '=', $request->pkey)->count()) {
                 $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
-                return;
-            }                              
-
-            if($this->check_options($request, $ivr, $validator) == 404) {
-                return;
             }
-            if($this->check_timeout($request, $ivr, $validator) == 404) {
-                return;
-            }
-
         });
 
         if ($validator->fails()) {
