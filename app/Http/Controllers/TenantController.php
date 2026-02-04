@@ -13,7 +13,7 @@ class TenantController extends Controller
 	private $updateableColumns = [
     		'abstimeout' => 'integer',
 			'allow_hash_xfer' => 'in:enabled,disabled',
-			'callrecord1' => 'in:None,In,Out,Both',
+			'callrecord_1' => 'in:None,In,Out,Both',
 			'cfwdextern_rule' => 'in:YES,NO',
 			'cfwd_progress' => 'in:enabled,disabled',
 			'cfwd_answer' => 'in:enabled,disabled',
@@ -42,7 +42,7 @@ class TenantController extends Controller
 			'lterm' => 'boolean',
 			'leasedhdtime' => 'integer|nullable',
 			'masteroclo' => 'in:AUTO,CLOSED',
-			'max_in' => 'integer',
+			'maxin' => 'integer',
 			'monitor_out' => 'string',
 			'operator' => 'integer',
 			'pickupgroup' => 'string',
