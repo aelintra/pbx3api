@@ -113,6 +113,7 @@ class TenantController extends Controller
 
     	$tenant = new Tenant;
 		$tenant->id = generate_ksuid();
+		$tenant->shortuid = generate_shortuid();
 
 // Move post variables to the model 
 
