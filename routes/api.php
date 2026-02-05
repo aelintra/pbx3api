@@ -52,9 +52,9 @@ Route::group(['prefix' => 'auth'], function () {
 });
 
 /**
- *  Only admins can create,delete and view users
+ *  Only admins can create, delete and view users
  */
-    if (get_token_abilities()) {
+    Route::middleware(['auth:sanctum', 'abilities:admin:isAdmin'])->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::get('users', [AuthController::class, 'index']);
         Route::get('users/mail/{email}', [AuthController::class, 'userByEmail']);
@@ -63,22 +63,23 @@ Route::group(['prefix' => 'auth'], function () {
         Route::delete('users/revoke/{id}', [AuthController::class, 'revoke']);
         Route::get('users/{id}', [AuthController::class, 'userById']);
         Route::delete('users/{id}', [AuthController::class, 'delete']);
-    }
+    });
 });
 
-Route::group(['middleware' => 'auth:sanctum'], function() {
+Route::middleware(['auth:sanctum', 'abilities:admin:isAdmin'])->group(function () {
+    Route::get('test/admin-only', function () {
+        return response()->json(['message' => 'Admin access granted']);
+    });
+});
+
+Route::middleware(['auth:sanctum', 'abilities:admin:isAdmin'])->group(function () {
 /**
- * Everything in this group requires admin privileges.
- * Sanctum check-abilities does not seem to work and I am out
- * of time so I hacked a helper to check the
- * PAT table for admin priveleges.  Easily removed if I ever figure out how to get Sanctum to
- * do this for me.
+ * Everything in this group requires admin privileges (Sanctum abilities:admin:isAdmin).
  */
-    if (get_token_abilities()) {
 /**
  * Agents
  */
-        Route::get('agents', [AgentController::class, 'index']);
+    Route::get('agents', [AgentController::class, 'index']);
         Route::get('agents/{agent}', [AgentController::class, 'show']);
         Route::post('agents', [AgentController::class, 'save']);
         Route::put('agents/{agent}', [AgentController::class, 'update']);
@@ -286,9 +287,7 @@ Route::group(['middleware' => 'auth:sanctum'], function() {
         Route::get('trunks/{trunk}', [TrunkController::class, 'show']);
         Route::post('trunks', [TrunkController::class, 'save']);
         Route::put('trunks/{trunk}', [TrunkController::class, 'update']);
-        Route::delete('trunks/{trunk}', [TrunkController::class, 'delete']);
-    }
-
+    Route::delete('trunks/{trunk}', [TrunkController::class, 'delete']);
 });
 
 Route::fallback(function(){

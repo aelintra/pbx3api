@@ -12,23 +12,6 @@ if (!function_exists('pbx3_database_key_exists')) {
     }
 }
 
-if (!function_exists('get_token_abilities')) {
-    function get_token_abilities() {
-        $token = request()->bearerToken();
-
-        if (!isset($token)) {
-            return false;
-        }
-        $bits = preg_split("/\|/", $token);
-        $hashtoken = hash('sha256', $bits[1]);
-        $abilities = DB::table('personal_access_tokens')->where('token', $hashtoken)->value('abilities');
-        if (preg_match("/isAdmin/", $abilities)) {
-            return true;
-        }
-        return false;
-    }
-}
-
 if (!function_exists('move_request_to_model')) {
     /**
      * Updates a model ready for saving
