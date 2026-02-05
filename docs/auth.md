@@ -36,9 +36,8 @@ Body
 'name' => 'alpha_dash',
 'email' => 'email',
 'password' => 'alpha_dash',
-'role' => 'NULL|isAdmin',
+'abilities' => 'NULL|array of strings (e.g. ["admin"])',
 'endpoint' => 'NULL|integer'
-
 ```	
 Returns 200 OK and a Bearer Token on success<br/>
 

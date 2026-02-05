@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -23,25 +24,24 @@ class AuthController extends Controller
 
         $request->validate([
             'name' => 'required|string',
-            'email'=>'required|email|unique:users',
-            'endpoint'=>'numeric',
-        /**
-         * N.B. 'email' => 'email:rfc,dns'
-         *  see - https://laravel.com/docs/9.x/validation#rule-email
-         */
-            'password'=>'required|string'
+            'email' => 'required|email|unique:users',
+            'endpoint' => 'nullable|numeric',
+            'abilities' => 'nullable|array',
+            'abilities.*' => ['string', Rule::in(array_keys(config('abilities.abilities', [])))],
+            'password' => 'required|string',
         ]);
         
         $user = new User([
             'name'  => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'role' => $request->role,
+            'abilities' => $request->input('abilities', []),
             'endpoint' => $request->endpoint,
         ]);
 
-        if($user->save()){
-            $tokenResult = $user->createToken('Personal Access Token');
+        if ($user->save()) {
+            $abilities = is_array($user->abilities) ? $user->abilities : [];
+            $tokenResult = $user->createToken('Personal Access Token', $abilities);
             $token = $tokenResult->plainTextToken;
 
             return response()->json([
@@ -80,15 +80,11 @@ class AuthController extends Controller
         }
 
         $user = $request->user();
+        $abilities = is_array($user->abilities) ? $user->abilities : [];
 
         $tokenName = 'Personal Access Token - ' . now()->toDateTimeString();
-        if ($request->user()->role == "isAdmin") {
-            Log::info("login " . $request->user()->name . " as Admin");
-            $tokenResult = $user->createToken($tokenName, ['admin']);
-        } else {
-            Log::info("login " . $request->user()->name);
-            $tokenResult = $user->createToken($tokenName);
-        }
+        Log::info("login " . $user->name . (in_array('admin', $abilities, true) ? " as Admin" : ""));
+        $tokenResult = $user->createToken($tokenName, $abilities);
         
         $token = $tokenResult->plainTextToken;
 
