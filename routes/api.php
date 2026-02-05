@@ -54,7 +54,7 @@ Route::group(['prefix' => 'auth'], function () {
 /**
  *  Only admins can create, delete and view users
  */
-    Route::middleware(['auth:sanctum', 'abilities:admin:isAdmin'])->group(function () {
+    Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::get('users', [AuthController::class, 'index']);
         Route::get('users/mail/{email}', [AuthController::class, 'userByEmail']);
@@ -66,15 +66,15 @@ Route::group(['prefix' => 'auth'], function () {
     });
 });
 
-Route::middleware(['auth:sanctum', 'abilities:admin:isAdmin'])->group(function () {
+Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('test/admin-only', function () {
         return response()->json(['message' => 'Admin access granted']);
     });
 });
 
-Route::middleware(['auth:sanctum', 'abilities:admin:isAdmin'])->group(function () {
+Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
- * Everything in this group requires admin privileges (Sanctum abilities:admin:isAdmin).
+ * Everything in this group requires admin privileges (Sanctum abilities:admin).
  */
 /**
  * Agents

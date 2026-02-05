@@ -84,7 +84,7 @@ class AuthController extends Controller
         $tokenName = 'Personal Access Token - ' . now()->toDateTimeString();
         if ($request->user()->role == "isAdmin") {
             Log::info("login " . $request->user()->name . " as Admin");
-            $tokenResult = $user->createToken($tokenName, ['admin:isAdmin']);
+            $tokenResult = $user->createToken($tokenName, ['admin']);
         } else {
             Log::info("login " . $request->user()->name);
             $tokenResult = $user->createToken($tokenName);
