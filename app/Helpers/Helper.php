@@ -14,24 +14,19 @@ if (!function_exists('pbx3_database_key_exists')) {
 
 if (!function_exists('get_token_abilities')) {
     function get_token_abilities() {
-        Log::info("In get_token_abilities");      
         $token = request()->bearerToken();
-        
-        if (!isset ($token)) {
+
+        if (!isset($token)) {
             return false;
         }
-        Log::info("Bearer token is " . $token);
-        $bits = preg_split("/\|/",$token);
+        $bits = preg_split("/\|/", $token);
         $hashtoken = hash('sha256', $bits[1]);
-        Log::info("hash token is " . $hashtoken);
         $abilities = DB::table('personal_access_tokens')->where('token', $hashtoken)->value('abilities');
-        Log::info("Abilities is " . $abilities);
-        if (preg_match("/isAdmin/",$abilities)) {
-            Log::info("ability is true");
+        if (preg_match("/isAdmin/", $abilities)) {
             return true;
-        }      
+        }
         return false;
-    }    
+    }
 }
 
 if (!function_exists('move_request_to_model')) {

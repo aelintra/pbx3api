@@ -4,26 +4,29 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use App\Helpers\Helper;
 
 class ValidateClusterAccess
 {
     public function handle(Request $request, Closure $next)
     {
         if ($request->has('cluster')) {
-            // Get the user's token abilities from the helper
-            $abilities = Helper::getTokenAbilities($request->bearerToken());
-            
-            // Check if the user has access to this cluster
-            if (!in_array('cluster:' . $request->cluster, $abilities)) {
+            $user = $request->user('sanctum');
+
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Unauthorized',
+                    'message' => 'Authentication required'
+                ], 401);
+            }
+
+            if (!$user->tokenCan('cluster:' . $request->cluster)) {
                 return response()->json([
                     'error' => 'Unauthorized cluster access',
                     'message' => 'You do not have permission to access this cluster'
                 ], 403);
             }
         }
-        
+
         return $next($request);
     }
 }
