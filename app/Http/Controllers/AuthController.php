@@ -80,15 +80,14 @@ class AuthController extends Controller
         }
 
         $user = $request->user();
-        $user->tokens()->delete();
 
+        $tokenName = 'Personal Access Token - ' . now()->toDateTimeString();
         if ($request->user()->role == "isAdmin") {
-            Log::info("login " . $request->user()->name . "as Admin");
-            $tokenResult = $user->createToken('Personal Access Token',['admin:isAdmin']); 
-        }
-        else {
+            Log::info("login " . $request->user()->name . " as Admin");
+            $tokenResult = $user->createToken($tokenName, ['admin:isAdmin']);
+        } else {
             Log::info("login " . $request->user()->name);
-            $tokenResult = $user->createToken('Personal Access Token');
+            $tokenResult = $user->createToken($tokenName);
         }
         
         $token = $tokenResult->plainTextToken;
@@ -142,11 +141,17 @@ class AuthController extends Controller
     /**
      * Get the authenticated User
      *
-     * @return [json] user object
+     * @return [json] user object with abilities from current token
      */
-    public function user(Request $request) {
+    public function user(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        $token = $user->currentAccessToken();
 
-        return response()->json(auth('sanctum')->user());
+        return response()->json([
+            ...$user->toArray(),
+            'abilities' => $token->abilities ?? [],
+        ]);
     }
 
     /**
@@ -154,12 +159,12 @@ class AuthController extends Controller
      *
      * @return [string] message
      */
-    public function logout(Request $request) {
-
-        $request->user()->tokens()->delete();
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-        'message' => 'Successfully logged out'
+            'message' => 'Successfully logged out'
         ]);
 
     }
