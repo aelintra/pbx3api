@@ -45,9 +45,10 @@ class AuthController extends Controller
             $token = $tokenResult->plainTextToken;
 
             return response()->json([
-            'message' => 'Created new user ' . $request->email . "!",
-            'accessToken'=> $token,
-            ],201);
+                'message' => 'Created new user ' . $request->email . '!',
+                'accessToken' => $token,
+                'abilities' => $abilities,
+            ], 201);
         }
         else{
             return response()->json(['error'=>'Incorrect details']);

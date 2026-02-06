@@ -1,87 +1,96 @@
 # Authorization
 
-Before you can use the API you must be authorised.  pbx3api uses Laravel Sanctum, which is token based, a little like Github personal-access-tokens.   Before you can use the API you must have a Bearer Token. You may obtain a token in one of two ways:-
+Before you can use the API you must be authorised. pbx3api uses **Laravel Sanctum**: token-based auth, similar to GitHub personal access tokens. You need a **Bearer token** for all protected requests.
 
-* an administrator may issue you with a traditional UID/PWD.  When you authorize yourself (i.e. login) with the correct credentials then you will be returned a "Bearer Token" which you must supply in the Auth Header for all subsequent calls to the API. 
+**Ways to get a token:**
 
-* an administrator may issue you directly with a Bearer Token.  In these cases there is no requirement to login.   Instead you simply use the Bearer Token when you issue a request to the API.
+- An administrator creates a user with email/password. You **login** with those credentials and receive a Bearer token to use in the `Authorization` header for subsequent requests.
+- An administrator creates a user and gives you the Bearer token directly; you use it without logging in.
 
-As an <i>unauthorised</i> user, the ONLY API endpoint you can access is <i>login</i>.   Unless, or until, you succesfully authorize yourself then you will have no other access.  It therefore follows that ALL other requests must be accompanied by a Bearer Token in the Auth Header.
+As an **unauthorised** user, the only endpoint you can call is **login**. All other requests must include a Bearer token in the `Authorization` header.
+
+**Abilities:** Each user has a list of **abilities** (e.g. `admin`, `viewer`). The token issued at login gets that same list. Routes are protected by ability; for example, user management and most resources require the `admin` ability. The list of valid ability names is defined in the API (see `config/abilities.php`). One ability is a string; a user or token has an **array** of ability strings.
 
 ---
 
 ## Auth requests
 
-##Login
-####POST /auth/login
+### Login  
+**POST /auth/login**
 
-Body
+**Body**
 ```
-'email' => 'email',
-'password' => 'alpha_dash'
-```	
-Returns 200 OK and a Bearer Token on success
-
-##Logout
-####GET /auth/logout
-Returns 200 OK on success<br/>
-The existing Bearer Token is destroyed
-
-##Register
-An authorised user who is also an admin may create a new user with a register request.  The returned details may be passed to the end-user either as a UID/PWD pair or as a bearer token.
-####POST /auth/register
-
-Body
+email     (required)  string, email
+password  (required)  string
+remember_me (optional) boolean
 ```
-'name' => 'alpha_dash',
-'email' => 'email',
-'password' => 'alpha_dash',
-'abilities' => 'NULL|array of strings (e.g. ["admin"])',
-'endpoint' => 'NULL|integer'
-```	
-Returns 200 OK and a Bearer Token on success<br/>
 
-
-##Users
-Perform various operations upon the Users relation as follows:-
-
-####GET /auth/users
-Returns an index of the users table.
-
-####GET /auth/users/{id}
-Returns the user for a given id.
-
-####GET /auth/users/mail/{email}
-Returns the user for a given email address.
-
-####GET /auth/users/name/{name}
-Returns the user(s) for a given name.
-
-####GET /auth/users/endpoint/{endpoint}
-Returns the user(s) for a given SIP endpoint.
-
-####DELETE /auth/users/revoke/{id}
-Revokes the token for a given id.
-
-####DELETE /auth/users/{id}
-Delete (destroy) a given id.
-
-
-##Whoami
-####GET /auth/whoami
-Returns 200 OK and the details for the user making the request 
+**Response (200 OK)**  
+`accessToken` (Bearer token), `token_type` (e.g. `"Bearer"`). Use `accessToken` in the `Authorization: Bearer <token>` header for subsequent requests.
 
 ---
 
-##Examples
-####Example:1 Login
-![Login](assets/images/ExampleLogin.png)
-After login you must save the <i>"accessToken"</i> for subsequent use.
-####Example 2: GET
-In this example we will retrieve details for SIP Extension 1000.<br/>
+### Logout  
+**GET /auth/logout**
 
-First we must set the query with the accessToken we received from the login (or from an Administrator). We are using Postman for these examples so it's easy enough to set the bearer in Postman's "Authorization" tab.  Then we can run the query to retrieve details for an Extension (in this case Ext1000).
+Requires a valid Bearer token. Revokes **the current token** only (other sessions/tokens for that user remain valid).
+
+**Response (200 OK)**  
+`message`: e.g. `"Successfully logged out"`.
+
+---
+
+### Register  
+**POST /auth/register**
+
+Only an authenticated user with the **admin** ability can register a new user. The request body can include `abilities`; only ability names from the API lexicon are accepted.
+
+**Body**
+```
+name       (required)  string
+email      (required)  string, email, unique
+password   (required)  string
+abilities  (optional)  array of strings, e.g. ["admin"] — only names from the ability lexicon
+endpoint   (optional)  numeric
+```
+
+**Response (201 Created)**  
+`message`, `accessToken` (Bearer token for the new user), `abilities` (array of abilities assigned to the new user).
+
+---
+
+### Whoami  
+**GET /auth/whoami**
+
+Returns the authenticated user and the **abilities of the current token**.
+
+**Response (200 OK)**  
+User fields (e.g. `id`, `name`, `email`) plus `abilities`: array of strings (e.g. `["admin"]`). Use this to show “logged in as …” and to drive ability-based UI (e.g. show admin menu only if `abilities` includes `admin`).
+
+---
+
+## Users (admin only)
+
+These endpoints require the **admin** ability.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /auth/users | Index of all users |
+| GET | /auth/users/{id} | User by id |
+| GET | /auth/users/mail/{email} | User(s) by email |
+| GET | /auth/users/name/{name} | User(s) by name |
+| GET | /auth/users/endpoint/{endpoint} | User(s) by endpoint |
+| DELETE | /auth/users/revoke/{id} | Revoke all tokens for user id |
+| DELETE | /auth/users/{id} | Delete user by id |
+
+---
+
+## Examples
+
+### Example 1: Login  
+![Login](assets/images/ExampleLogin.png)  
+After login, save the `accessToken` and send it as `Authorization: Bearer <accessToken>` on later requests.
+
+### Example 2: GET with Bearer token  
+To retrieve details for extension 1000 (or any protected resource), set the request `Authorization` header to `Bearer <your accessToken>`.  
 ![ExampleGetExten](assets/images/ExampleGetExten.png)
-
----
-<br/><br/>
