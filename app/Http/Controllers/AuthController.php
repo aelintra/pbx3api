@@ -40,7 +40,7 @@ class AuthController extends Controller
         ]);
 
         if ($user->save()) {
-            $abilities = is_array($user->abilities) ? $user->abilities : [];
+            $abilities = $this->normalizeAbilities($user->abilities);
             $tokenResult = $user->createToken('Personal Access Token', $abilities);
             $token = $tokenResult->plainTextToken;
 
@@ -81,7 +81,7 @@ class AuthController extends Controller
         }
 
         $user = $request->user();
-        $abilities = is_array($user->abilities) ? $user->abilities : [];
+        $abilities = $this->normalizeAbilities($user->abilities);
 
         $tokenName = 'Personal Access Token - ' . now()->toDateTimeString();
         Log::info("login " . $user->name . (in_array('admin', $abilities, true) ? " as Admin" : ""));
@@ -213,5 +213,21 @@ class AuthController extends Controller
             'message' => "Successfully deleted tokens for user $id"
         ]);
 
-    }    
+    }
+
+    /**
+     * Return a flat array of ability strings for token creation.
+     * Handles null, JSON string, or array; only string entries are included.
+     */
+    private function normalizeAbilities(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return array_values(array_filter($raw, fn ($a) => is_string($a)));
+        }
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? array_values(array_filter($decoded, fn ($a) => is_string($a))) : [];
+        }
+        return [];
+    }
 }

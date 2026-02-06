@@ -20,6 +20,9 @@ return [
     |
     | So: one ability = one string. One user/token = many abilities = array of strings.
     |
+    | In the DB, users.abilities must be valid JSON for an array (e.g. ["admin"]).
+    | Storing the plain string admin is wrong; the column is cast to array and needs JSON.
+    |
     */
 
     'abilities' => [
