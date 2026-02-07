@@ -155,7 +155,7 @@ $user->tokens()->delete();
 
 **Issue:** Ability string format inconsistency.
 
-**Current Implementation:**
+**Current Implementation:**D@s@n1j0
 ```php
 // AuthController.php line 87
 $tokenResult = $user->createToken('Personal Access Token',['admin:isAdmin']);
