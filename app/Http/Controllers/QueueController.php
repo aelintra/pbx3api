@@ -12,12 +12,24 @@ class QueueController extends Controller
 {
     //
 
+    // Assignable queue columns only (model guarded: id, cname, name, outcome, z_*). Schema: queue table.
     private $updateableColumns = [
-
+        'active' => 'in:YES,NO',
+        'alertinfo' => 'string|nullable',
         'cluster' => 'exists:cluster,pkey',
-        'devicerec' => 'in:None,OTR,OTRR,Inbound',
-        'greetnum' => 'regex:/^usergreeting\d{4}$',
-        'options' => 'alpha',
+        'description' => 'string|nullable',
+        'devicerec' => 'in:None,OTR,OTRR,Inbound,default',
+        'divert' => 'integer|nullable',
+        'greetnum' => 'string|nullable',
+        'greeting' => 'string|nullable',
+        'members' => 'string|nullable',
+        'musicclass' => 'string|nullable',
+        'options' => 'string|nullable',
+        'retry' => 'integer|nullable',
+        'wrapuptime' => 'integer|nullable',
+        'maxlen' => 'integer|nullable',
+        'strategy' => 'in:ringall,roundrobin,leastrecent,fewestcalls,random,rrmemory',
+        'timeout' => 'integer|nullable',
     ];
 
 /**
