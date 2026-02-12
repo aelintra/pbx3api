@@ -17,7 +17,7 @@ class RouteController extends Controller
         'active' => 'in:YES,NO',
         'auth' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
-        'desc' => 'alpha_dash',
+        'description' => 'string|nullable',
         'dialplan' => 'string',
         'path1' => 'exists:trunks,pkey|nullable',
         'path2' => 'exists:trunks,pkey|nullable',

@@ -30,8 +30,6 @@ class TrunkController extends Controller
 			'password' => 'alpha_num|nullable',
 			'peername' => 'string',
 			'register' => 'string|nullable',
-			'sipiaxpeer' => 'string',
-			'sipiaxuser' => 'string',
 			'swoclip' => 'in:YES,NO',
 			'tag' => 'alpha_num|nullable',
 			'transport' => 'in:udp,tcp,tls,wss',

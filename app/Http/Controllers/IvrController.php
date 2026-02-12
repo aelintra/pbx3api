@@ -30,7 +30,7 @@ class IvrController extends Controller
             'alert11' => 'string|nullable',            
             'description' => 'string|nullable',
             'cluster' => 'exists:cluster,pkey',
-            'greetnum' => 'integer',
+            'greetnum' => 'string|nullable',
             'listenforext' => 'in:YES,NO',
             'option0' => 'string|nullable',
             'option1' => 'string|nullable',

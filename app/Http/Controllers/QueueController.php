@@ -14,7 +14,6 @@ class QueueController extends Controller
 
     private $updateableColumns = [
 
-        'conf' => 'string',
         'cluster' => 'exists:cluster,pkey',
         'devicerec' => 'in:None,OTR,OTRR,Inbound',
         'greetnum' => 'regex:/^usergreeting\d{4}$',
