@@ -19,9 +19,7 @@ class ExtensionRequest extends FormRequest
             'pkey' => 'required|unique:ipphone,pkey,' . $ignorePkey . ',pkey',
             'cluster' => 'required|exists:cluster,pkey',
             'macaddr' => 'nullable|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/',
-            'provision' => 'nullable|string',
             'device' => 'required|string|max:255',
-            'location' => 'required|in:local,remote',
             'desc' => 'nullable|string|max:255',
             'active' => 'in:YES,NO',
             'callbackto' => 'in:desk,cell',
@@ -31,8 +29,6 @@ class ExtensionRequest extends FormRequest
             'devicerec' => 'in:default,None,OTR,OTRR,Inbound.Outbound,Both',
             'dvrvmail' => 'exists:ipphone,pkey|nullable',
             'protocol' => 'in:IPV4,IPV6',
-            'provisionwith' => 'in:IP,FQDN',
-            'sndcreds' => 'in:No,Once,Always',
             'transport' => 'in:udp,tcp,tls,wss',
             'vmailfwd' => 'email|nullable'
         ];
