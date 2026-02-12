@@ -31,6 +31,7 @@ install_runtime_packages() {
     apt-get update
     apt-get install -y \
         nginx \
+        ssl-cert \
         composer \
         "php${PHP_VERSION}-fpm" \
         "php${PHP_VERSION}-cli" \
@@ -43,6 +44,38 @@ install_runtime_packages() {
         "php${PHP_VERSION}-zip" \
         "php${PHP_VERSION}-ldap" \
         "php${PHP_VERSION}-gd"
+}
+
+ensure_snakeoil_cert() {
+    cert_path="/etc/ssl/certs/ssl-cert-snakeoil.pem"
+    key_path="/etc/ssl/private/ssl-cert-snakeoil.key"
+
+    if [ -f "${cert_path}" ] && [ -f "${key_path}" ]; then
+        return
+    fi
+
+    echo "Generating fallback snakeoil certificate for nginx..."
+
+    if command -v make-ssl-cert >/dev/null 2>&1; then
+        make-ssl-cert generate-default-snakeoil --force-overwrite >/dev/null 2>&1 || true
+    fi
+
+    if [ ! -f "${cert_path}" ] || [ ! -f "${key_path}" ]; then
+        if command -v openssl >/dev/null 2>&1; then
+            mkdir -p /etc/ssl/certs /etc/ssl/private
+            openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+                -keyout "${key_path}" \
+                -out "${cert_path}" \
+                -subj "/CN=pbx3api.local" >/dev/null 2>&1
+            chmod 600 "${key_path}"
+        fi
+    fi
+
+    if [ ! -f "${cert_path}" ] || [ ! -f "${key_path}" ]; then
+        echo "Unable to create fallback certificate (${cert_path})." >&2
+        echo "Install ssl-cert or provide custom cert paths in config/nginx/pbx3-api.conf." >&2
+        exit 1
+    fi
 }
 
 install_php_deps() {
@@ -66,6 +99,7 @@ install_php_deps() {
 
 install_runtime_packages
 install_php_deps
+ensure_snakeoil_cert
 
 # Default to the current clone path so local testing works.
 # Override APP_ROOT/SOURCE_CONF/PHP_FPM_SERVICE/PHP_VERSION as needed.

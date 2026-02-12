@@ -32,9 +32,10 @@ sh /opt/pbx3api/scripts/installer.sh
 
 The installer supports clone-based testing and now performs:
 
-1. `apt-get` install of runtime packages (`nginx`, `composer`, `php8.3-fpm`, and required PHP extensions)
+1. `apt-get` install of runtime packages (`nginx`, `ssl-cert`, `composer`, `php8.3-fpm`, and required PHP extensions)
 2. `composer install` (if `vendor/autoload.php` is missing)
-3. nginx site deployment via `install-nginx-site.sh`
+3. fallback snakeoil cert generation if cert files are missing
+4. nginx site deployment via `install-nginx-site.sh`
 
 Optional environment flags:
 
