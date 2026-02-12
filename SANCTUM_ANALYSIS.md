@@ -2,12 +2,12 @@
 
 ## Executive Summary
 
-This document analyzes the pbx3api implementation of Laravel Sanctum compared against official best practices, **including the Vue.js SPA frontend** (`pbx3-frontend`) that consumes the API.
+This document analyzes the pbx3api implementation of Laravel Sanctum compared against official best practices, **including the Vue.js SPA frontend** (`pbx3spa`) that consumes the API.
 
 ### API (pbx3api) Summary
 The implementation has several **critical issues** that deviate from Sanctum's intended usage, particularly around token ability checking and middleware usage. **Overall Score: 60%**
 
-### Frontend (pbx3-frontend) Summary
+### Frontend (pbx3spa) Summary
 The Vue.js SPA follows **best practices** for token-based authentication. Token storage, Bearer token usage, 401 handling, and logout are all correctly implemented. **Overall Score: 90%** - No critical issues found.
 
 ---
@@ -242,11 +242,11 @@ $abilities = Helper::getTokenAbilities($request->bearerToken());
 
 ---
 
-## 🌐 Frontend SPA (pbx3-frontend) Analysis
+## 🌐 Frontend SPA (pbx3spa) Analysis
 
 ### ✅ What's Done Correctly
 
-The Vue.js SPA (`pbx3-frontend`) follows **best practices** for token-based authentication:
+The Vue.js SPA (`pbx3spa`) follows **best practices** for token-based authentication:
 
 #### 1. **Token Storage** ✅
 - ✅ Uses `sessionStorage` (not `localStorage`) - tokens cleared when tab closes
@@ -583,7 +583,7 @@ To migrate to best practices:
    - Create missing Authenticate middleware
    - Standardize ability format
 
-### Frontend (pbx3-frontend) Migration
+### Frontend (pbx3spa) Migration
 
 **Note:** The frontend is already well-implemented. These changes are only needed **after** API fixes:
 
@@ -635,7 +635,7 @@ To migrate to best practices:
 - **Security Concerns:** Token logging, no expiration, manual token parsing
 - **Action Required:** Replace manual checks with Sanctum middleware, add token expiration, remove token logging
 
-### Frontend (pbx3-frontend) - Production Ready ✅
+### Frontend (pbx3spa) - Production Ready ✅
 - **Status:** Well-implemented following best practices
 - **Strengths:** Proper token storage, Bearer token usage, 401 handling, logout implementation
 - **Action Required:** None immediately. Enhancements can be added after API fixes (token expiration handling, ability-based UI)
@@ -1119,7 +1119,7 @@ $user->tokens()->orderBy('created_at', 'desc')->skip(5)->delete();
 **Standalone:** ✅ YES - Safe to implement independently (requires Step 3.2 to be useful)
 
 **Actions:**
-1. Open `pbx3-frontend/src/stores/auth.js`
+1. Open `pbx3spa/src/stores/auth.js`
 2. Add getters for ability checking:
    ```javascript
    getters: {

@@ -21,6 +21,6 @@ The API and frontend currently allow editing both **name** and **cname** (Displa
 
 ## Action
 
-- [ ] Research usage of **ivrmenu.name** across pbx3, pbx3api, pbx3-frontend, and any generators.
+- [ ] Research usage of **ivrmenu.name** across pbx3, pbx3api, pbx3spa, and any generators.
 - [ ] Decide: remove from API/UI, keep for legacy, or other.
 - [ ] If removing: drop from IvrController `updateableColumns`, Ivr model, and both IVR create/edit panels; optionally add DB migration to drop column when schema is updated.

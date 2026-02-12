@@ -7,7 +7,7 @@
 ## Repos and roles
 
 - **pbx3api** – Laravel 11 API; auth lives here (Sanctum, `config/abilities.php`, `AuthController`, `routes/api.php`, `users.abilities`).
-- **pbx3-frontend** – Vue 3 SPA; uses Bearer token from login, sessionStorage, whoami for user/abilities. No auth logic beyond that.
+- **pbx3spa** – Vue 3 SPA; uses Bearer token from login, sessionStorage, whoami for user/abilities. No auth logic beyond that.
 - **pbx3** – PBX/schema/scripts; not involved in Sanctum.
 
 ---
