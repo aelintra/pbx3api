@@ -20,6 +20,7 @@ sudo sh scripts/installer.sh
 
 It installs runtime packages, runs `composer install` when needed, and deploys/enables the nginx site on `44300`.
 It also bootstraps Laravel runtime state (`.env`, symlink to PBX sqlite DB, writable cache/log dirs, artisan cache/key commands).
+Installer ownership model keeps code as `root:root` and grants write access only to Laravel runtime dirs.
 
 ## Certificate ownership
 

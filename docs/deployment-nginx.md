@@ -38,6 +38,12 @@ The installer supports clone-based testing and now performs:
 4. Laravel bootstrap (`.env`, `database/database.sqlite` symlink to PBX DB, writable `storage/` and `bootstrap/cache/`, artisan cache/key setup)
 5. nginx site deployment via `install-nginx-site.sh`
 
+Ownership model applied by installer:
+
+- `/opt/pbx3api` code tree is set to `root:root`
+- only `storage/` and `bootstrap/cache/` are writable by `www-data`
+- `.env` is set to `root:www-data` for key generation/runtime reads
+
 Optional environment flags:
 
 - `SKIP_APT=1` to skip package installation

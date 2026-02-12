@@ -178,9 +178,12 @@ bootstrap_laravel_app() {
     ln -sfn "${PBX3_SQLITE_PATH}" "${REPO_ROOT}/database/database.sqlite"
 
     mkdir -p "${REPO_ROOT}/storage/logs" "${REPO_ROOT}/bootstrap/cache"
-    chown -R www-data:www-data "${REPO_ROOT}"
+    chown -R root:root "${REPO_ROOT}"
+    chown -R www-data:www-data "${REPO_ROOT}/storage" "${REPO_ROOT}/bootstrap/cache"
     find "${REPO_ROOT}/storage" "${REPO_ROOT}/bootstrap/cache" -type d -exec chmod 775 {} \;
     find "${REPO_ROOT}/storage" "${REPO_ROOT}/bootstrap/cache" -type f -exec chmod 664 {} \;
+    chown root:www-data "${REPO_ROOT}/.env"
+    chmod 664 "${REPO_ROOT}/.env"
 
     if command -v runuser >/dev/null 2>&1; then
         runuser -u www-data -- test -r "${PBX3_SQLITE_PATH}" || {
@@ -207,13 +210,14 @@ bootstrap_laravel_app() {
     fi
 
     echo "Running Laravel setup commands"
+    cd "${REPO_ROOT}"
+    php artisan key:generate --force || true
+
     if command -v runuser >/dev/null 2>&1; then
-        runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan key:generate --force || true"
         runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan config:clear || true"
         runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan cache:clear || true"
         runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan route:clear || true"
     else
-        su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan key:generate --force || true"
         su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan config:clear || true"
         su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan cache:clear || true"
         su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan route:clear || true"
