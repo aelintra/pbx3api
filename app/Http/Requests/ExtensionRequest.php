@@ -28,7 +28,7 @@ class ExtensionRequest extends FormRequest
             'callerid' => 'integer|nullable',
             'cellphone' => 'integer|nullable',
             'celltwin' => 'in:ON,OFF',
-            'devicerec' => 'in:None,OTR,OTRR,Inbound.Outbound,Both',
+            'devicerec' => 'in:default,None,OTR,OTRR,Inbound.Outbound,Both',
             'dvrvmail' => 'exists:ipphone,pkey|nullable',
             'protocol' => 'in:IPV4,IPV6',
             'provisionwith' => 'in:IP,FQDN',

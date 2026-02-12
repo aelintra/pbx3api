@@ -25,7 +25,7 @@ class ExtensionController extends Controller
     		'celltwin' => 'in:ON,OFF',
     		'cluster' => 'exists:cluster,pkey',
     		'desc' => 'nullable|string|max:255',
-    		'devicerec' => 'in:None,OTR,OTRR,Inbound.Outbound,Both',
+    		'devicerec' => 'in:default,None,OTR,OTRR,Inbound.Outbound,Both',
     		'dvrvmail' => 'exists:ipphone,pkey|nullable',
     		'location' => 'in:local,remote',
     		'protocol' => 'in:IPV4,IPV6',
