@@ -12,6 +12,7 @@ APP_ROOT="${APP_ROOT:-${REPO_ROOT}}"
 APP_USER="${APP_USER:-www-data}"
 APP_GROUP="${APP_GROUP:-www-data}"
 PHP_FPM_SERVICE="${PHP_FPM_SERVICE:-php8.3-fpm}"
+PHP_FPM_SOCKET="${PHP_FPM_SOCKET:-/run/php/${PHP_FPM_SERVICE}.sock}"
 
 mkdir -p "${APP_ROOT}/public"
 chown -R "${APP_USER}:${APP_GROUP}" "${APP_ROOT}"
@@ -23,6 +24,10 @@ fi
 
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
 cp "${SOURCE_CONF}" "${TARGET_AVAILABLE}"
+
+# Align fastcgi socket with selected PHP-FPM service.
+sed -i "s|^[[:space:]]*fastcgi_pass[[:space:]]\\+unix:[^;]*;|        fastcgi_pass unix:${PHP_FPM_SOCKET};|" "${TARGET_AVAILABLE}"
+
 ln -sfn "${TARGET_AVAILABLE}" "${TARGET_ENABLED}"
 
 nginx -t

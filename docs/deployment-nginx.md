@@ -35,14 +35,20 @@ The installer supports clone-based testing and now performs:
 1. `apt-get` install of runtime packages (`nginx`, `ssl-cert`, `composer`, `php8.3-fpm`, and required PHP extensions)
 2. `composer install` (if `vendor/autoload.php` is missing)
 3. fallback snakeoil cert generation if cert files are missing
-4. nginx site deployment via `install-nginx-site.sh`
+4. Laravel bootstrap (`.env`, `database/database.sqlite` symlink to PBX DB, writable `storage/` and `bootstrap/cache/`, artisan cache/key setup)
+5. nginx site deployment via `install-nginx-site.sh`
 
 Optional environment flags:
 
 - `SKIP_APT=1` to skip package installation
 - `SKIP_COMPOSER=1` to skip composer install
+- `SKIP_ARTISAN=1` to skip Laravel app bootstrap
 - `PHP_VERSION=8.3` (default) to change php package/version suffix
 - `PHP_FPM_SERVICE=php8.3-fpm` to force specific FPM service name
+- `PHP_FPM_SOCKET=/run/php/php8.3-fpm.sock` to force specific FPM socket path
+- `PBX3_SQLITE_PATH=/opt/pbx3/db/sqlite.db` to force PBX sqlite database location
+
+The installer rewrites `fastcgi_pass` in deployed `/etc/nginx/sites-available/pbx3-api.conf` to match the selected PHP-FPM socket.
 
 For direct helper usage:
 
