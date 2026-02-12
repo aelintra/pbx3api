@@ -17,7 +17,7 @@ class TenantController extends Controller
 			'cfwdextern_rule' => 'in:YES,NO',
 			'cfwd_progress' => 'in:enabled,disabled',
 			'cfwd_answer' => 'in:enabled,disabled',
-			'clusterclid' => 'integer|nullable',
+			'clusterclid' => 'nullable|string|regex:/^\d*$/',
 			'chanmax' => 'integer',
 			'countrycode' => 'integer',
 			'dynamicfeatures' => 'string',

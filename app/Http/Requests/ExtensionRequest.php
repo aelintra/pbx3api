@@ -13,8 +13,10 @@ class ExtensionRequest extends FormRequest
 
     public function rules()
     {
+        $extension = $this->route('extension');
+        $ignorePkey = $extension instanceof \App\Models\Extension ? $extension->getKey() : $extension;
         return [
-            'pkey' => 'required|unique:ipphone,pkey,' . $this->route('extension'),
+            'pkey' => 'required|unique:ipphone,pkey,' . $ignorePkey . ',pkey',
             'cluster' => 'required|exists:cluster,pkey',
             'macaddr' => 'nullable|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/',
             'provision' => 'nullable|string',

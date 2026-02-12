@@ -436,14 +436,10 @@ class ExtensionController extends Controller
      */
     public function update(ExtensionRequest $request, Extension $extension) {
 
-    	if ($validator->fails()) {
-    		return response()->json($validator->errors(),422);
-    	}
-
-// Move post variables to the model    	
-    	foreach ($request->post() as $key => $value) {
-    		if (array_key_exists($key,$this->updateableColumns)) {
-    			$extension->$key = $value;
+// Move request body to the model (use all() so JSON body is read; post() is empty for application/json)
+    	foreach ($request->all() as $key => $value) {
+    		if (array_key_exists($key, $this->updateableColumns)) {
+    			$extension->$key = is_string($value) ? trim($value) : $value;
     		}
     	}
 
