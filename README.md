@@ -12,6 +12,14 @@ Laravel 11 API service for `pbx3`.
 - Remove helper: `scripts/remove-nginx-site.sh`
 - Deployment guide: `docs/deployment-nginx.md`
 
+The installer is intended to be one-command on Ubuntu 24.04:
+
+```sh
+sudo sh scripts/installer.sh
+```
+
+It installs runtime packages, runs `composer install` when needed, and deploys/enables the nginx site on `44300`.
+
 ## Certificate ownership
 
 TLS certificate acquisition/renewal is owned by `pbx3` (host layer), not `pbx3api`.

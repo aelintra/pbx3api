@@ -30,7 +30,18 @@ Run as root on the target host:
 sh /opt/pbx3api/scripts/installer.sh
 ```
 
-The installer delegates to `install-nginx-site.sh` and supports clone-based testing.
+The installer supports clone-based testing and now performs:
+
+1. `apt-get` install of runtime packages (`nginx`, `composer`, `php8.3-fpm`, and required PHP extensions)
+2. `composer install` (if `vendor/autoload.php` is missing)
+3. nginx site deployment via `install-nginx-site.sh`
+
+Optional environment flags:
+
+- `SKIP_APT=1` to skip package installation
+- `SKIP_COMPOSER=1` to skip composer install
+- `PHP_VERSION=8.3` (default) to change php package/version suffix
+- `PHP_FPM_SERVICE=php8.3-fpm` to force specific FPM service name
 
 For direct helper usage:
 
