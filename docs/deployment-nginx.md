@@ -19,8 +19,8 @@ This project now ships an nginx site definition for serving the API on HTTPS por
 Minimum required packages on Ubuntu 24.04:
 
 - `nginx`
-- `php8.2-fpm`
-- Laravel/PHP extensions used by pbx3api (for example: `php8.2-curl`, `php8.2-mbstring`, `php8.2-xml`, `php8.2-sqlite3`, `php8.2-mysql`, `php8.2-zip`, `php8.2-ldap`, `php8.2-gd`)
+- `php8.3-fpm`
+- Laravel/PHP extensions used by pbx3api (for example: `php8.3-curl`, `php8.3-mbstring`, `php8.3-xml`, `php8.3-sqlite3`, `php8.3-mysql`, `php8.3-zip`, `php8.3-ldap`, `php8.3-gd`)
 
 ## Install and enable API site
 
@@ -44,7 +44,7 @@ What it does:
 2. Copies site file to `/etc/nginx/sites-available/pbx3-api.conf`.
 3. Enables site via `/etc/nginx/sites-enabled/pbx3-api.conf`.
 4. Validates nginx config (`nginx -t`).
-5. Enables/starts `php8.2-fpm` and reloads nginx.
+5. Enables/starts `php8.3-fpm` and reloads nginx.
 
 ## Remove/disable API site
 

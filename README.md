@@ -19,4 +19,4 @@ The nginx site in this repo references certificate paths and can use snakeoil by
 
 ## Development notes
 
-This is a standard Laravel application (`php` 8.2+). Existing API docs are in `docs/`.
+This is a standard Laravel application (`php` 8.3+ on Ubuntu 24.04 target hosts). Existing API docs are in `docs/`.

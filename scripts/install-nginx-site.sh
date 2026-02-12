@@ -11,7 +11,7 @@ TARGET_ENABLED="/etc/nginx/sites-enabled/${SITE_NAME}"
 APP_ROOT="${APP_ROOT:-${REPO_ROOT}}"
 APP_USER="${APP_USER:-www-data}"
 APP_GROUP="${APP_GROUP:-www-data}"
-PHP_FPM_SERVICE="${PHP_FPM_SERVICE:-php8.2-fpm}"
+PHP_FPM_SERVICE="${PHP_FPM_SERVICE:-php8.3-fpm}"
 
 mkdir -p "${APP_ROOT}/public"
 chown -R "${APP_USER}:${APP_GROUP}" "${APP_ROOT}"
