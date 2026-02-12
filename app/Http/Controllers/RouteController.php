@@ -12,18 +12,21 @@ class RouteController extends Controller
 {
     //
 
+    // route table (full_schema.sql). Exclude id, pkey, shortuid, z_*.
     private $updateableColumns = [
-
         'active' => 'in:YES,NO',
+        'alternate' => 'string|nullable',
         'auth' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
+        'cname' => 'string|nullable',
         'description' => 'string|nullable',
-        'dialplan' => 'string',
+        'dialplan' => 'string|nullable',
         'path1' => 'exists:trunks,pkey|nullable',
         'path2' => 'exists:trunks,pkey|nullable',
         'path3' => 'exists:trunks,pkey|nullable',
         'path4' => 'exists:trunks,pkey|nullable',
-        'strategy' => 'in:hunt,balance'
+        'route' => 'string|nullable',
+        'strategy' => 'in:hunt,balance',
     ];
 
 /**

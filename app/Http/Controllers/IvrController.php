@@ -10,12 +10,9 @@ use Illuminate\Support\Facades\Validator;
 class IvrController extends Controller
 {
     //
+	// ivrmenu table (full_schema.sql). Exclude id, pkey, shortuid, z_*. pkey set on create only.
     	private $updateableColumns = [
-
-            'pkey' => 'string|nullable',
             'active' => 'in:YES,NO',
-            'cname' => 'string|nullable',
-            'name' => 'string|nullable',
             'alert0' => 'string|nullable',
             'alert1' => 'string|nullable',
             'alert2' => 'string|nullable',
@@ -27,11 +24,13 @@ class IvrController extends Controller
             'alert8' => 'string|nullable',
             'alert9' => 'string|nullable',
             'alert10' => 'string|nullable',
-            'alert11' => 'string|nullable',            
-            'description' => 'string|nullable',
+            'alert11' => 'string|nullable',
             'cluster' => 'exists:cluster,pkey',
+            'cname' => 'string|nullable',
+            'description' => 'string|nullable',
             'greetnum' => 'string|nullable',
             'listenforext' => 'in:YES,NO',
+            'name' => 'string|nullable',
             'option0' => 'string|nullable',
             'option1' => 'string|nullable',
             'option2' => 'string|nullable',
@@ -55,10 +54,8 @@ class IvrController extends Controller
             'tag8' => 'string|nullable',
             'tag9' => 'string|nullable',
             'tag10' => 'string|nullable',
-            'tag11' => 'string|nullable',            
+            'tag11' => 'string|nullable',
             'timeout' => 'string|nullable',
-            'z_updater' => 'alpha_num'
-
     	];
 
 /**

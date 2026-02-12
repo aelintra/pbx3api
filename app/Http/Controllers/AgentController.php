@@ -12,17 +12,20 @@ class AgentController extends Controller
 {
     //
 
+    // agent table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Model guarded: conf, num.
     private $updateableColumns = [
-
         'cluster' => 'exists:cluster,pkey',
-        'name' => 'alpha_dash',
-        'passwd' => 'required|integer|min:1001|max:9999',
+        'cname' => 'string|nullable',
+        'description' => 'string|nullable',
+        'extlen' => 'integer|nullable',
+        'name' => 'string|nullable',
+        'passwd' => 'string|nullable',
         'queue1' => 'exists:queue,pkey|nullable',
         'queue2' => 'exists:queue,pkey|nullable',
         'queue3' => 'exists:queue,pkey|nullable',
         'queue4' => 'exists:queue,pkey|nullable',
         'queue5' => 'exists:queue,pkey|nullable',
-        'queue6' => 'exists:queue,pkey|nullable'
+        'queue6' => 'exists:queue,pkey|nullable',
     ];
 
 /**

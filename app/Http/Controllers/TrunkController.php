@@ -13,33 +13,33 @@ use App\Http\Requests\TrunkRequest;
 class TrunkController extends Controller
 {
     //
+	// trunks table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Model guarded: many (see Trunk.php).
     	private $updateableColumns = [
-    		'active' => 'in:YES,NO', 
-			'alertinfo' => 'string',
-			'callerid' => 'integer',
-			'callprogress' => 'in:ON,OFF',
+    		'active' => 'in:YES,NO',
+			'alertinfo' => 'string|nullable',
+			'callerid' => 'string|nullable',
+			'callprogress' => 'in:YES,NO',
 			'cluster' => 'exists:cluster,pkey',
-			'description' => 'alpha_num',
+			'cname' => 'string|nullable',
+			'description' => 'string|nullable',
 			'devicerec' => 'in:None,OTR,OTRR,Inbound.Outbound,Both',
 			'disa' => 'in:DISA,CALLBACK|nullable',
-			'disapass' => 'alpha_num|nullable',
-			'host' => 'string', 
-			'inprefix' => 'integer|nullable',
-			'match' => 'integer|nullable',
-			'moh' => 'in:ON,OFF',
-			'password' => 'alpha_num|nullable',
-			'peername' => 'string',
+			'disapass' => 'string|nullable',
+			'host' => 'string|nullable',
+			'iaxreg' => 'string|nullable',
+			'inprefix' => 'string|nullable',
+			'match' => 'string|nullable',
+			'moh' => 'in:YES,NO',
+			'password' => 'string|nullable',
+			'peername' => 'string|nullable',
+			'pjsipreg' => 'string|nullable',
 			'register' => 'string|nullable',
 			'swoclip' => 'in:YES,NO',
-			'tag' => 'alpha_num|nullable',
+			'tag' => 'string|nullable',
 			'transport' => 'in:udp,tcp,tls,wss',
-			'transform' => [
-				'regex:/$(\d+?:\d+?\s*)+',
-				'nullable'
-			],
-			'trunkname' => 'alpha_num',
-			'username' => 'alpha_num|nullable',
-			'z_updater' => 'alpha_num'
+			'transform' => 'string|nullable',
+			'trunkname' => 'string|nullable',
+			'username' => 'string|nullable',
     	];
 
 /**

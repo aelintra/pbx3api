@@ -17,20 +17,29 @@ use App\Http\Requests\ExtensionRequest;
 class ExtensionController extends Controller
 {
 
+	// ipphone table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Model guarded: abstimeout, basemacaddr, devicemodel, passwd, etc.
 	private $updateableColumns = [
-    		'active' => 'in:YES,NO',
-    		'callbackto' => 'in:desk,cell',
-    		'callerid' => 'integer|nullable',
-    		'cellphone' => 'integer|nullable',
-    		'celltwin' => 'in:ON,OFF',
-    		'cluster' => 'exists:cluster,pkey',
-    		'desc' => 'nullable|string|max:255',
-    		'devicerec' => 'in:default,None,OTR,OTRR,Inbound.Outbound,Both',
-    		'dvrvmail' => 'exists:ipphone,pkey|nullable',
-    		'protocol' => 'in:IPV4,IPV6',
-    		'transport' => 'in:udp,tcp,tls,wss',
-    		'vmailfwd' => 'email|nullable'
-    	];
+		'active' => 'in:YES,NO',
+		'callbackto' => 'in:desk,cell',
+		'callerid' => 'string|nullable',
+		'callmax' => 'integer|nullable',
+		'cellphone' => 'string|nullable',
+		'celltwin' => 'in:ON,OFF',
+		'cluster' => 'exists:cluster,pkey',
+		'cname' => 'string|nullable',
+		'desc' => 'nullable|string|max:255',
+		'description' => 'string|nullable',
+		'device' => 'string|nullable',
+		'devicerec' => 'in:default,None,OTR,OTRR,Inbound.Outbound,Both',
+		'dvrvmail' => 'exists:ipphone,pkey|nullable',
+		'extalert' => 'string|nullable',
+		'macaddr' => 'string|nullable',
+		'protocol' => 'in:IPV4,IPV6',
+		'pjsipuser' => 'string|nullable',
+		'technology' => 'string|nullable',
+		'transport' => 'in:udp,tcp,tls,wss',
+		'vmailfwd' => 'email|nullable',
+	];
 
 /**
  * Return Extension Index in pkey order asc.

@@ -18,80 +18,48 @@ class SysglobalController extends Controller
 {
     //
 
+    // globals table (full_schema.sql). Column names lowercase to match schema. Exclude pkey, z_*.
     private $updateableColumns = [
-
-    	'ABSTIMEOUT' => 'integer',
-    	'ACL' => 'in:NO,YES',
-    	'AGENTSTART' => 'integer',
-    	'ALERT' => 'email',
-    	'ALLOWHASHXFER' => 'in:enabled,disabled',
-    	'BLINDBUSY' => 'integer|nullable',
-    	'BOUNCEALERT' => 'integer|nullable',
-    	'CALLPARKING' => 'in:NO,YES',
-    	'CALLRECORD1' => 'in:None,OTR,OTRR,Inbound.Outbound,Both',
-    	'CAMPONQONOFF' => 'in:OFF,ON',
-    	'CAMPONQOPT' => 'string|nullable',
-	    'CFWDEXTRNRULE' => 'in:enabled,disabled',
-    	'CFWDPROGRESS' => 'in:enabled,disabled',
-    	'CFWDANSWER' => 'in:enabled,disabled',
-    	'CLUSTER' => 'in:ON,OFF',
-    	'CONFTYPE' => 'in:simple,hosted',
-    	'COSSTART' => 'in:ON,OFF',
-    	'COUNTRYCODE' => 'alpha|size:2',
-    	'EURL' => 'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/',
-    	'EMERGENCY' => 'digits:3',
-    	'FQDN' => 'regex:/^(?!:\/\/)(?=.{1,255}$)((.{1,63}\.){1,127}(?![0-9]*$)[a-z0-9-]+\.?)$/i',
-    	'FQDNINSPECT' => 'in:NO,YES',
-    	'FQDNPROV' => 'in:NO,YES',
-    	'INTRINGDELAY' => 'integer',
-    	'IVRKEYWAIT' => 'integer|nullable',
-    	'IVRDIGITWAIT' => 'integer|nullable',
-    	'LACL' => 'in:NO,YES',
-    	'LDAPBASE' => 'string|nullable',
-    	'LDAPOU' => 'string|nullable',
-    	'LDAPUSER' => 'string|nullable',
-    	'LDAPPASS' => 'string|nullable',
-    	'LEASEHDTIME' => 'integer',
-    	'LOCALIP' => 'ip',
-    	'LOGLEVEL' => 'integer',    	
-    	'LOGSIPDISPSIZE' => 'integer',
-    	'LOGSIPNUMFILES' => 'integer',
-    	'LOGSIPFILESIZE' => 'integer',
-    	'LTERM' => 'in:NO,YES',
-    	'MAXIN' => 'integer',
-    	'MIXMONITOR' => 'in:NO,YES',
-    	'MONITOROUT' => 'string',
-    	'MONITORSTAGE' => 'string',
-    	'MONITORTYPE' => 'in:monitor,mixmonitor',
-    	'NATDEFAULT' => 'in:local,remote',
-    	'OPERATOR' => 'integer',
-    	'PWDLEN' => 'integer',    
-    	'PLAYBEEP' => 'in:YES.NO',
-    	'PLAYBUSY' => 'in:YES,NO',
-    	'PLAYCONGESTED' => 'in:YES,NO',
-    	'PLAYTRANSFER' => 'in:YES,NO',
-    	'RECFINALDEST' => 'string',
-    	'RECLIMIT' => 'integer',
-    	'RECQDITHER' => 'integer',
-    	'RECQSEARCHLIM' => 'integer',    	
-    	'RINGDELAY' => 'integer',
-    	'SESSIONTIMOUT' => 'integer',
-    	'SENDEDOMAIN' => 'in:YES,NO',
-    	'SIPIAXSTART' => 'integer',
-    	'SIPFLOOD' => 'in:NO,YES',
-    	'SPYPASS' => 'integer',
-    	'SUPEMAIL' => 'email|nullable',
-    	'SYSOP' => 'integer',
-    	'SYSPASS' => 'integer',    
-    	'TLSPORT' => 'integer',
-    	'USEROTP' => 'string',
-    	'USERCREATE' => 'in:NO,YES',
-   		'VDELAY' => 'integer',
-    	'VMAILAGE' => 'integer',
-    	'VOICEINSTR' => 'in:YES,NO',
-    	'VOIPMAX' => 'integer',
-    	'VXT' => 'boolean',
-    	'ZTP' => 'in:disabled,enabled'
+        'abstimeout' => 'integer|nullable',
+        'bindaddr' => 'string|nullable',
+        'bindport' => 'string|nullable',
+        'cosstart' => 'string|nullable',
+        'edomain' => 'string|nullable',
+        'emergency' => 'string|nullable',
+        'fqdn' => 'string|nullable',
+        'fqdninspect' => 'string|nullable',
+        'fqdnprov' => 'string|nullable',
+        'language' => 'string|nullable',
+        'localip' => 'string|nullable',
+        'loglevel' => 'integer|nullable',
+        'logopts' => 'string|nullable',
+        'logsipdispsize' => 'integer|nullable',
+        'logsipnumfiles' => 'integer|nullable',
+        'logsipfilesize' => 'integer|nullable',
+        'maxin' => 'integer|nullable',
+        'maxout' => 'integer|nullable',
+        'mycommit' => 'string|nullable',
+        'natdefault' => 'string|nullable',
+        'natparams' => 'string|nullable',
+        'operator' => 'integer|nullable',
+        'pwdlen' => 'integer|nullable',
+        'recfiledlim' => 'string|nullable',
+        'reclimit' => 'string|nullable',
+        'recmount' => 'string|nullable',
+        'recqdither' => 'string|nullable',
+        'recqsearchlim' => 'string|nullable',
+        'sessiontimout' => 'integer|nullable',
+        'sendedomain' => 'string|nullable',
+        'sipflood' => 'string|nullable',
+        'sipdriver' => 'string|nullable',
+        'sitename' => 'string|nullable',
+        'staticipv4' => 'string|nullable',
+        'sysop' => 'integer|nullable',
+        'syspass' => 'integer|nullable',
+        'tlsport' => 'integer|nullable',
+        'userotp' => 'string|nullable',
+        'vcl' => 'string|nullable',
+        'voipmax' => 'integer|nullable',
     ];
 /**
  * Return Sysglobal Index in pkey order asc
@@ -112,7 +80,7 @@ class SysglobalController extends Controller
  */
     public function update(Request $request) {
 
-    	$sysglobal = SysGlobal::first(); 	
+    	$sysglobal = Sysglobal::first(); 	
 
 // Validate         
     	$validator = Validator::make($request->all(),$this->updateableColumns);
@@ -135,7 +103,7 @@ class SysglobalController extends Controller
     		return Response::json(['Error' => $e->getMessage()],409);
     	}
 
-		return response()->json($sysglobal->first(), 200);
+		return response()->json($sysglobal, 200);
 
     }   
 

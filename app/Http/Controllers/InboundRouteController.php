@@ -12,23 +12,35 @@ class InboundRouteController extends Controller
     /** Asterisk dialplan extension format: literal digits, pattern _[XZN.!]+, or special s|i|t */
     private const PKEY_EXTENSION_REGEX = '/^(\d+|_[XZN.!]+|[sit])$/';
 
-    // Only columns that exist in inroutes table (full_schema.sql). 'carrier' is request-only → stored as technology.
+    // inroutes table (full_schema.sql). Exclude id, pkey, shortuid, z_*. 'carrier' is request-only → technology.
     private $updateableColumns = [
-    		'active' => 'in:YES,NO',
-			'alertinfo' => 'string',
-			'closeroute' => 'string',
-			'cluster' => 'exists:cluster,pkey',
-			'description' => 'alpha_num',
-			'disa' => 'in:DISA,CALLBACK|nullable',
-			'disapass' => 'alpha_num|nullable',
-			'inprefix' => 'integer|nullable',
-			'moh' => 'in:ON,OFF',
-			'openroute' => 'string',
-			'swoclip' => 'in:YES,NO',
-			'tag' => 'alpha_num|nullable',
-			'trunkname' => 'alpha_num',
-			'z_updater' => 'alpha_num'
-    	];
+		'active' => 'in:YES,NO',
+		'alertinfo' => 'string|nullable',
+		'callback' => 'string|nullable',
+		'callerid' => 'string|nullable',
+		'callprogress' => 'in:YES,NO',
+		'closeroute' => 'string|nullable',
+		'cluster' => 'exists:cluster,pkey',
+		'cname' => 'string|nullable',
+		'description' => 'string|nullable',
+		'devicerec' => 'string|nullable',
+		'disa' => 'in:DISA,CALLBACK|nullable',
+		'disapass' => 'string|nullable',
+		'host' => 'string|nullable',
+		'iaxreg' => 'string|nullable',
+		'inprefix' => 'string|nullable',
+		'match' => 'string|nullable',
+		'moh' => 'in:YES,NO',
+		'openroute' => 'string|nullable',
+		'password' => 'string|nullable',
+		'peername' => 'string|nullable',
+		'pjsipreg' => 'string|nullable',
+		'register' => 'string|nullable',
+		'swoclip' => 'in:YES,NO',
+		'tag' => 'string|nullable',
+		'trunkname' => 'string|nullable',
+		'username' => 'string|nullable',
+    ];
 
 /**
  * Return InboundRoute index in pkey order asc.
