@@ -44,4 +44,20 @@ class Route extends Model
     'auth'
 
     ];
+
+	/**
+	 * Resolve route model binding by shortuid (globally unique) instead of pkey (tenant-scoped).
+	 * Falls back to pkey for backward compatibility if shortuid not found.
+	 */
+	public function resolveRouteBinding($value, $field = null)
+	{
+		// Try shortuid first (globally unique)
+		$model = static::where('shortuid', $value)->first();
+		if ($model) {
+			return $model;
+		}
+		
+		// Fallback to pkey for backward compatibility (though pkey is tenant-scoped and may be ambiguous)
+		return static::where('pkey', $value)->first();
+	}
 }
