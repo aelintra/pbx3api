@@ -33,7 +33,7 @@ class RouteController extends Controller
  *
  * @return Ring Groups
  */
-    public function index (Route $route) {
+    public function index () {
 
     	return Route::orderBy('pkey','asc')->get();
     }

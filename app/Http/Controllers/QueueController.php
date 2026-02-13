@@ -36,7 +36,7 @@ class QueueController extends Controller
  *
  * @return Ring Groups
  */
-    public function index (Queue $queue) {
+    public function index () {
 
     	return Queue::orderBy('pkey','asc')->get();
     }
