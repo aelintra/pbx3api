@@ -76,17 +76,34 @@ class Extension extends Model
 
 	/**
 	 * Resolve route model binding by shortuid (globally unique) instead of pkey (tenant-scoped).
-	 * Falls back to pkey for backward compatibility if shortuid not found.
+	 * Tries: shortuid (exact), shortuid (case-insensitive), id, then pkey.
 	 */
 	public function resolveRouteBinding($value, $field = null)
 	{
-		// Try shortuid first (globally unique)
+		if ($value === null || $value === '') {
+			return null;
+		}
+		$value = (string) $value;
+
+		// Try shortuid exact match first
 		$model = static::where('shortuid', $value)->first();
 		if ($model) {
 			return $model;
 		}
-		
-		// Fallback to pkey for backward compatibility (though pkey is tenant-scoped and may be ambiguous)
+
+		// Try shortuid case-insensitive (SQLite TEXT can be case-sensitive)
+		$model = static::whereRaw('LOWER(shortuid) = ?', [strtolower($value)])->first();
+		if ($model) {
+			return $model;
+		}
+
+		// Try id (KSUID) in case the segment is ever the id
+		$model = static::where('id', $value)->first();
+		if ($model) {
+			return $model;
+		}
+
+		// Fallback to pkey for backward compatibility (tenant-scoped, may be ambiguous)
 		return static::where('pkey', $value)->first();
 	}
 
