@@ -30,12 +30,11 @@ class AgentController extends Controller
 
 /**
  *
- * @return Agents
+ * @return Ring Groups
  */
-    public function index () {
+    public function index (Agent $agent) {
 
-    	$agents = Agent::orderBy('pkey','asc')->get();
-    	return response()->json($agents, 200);
+    	return Agent::orderBy('pkey','asc')->get();
     }
 
 /**
