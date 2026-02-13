@@ -91,8 +91,9 @@ class InboundRouteController extends Controller
         $validator->setAttributeNames(['pkey' => 'Number (DiD/CLiD)']);
 
         $validator->after(function ($validator) use ($request, $inboundroute) {
-            if ($inboundroute->where('pkey', '=', $request->pkey)->count()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
+            // Check if key exists within tenant (cluster)
+            if ($inboundroute->where('pkey', '=', $request->pkey)->where('cluster', $request->cluster)->exists()) {
+                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
             }
             // Reject single "0" — not a valid DiD/CLiD
             $pkey = trim((string) $request->input('pkey', ''));

@@ -94,9 +94,9 @@ class IvrController extends Controller
     	$validator = Validator::make($request->all(),$this->updateableColumns);
 
         $validator->after(function ($validator) use ($request) {
-            // Check if key exists (no $ivr yet on create)
-            if (Ivr::where('pkey', '=', $request->pkey)->count()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
+            // Check if key exists within tenant (cluster)
+            if (Ivr::where('pkey', '=', $request->pkey)->where('cluster', $request->cluster)->exists()) {
+                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
             }
         });
 

@@ -68,9 +68,9 @@ class AgentController extends Controller
 
         $validator->after(function ($validator) use ($request,$agent) {
 
-//Check if key exists
-            if ($agent->where('pkey','=',$request->pkey)->count()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
+//Check if key exists within tenant (cluster)
+            if ($agent->where('pkey','=',$request->pkey)->where('cluster', $request->cluster)->exists()) {
+                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
                 return;
             }                 
         });
