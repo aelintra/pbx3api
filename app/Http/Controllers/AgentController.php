@@ -34,7 +34,8 @@ class AgentController extends Controller
  */
     public function index () {
 
-    	return Agent::orderBy('pkey','asc')->get();
+    	$agents = Agent::orderBy('pkey','asc')->get();
+    	return response()->json($agents, 200);
     }
 
 /**
