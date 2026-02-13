@@ -68,7 +68,11 @@ class SysglobalController extends Controller
  */
     public function index () {
 
-    	return Sysglobal::first();
+    	$sysglobal = Sysglobal::first();
+    	if (!$sysglobal) {
+    		return response()->json(['error' => 'System globals not found'], 404);
+    	}
+    	return response()->json($sysglobal, 200);
     }
 
 
