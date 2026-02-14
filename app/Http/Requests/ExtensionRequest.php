@@ -15,12 +15,22 @@ class ExtensionRequest extends FormRequest
     public function rules()
     {
         $extension = $this->route('extension');
-        $cluster = $this->input('cluster');
-        // pkey unique per cluster (tenant); on update ignore current row by id
-        $pkeyRule = Rule::unique('ipphone', 'pkey')->where('cluster', $cluster);
-        if ($extension instanceof \App\Models\Extension) {
-            $pkeyRule->ignore($extension->getKey(), 'id');
+        $pkeySubmitted = $this->input('pkey');
+
+        // On update when pkey is unchanged, skip unique check (e.g. only toggling Active)
+        $pkeyUnchanged = $extension instanceof \App\Models\Extension
+            && (string) $pkeySubmitted === (string) $extension->getAttribute('pkey');
+
+        if ($pkeyUnchanged) {
+            $pkeyRule = 'required';
+        } else {
+            $cluster = $this->input('cluster');
+            $pkeyRule = Rule::unique('ipphone', 'pkey')->where('cluster', $cluster);
+            if ($extension instanceof \App\Models\Extension) {
+                $pkeyRule->ignore($extension->getKey(), 'id');
+            }
         }
+
         return [
             'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',
