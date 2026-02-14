@@ -28,6 +28,12 @@ class AgentController extends Controller
         'queue6' => 'exists:queue,pkey|nullable',
     ];
 
+	/** Return column names that are updateable (for schema metadata). */
+	public function getUpdateableColumns(): array
+	{
+		return array_keys($this->updateableColumns);
+	}
+
 /**
  *
  * @return Ring Groups

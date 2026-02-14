@@ -41,6 +41,12 @@ class ExtensionController extends Controller
 		'vmailfwd' => 'email|nullable',
 	];
 
+	/** Return column names that are updateable (for schema metadata). */
+	public function getUpdateableColumns(): array
+	{
+		return array_keys($this->updateableColumns);
+	}
+
 /**
  * Return Extension Index in pkey order asc.
  * Each extension includes tenant_pkey (cluster pkey for display) resolved from cluster table.

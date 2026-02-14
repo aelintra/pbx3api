@@ -90,6 +90,12 @@ class TenantController extends Controller
 			'vxt' => 'integer|nullable',
 	];
 
+	/** Return column names that are updateable (for schema metadata). */
+	public function getUpdateableColumns(): array
+	{
+		return array_keys($this->updateableColumns);
+	}
+
     //
 /**
  * Return Tenant Index in pkey order asc

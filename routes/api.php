@@ -24,6 +24,7 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\SnapShotController;
 use App\Http\Controllers\RouteController;
+use App\Http\Controllers\SchemaController;
 use App\Http\Controllers\SysCommandController;
 use App\Http\Controllers\SysglobalController;
 use App\Http\Controllers\TenantController;
@@ -76,6 +77,11 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
  * Everything in this group requires admin privileges (Sanctum abilities:admin).
  */
+/**
+ * Schema metadata (read_only, updateable, defaults) for admin panels
+ */
+    Route::get('schemas', [SchemaController::class, 'index']);
+
 /**
  * Agents
  */

@@ -42,6 +42,12 @@ class TrunkController extends Controller
 			'username' => 'string|nullable',
     	];
 
+	/** Return column names that are updateable (for schema metadata). */
+	public function getUpdateableColumns(): array
+	{
+		return array_keys($this->updateableColumns);
+	}
+
 /**
  * Return Trunk index in pkey order asc.
  * Instance schema uses trunks table only (DDI/CLID are in inroutes).

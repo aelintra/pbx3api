@@ -42,6 +42,12 @@ class InboundRouteController extends Controller
 		'username' => 'string|nullable',
     ];
 
+	/** Return column names that are updateable (for schema metadata). */
+	public function getUpdateableColumns(): array
+	{
+		return array_keys($this->updateableColumns);
+	}
+
 /**
  * Return InboundRoute index in pkey order asc.
  * Instance schema uses inroutes table (DDI/CLID); trunks are in trunks table.
