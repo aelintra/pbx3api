@@ -1,0 +1,27 @@
+---
+description: Tenant-scoped API pattern (id for identity, pkey+cluster for uniqueness)
+globs: app/Http/Controllers/*Controller.php,app/Models/*.php,app/Http/Requests/*Request.php
+alwaysApply: false
+---
+
+# Tenant-scoped panels pattern
+
+Use for resources that belong to a tenant: **Extensions, Queues, Agents, Routes, Trunks, IVRs, Inbound routes**, and any new tenant-scoped resource (e.g. Custom apps). **Not** for Tenants (cluster) themselves.
+
+## Identity (which row)
+
+- **id** (KSUID) is the canonical key. Model: `primaryKey = 'id'`, `$keyType = 'string'`, `$incrementing = false`.
+- **Controller update:** Do not use `$model->save()`. Use explicit update by id:
+  - `$id = $model->id;` then `Model::where('id', $id)->update($model->getDirty());` then `$model->syncOriginal();`
+  - Return 409 if `$id` is null or empty.
+- **Route binding:** `resolveRouteBinding()` should try shortuid (exact, case-insensitive), then id, then pkey.
+
+## Uniqueness (pkey)
+
+- **pkey** is unique *per cluster*; same pkey in different clusters is allowed.
+- **Form Request pkey rule:** If update and pkey unchanged → only `'required'`. Else → `Rule::unique('table','pkey')->where('cluster', $cluster)` and on update `->ignore($model->getKey(), 'id')`.
+
+## Reference
+
+- Doc: `docs/TENANT_SCOPED_PATTERN.md`
+- Implementations: ExtensionController, ExtensionRequest, TrunkRequest; QueueController, AgentController, RouteController, TrunkController, IvrController, InboundRouteController (update by id).
