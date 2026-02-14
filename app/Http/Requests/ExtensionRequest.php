@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ExtensionRequest extends FormRequest
 {
@@ -14,10 +15,14 @@ class ExtensionRequest extends FormRequest
     public function rules()
     {
         $extension = $this->route('extension');
-        // Ignore current row by id (KSUID) so pkey uniqueness is per-row, not per-tenant
-        $ignoreId = $extension instanceof \App\Models\Extension ? $extension->getKey() : $extension;
+        $cluster = $this->input('cluster');
+        // pkey unique per cluster (tenant); on update ignore current row by id
+        $pkeyRule = Rule::unique('ipphone', 'pkey')->where('cluster', $cluster);
+        if ($extension instanceof \App\Models\Extension) {
+            $pkeyRule->ignore($extension->getKey(), 'id');
+        }
         return [
-            'pkey' => 'required|unique:ipphone,pkey,' . $ignoreId . ',id',
+            'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',
             'macaddr' => 'nullable|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/',
             'device' => 'required|string|max:255',
