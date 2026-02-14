@@ -85,14 +85,6 @@ class Extension extends Model
 		}
 		$value = (string) $value;
 
-		// Debug: log binding attempt (remove after 404 is resolved)
-		\Illuminate\Support\Facades\Log::info('Extension resolveRouteBinding', [
-			'value' => $value,
-			'value_hex' => bin2hex($value),
-			'database' => config('database.default'),
-			'database_path' => config('database.connections.sqlite.database'),
-		]);
-
 		// Try shortuid exact match first
 		$model = static::where('shortuid', $value)->first();
 		if ($model) {
@@ -113,9 +105,6 @@ class Extension extends Model
 
 		// Fallback to pkey for backward compatibility (tenant-scoped, may be ambiguous)
 		$model = static::where('pkey', $value)->first();
-		if (!$model) {
-			\Illuminate\Support\Facades\Log::warning('Extension resolveRouteBinding: no row found', ['value' => $value]);
-		}
 		return $model;
 	}
 
