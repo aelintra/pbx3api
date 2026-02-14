@@ -143,7 +143,7 @@ class SchemaService
     }
 
     /**
-     * Normalise SQLite default value for JSON (e.g. strip quotes, cast int).
+     * Normalise SQLite default value for JSON (strip surrounding single quotes, cast int/float).
      */
     protected function normaliseDefaultValue(mixed $dflt): mixed
     {
@@ -154,6 +154,13 @@ class SchemaService
             return $dflt;
         }
         $s = (string) $dflt;
+        // SQLite PRAGMA often returns string defaults with quotes, e.g. 'YES' or 'default'
+        if (strlen($s) >= 2 && $s[0] === "'" && $s[strlen($s) - 1] === "'") {
+            $s = substr($s, 1, -1);
+        }
+        if ($s === '' || strtoupper($s) === 'NULL') {
+            return null;
+        }
         if (is_numeric($s)) {
             return str_contains($s, '.') ? (float) $s : (int) $s;
         }
