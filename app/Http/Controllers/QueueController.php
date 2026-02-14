@@ -113,10 +113,16 @@ class QueueController extends Controller
         move_request_to_model($request,$queue,$this->updateableColumns);
 
 
-// store the model if it has changed
+// store the model if it has changed — update by id only (tenant-safe)
         try {
             if ($queue->isDirty()) {
-                $queue->update();
+                $id = $queue->id;
+                if ($id === null || $id === '') {
+                    return Response::json(['Error' => 'Queue id is missing'], 409);
+                }
+                $dirty = $queue->getDirty();
+                Queue::where('id', $id)->update($dirty);
+                $queue->syncOriginal();
             }
 
         } catch (\Exception $e) {

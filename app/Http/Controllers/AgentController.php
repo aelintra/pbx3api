@@ -111,10 +111,16 @@ class AgentController extends Controller
         move_request_to_model($request,$agent,$this->updateableColumns);
 
 
-// store the model if it has changed
+// store the model if it has changed — update by id only (tenant-safe)
         try {
             if ($agent->isDirty()) {
-                $agent->update();
+                $id = $agent->id;
+                if ($id === null || $id === '') {
+                    return Response::json(['Error' => 'Agent id is missing'], 409);
+                }
+                $dirty = $agent->getDirty();
+                Agent::where('id', $id)->update($dirty);
+                $agent->syncOriginal();
             }
 
         } catch (\Exception $e) {

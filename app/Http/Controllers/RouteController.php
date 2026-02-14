@@ -110,10 +110,16 @@ class RouteController extends Controller
         move_request_to_model($request,$route,$this->updateableColumns);
 
 
-// store the model if it has changed
+// store the model if it has changed — update by id only (tenant-safe)
         try {
             if ($route->isDirty()) {
-                $route->update();
+                $id = $route->id;
+                if ($id === null || $id === '') {
+                    return Response::json(['Error' => 'Route id is missing'], 409);
+                }
+                $dirty = $route->getDirty();
+                Route::where('id', $id)->update($dirty);
+                $route->syncOriginal();
             }
 
         } catch (\Exception $e) {

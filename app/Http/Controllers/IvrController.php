@@ -151,10 +151,16 @@ class IvrController extends Controller
 		move_request_to_model($request,$ivr,$this->updateableColumns);
         $this->check_options($request, $ivr);
 
-// store the model if it has changed
+// store the model if it has changed — update by id only (tenant-safe)
     	try {
     		if ($ivr->isDirty()) {
-    			$ivr->save();
+    			$id = $ivr->id;
+    			if ($id === null || $id === '') {
+    				return Response::json(['Error' => 'Ivr id is missing'], 409);
+    			}
+    			$dirty = $ivr->getDirty();
+    			Ivr::where('id', $id)->update($dirty);
+    			$ivr->syncOriginal();
     		}
         } catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);

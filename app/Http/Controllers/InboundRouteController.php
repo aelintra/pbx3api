@@ -147,10 +147,16 @@ class InboundRouteController extends Controller
             $inboundroute->technology = $request->input('carrier');
         }
 
-        // store the model if it has changed
+        // store the model if it has changed — update by id only (tenant-safe)
         try {
             if ($inboundroute->isDirty()) {
-                $inboundroute->update();
+                $id = $inboundroute->id;
+                if ($id === null || $id === '') {
+                    return Response::json(['Error' => 'InboundRoute id is missing'], 409);
+                }
+                $dirty = $inboundroute->getDirty();
+                InboundRoute::where('id', $id)->update($dirty);
+                $inboundroute->syncOriginal();
             }
 
         } catch (\Exception $e) {

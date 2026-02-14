@@ -14,10 +14,23 @@ class TrunkRequest extends FormRequest
 
     public function rules()
     {
-        $pkeyRule = Rule::unique('trunks', 'pkey');
-        if ($this->route()->hasParameter('trunk')) {
-            $pkeyRule = $pkeyRule->ignore($this->route('trunk'));
+        $trunk = $this->route('trunk');
+        $pkeySubmitted = $this->input('pkey');
+
+        // On update when pkey is unchanged, skip unique check (tenant-safe)
+        $pkeyUnchanged = $trunk instanceof \App\Models\Trunk
+            && (string) $pkeySubmitted === (string) $trunk->getAttribute('pkey');
+
+        if ($pkeyUnchanged) {
+            $pkeyRule = 'required';
+        } else {
+            $cluster = $this->input('cluster');
+            $pkeyRule = Rule::unique('trunks', 'pkey')->where('cluster', $cluster);
+            if ($trunk instanceof \App\Models\Trunk) {
+                $pkeyRule->ignore($trunk->getKey(), 'id');
+            }
         }
+
         return [
             'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',

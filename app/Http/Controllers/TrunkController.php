@@ -175,10 +175,16 @@ class TrunkController extends Controller
 		move_request_to_model($request,$trunk,$this->updateableColumns);
 
 
-// store the model if it has changed
+// store the model if it has changed — update by id only (tenant-safe)
     	try {
     		if ($trunk->isDirty()) {
-    			$trunk->save();
+    			$id = $trunk->id;
+    			if ($id === null || $id === '') {
+    				return Response::json(['Error' => 'Trunk id is missing'], 409);
+    			}
+    			$dirty = $trunk->getDirty();
+    			Trunk::where('id', $id)->update($dirty);
+    			$trunk->syncOriginal();
     		}
         } catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
