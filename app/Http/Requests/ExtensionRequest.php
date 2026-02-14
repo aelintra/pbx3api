@@ -14,9 +14,10 @@ class ExtensionRequest extends FormRequest
     public function rules()
     {
         $extension = $this->route('extension');
-        $ignorePkey = $extension instanceof \App\Models\Extension ? $extension->getKey() : $extension;
+        // Ignore current row by id (KSUID) so pkey uniqueness is per-row, not per-tenant
+        $ignoreId = $extension instanceof \App\Models\Extension ? $extension->getKey() : $extension;
         return [
-            'pkey' => 'required|unique:ipphone,pkey,' . $ignorePkey . ',pkey',
+            'pkey' => 'required|unique:ipphone,pkey,' . $ignoreId . ',id',
             'cluster' => 'required|exists:cluster,pkey',
             'macaddr' => 'nullable|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/',
             'device' => 'required|string|max:255',

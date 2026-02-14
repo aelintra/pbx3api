@@ -453,10 +453,16 @@ class ExtensionController extends Controller
     		$this->adjustAstProvSettings($extension);
     	}
 
-// store the model if it has changed
+// store the model if it has changed — update by id only so only this row is updated (tenant-safe)
     	try {
     		if ($extension->isDirty()) {
-    			$extension->save();
+    			$id = $extension->id;
+    			if ($id === null || $id === '') {
+    				return Response::json(['Error' => 'Extension id is missing'], 409);
+    			}
+    			$dirty = $extension->getDirty();
+    			Extension::where('id', $id)->update($dirty);
+    			$extension->syncOriginal();
     		}
 
         } catch (\Exception $e) {
