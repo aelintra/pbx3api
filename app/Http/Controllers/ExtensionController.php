@@ -30,7 +30,7 @@ class ExtensionController extends Controller
 		'desc' => 'nullable|string|max:255',
 		'description' => 'string|nullable',
 		'device' => 'string|nullable',
-		'devicerec' => 'in:default,None,OTR,OTRR,Inbound.Outbound,Both',
+		'devicerec' => 'in:default,None,Inbound,Outbound,Both',
 		'dvrvmail' => 'exists:ipphone,pkey|nullable',
 		'extalert' => 'string|nullable',
 		'macaddr' => 'string|nullable',
@@ -110,6 +110,15 @@ class ExtensionController extends Controller
             'desc' => 'nullable|string|max:255',
             'protocol' => 'required|in:SIP,WebRTC,Mailbox',
             'macaddr' => 'nullable|regex:/^[0-9a-fA-F]{12}$/',
+            'active' => 'nullable|in:YES,NO',
+            'transport' => 'nullable|in:udp,tcp,tls,wss',
+            'callbackto' => 'nullable|in:desk,cell',
+            'callerid' => 'nullable|string|max:255',
+            'cellphone' => 'nullable|string|max:255',
+            'celltwin' => 'nullable|in:ON,OFF',
+            'devicerec' => 'nullable|in:default,None,Inbound,Outbound,Both',
+            'ipversion' => 'nullable|in:IPV4,IPV6',
+            'vmailfwd' => 'nullable|email',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -146,15 +155,40 @@ class ExtensionController extends Controller
         } elseif ($protocol === 'SIP') {
             $attrs['desc'] = $desc ?: ('Ext' . $pkey);
             $attrs['device'] = 'General SIP';
-            $attrs['transport'] = 'udp';
+            $attrs['transport'] = $request->input('transport', 'udp');
         } else {
             $attrs['desc'] = $desc ?: ('Ext' . $pkey);
             $attrs['device'] = 'WebRTC';
-            $attrs['transport'] = 'wss';
+            $attrs['transport'] = $request->input('transport', 'wss');
         }
 
         if ($macaddr !== null && $macaddr !== '') {
             $attrs['macaddr'] = $macaddr;
+        }
+
+        if ($request->has('active')) {
+            $attrs['active'] = $request->input('active');
+        }
+        if ($request->has('callbackto')) {
+            $attrs['callbackto'] = $request->input('callbackto');
+        }
+        if ($request->has('callerid')) {
+            $attrs['callerid'] = $request->input('callerid') ?: null;
+        }
+        if ($request->has('cellphone')) {
+            $attrs['cellphone'] = $request->input('cellphone') ?: null;
+        }
+        if ($request->has('celltwin')) {
+            $attrs['celltwin'] = $request->input('celltwin');
+        }
+        if ($request->has('devicerec')) {
+            $attrs['devicerec'] = $request->input('devicerec');
+        }
+        if ($request->has('ipversion')) {
+            $attrs['protocol'] = $request->input('ipversion');
+        }
+        if ($request->has('vmailfwd')) {
+            $attrs['vmailfwd'] = $request->input('vmailfwd') ?: null;
         }
 
         try {
