@@ -9,7 +9,8 @@ class Trunk extends Model
     //
     /** API runs against tenant schema (sqlite_create_tenant.sql). Trunks table follows tenant pattern (id, pkey, ...). */
     protected $table = 'trunks';
-    protected $primaryKey = 'pkey';
+    // Use id (KSUID, globally unique) so save() updates only one row when pkey is reused across tenants
+    protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;

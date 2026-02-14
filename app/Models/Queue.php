@@ -8,7 +8,8 @@ class Queue extends Model
 {
     //
     protected $table = 'queue';
-    protected $primaryKey = 'pkey';
+    // Use id (KSUID, globally unique) so save() updates only one row when pkey is reused across tenants
+    protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;
