@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Trunk;
 use App\Services\TenantDefaultBackfillService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -22,3 +23,8 @@ Artisan::command('tenant:backfill-defaults', function (TenantDefaultBackfillServ
     }
     $this->info($total > 0 ? "Done. {$total} row(s) updated." : 'Done. No NULLs to backfill (or tables missing).');
 })->purpose('Set NULL columns to new defaults in existing tenant rows (one-time after schema migration)');
+
+Artisan::command('trunks:set-default-cluster', function () {
+    $updated = Trunk::query()->update(['cluster' => 'default']);
+    $this->info("Done. {$updated} trunk(s) set to cluster = 'default'.");
+})->purpose('Set all existing trunks to the default cluster (TRUNK_ROUTE_MULTITENANCY first cut)');

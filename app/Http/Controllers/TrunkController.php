@@ -82,6 +82,9 @@ class TrunkController extends Controller
  */
     public function save(Request $request) {
 
+		// First cut: all new trunks belong to the default tenant (TRUNK_ROUTE_MULTITENANCY)
+		$request->merge(['cluster' => 'default']);
+
 // validation 
   		$this->updateableColumns['pkey'] = 'required';
   		$this->updateableColumns['carrier'] = 'required|in:GeneralSIP,GeneralIAX2';
