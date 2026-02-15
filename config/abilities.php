@@ -25,6 +25,9 @@ return [
     |
     */
 
+    // Next step: add granular abilities (view_trunk, edit_trunk, view_extension, etc.)
+    // and optionally split route groups (admin vs tenant). See pbx3spa/workingdocs/ADMIN_PANELS_AND_PERMISSIONS.md.
+
     'abilities' => [
         'admin' => 'Full access: users, all resources, system commands.',
         // Add more as needed, e.g.:
