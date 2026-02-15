@@ -162,6 +162,9 @@ class TrunkController extends Controller
  */
     public function update(TrunkRequest $request, Trunk $trunk) {
 
+		// First cut: trunk tenant is not changeable; force default (TRUNK_ROUTE_MULTITENANCY). When layered permissions are added, users with the right role may be allowed to modify trunk tenant (later phase).
+		$request->merge(['cluster' => 'default']);
+
 // Validate   
 
     	$validator = Validator::make($request->all(),$this->updateableColumns);
