@@ -34,8 +34,8 @@ class ExtensionRequest extends FormRequest
         return [
             'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',
-            'macaddr' => 'nullable|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/',
-            'device' => 'required|string|max:255',
+            'macaddr' => ['nullable', 'regex:/^(?:[0-9a-fA-F]{12}|([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2})$/'],
+            'device' => 'nullable|string|max:255',
             'desc' => 'nullable|string|max:255',
             'active' => 'in:YES,NO',
             'callbackto' => 'in:desk,cell',

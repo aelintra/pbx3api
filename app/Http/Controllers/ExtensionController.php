@@ -35,6 +35,8 @@ class ExtensionController extends Controller
 		'extalert' => 'string|nullable',
 		'macaddr' => 'string|nullable',
 		'protocol' => 'in:IPV4,IPV6',
+		'provision' => 'string|nullable',
+		'provisionwith' => 'in:IP,FQDN',
 		'pjsipuser' => 'string|nullable',
 		'technology' => 'string|nullable',
 		'transport' => 'in:udp,tcp,tls,wss',
@@ -103,18 +105,23 @@ class ExtensionController extends Controller
     }
 
 /**
- * Create a new extension (single endpoint). Protocol: SIP | WebRTC | Mailbox.
- * Sets id (ksuid), dvrvmail = pkey. Tenant schema (sqlite_create_tenant.sql).
+ * Create a new extension (single endpoint). extensionType: SIP | WebRTC.
+ * Sets id (ksuid), dvrvmail = pkey. Device/provision from Device table and optional MAC.
  *
- * @param  Request  pkey, cluster, desc (name), protocol (SIP|WebRTC|Mailbox), macaddr (optional)
+ * @param  Request  pkey, cluster, desc (name), extensionType (SIP|WebRTC), macaddr (optional for SIP), protocol (IPV4|IPV6)
  * @return New extension
  */
     public function save(Request $request) {
-        $validator = Validator::make($request->all(), [
+        $all = $request->all();
+        $extensionTypeInput = $all['extensionType'] ?? null;
+        if (!$extensionTypeInput && isset($all['protocol']) && in_array($all['protocol'], ['SIP', 'WebRTC'], true)) {
+            $extensionTypeInput = $all['protocol'];
+        }
+        $validator = Validator::make(array_merge($all, ['extensionType' => $extensionTypeInput]), [
             'pkey' => 'required',
             'cluster' => 'required|exists:cluster,pkey',
             'desc' => 'nullable|string|max:255',
-            'protocol' => 'required|in:SIP,WebRTC,Mailbox',
+            'extensionType' => 'required|in:SIP,WebRTC',
             'macaddr' => 'nullable|regex:/^[0-9a-fA-F]{12}$/',
             'active' => 'nullable|in:YES,NO',
             'transport' => 'nullable|in:udp,tcp,tls,wss',
@@ -123,13 +130,20 @@ class ExtensionController extends Controller
             'cellphone' => 'nullable|string|max:255',
             'celltwin' => 'nullable|in:ON,OFF',
             'devicerec' => 'nullable|in:default,None,Inbound,Outbound,Both',
+            'protocol' => 'nullable|in:IPV4,IPV6',
             'ipversion' => 'nullable|in:IPV4,IPV6',
             'vmailfwd' => 'nullable|email',
         ]);
 
-        $validator->after(function ($validator) use ($request) {
+        $validator->after(function ($validator) use ($request, $extensionTypeInput) {
             if (Extension::where('pkey', $request->pkey)->where('cluster', $request->cluster)->exists()) {
                 $validator->errors()->add('save', 'Duplicate extension - ' . $request->pkey . ' in this tenant.');
+            }
+            if ($extensionTypeInput === 'SIP' && $request->macaddr) {
+                $mac = preg_replace('/[^0-9a-fA-F]/', '', $request->macaddr);
+                if ($mac !== '' && Extension::where('macaddr', $mac)->exists()) {
+                    $validator->errors()->add('macaddr', 'This MAC already exists.');
+                }
             }
         });
 
@@ -137,11 +151,16 @@ class ExtensionController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $pkey = $request->post('pkey');
-        $cluster = $request->post('cluster');
-        $desc = $request->post('desc');
-        $protocol = $request->post('protocol');
-        $macaddr = $request->post('macaddr');
+        $pkey = $request->input('pkey');
+        $cluster = $request->input('cluster');
+        $desc = $request->input('desc');
+        $extensionType = $request->input('extensionType') ?: $extensionTypeInput;
+        $macaddr = $request->input('macaddr');
+        $macaddr = $macaddr !== null && $macaddr !== '' ? preg_replace('/[^0-9a-fA-F]/', '', $macaddr) : null;
+        $protocolInput = $request->input('protocol');
+        if (!in_array($protocolInput, ['IPV4', 'IPV6'], true)) {
+            $protocolInput = $request->input('ipversion', 'IPV4');
+        }
 
         $id = generate_ksuid();
         $shortuid = generate_shortuid();
@@ -155,21 +174,59 @@ class ExtensionController extends Controller
             'dvrvmail' => $dvrvmail,
         ];
 
-        if ($protocol === 'Mailbox') {
-            $attrs['desc'] = $desc ?: 'MAILBOX';
-            $attrs['device'] = 'MAILBOX';
-        } elseif ($protocol === 'SIP') {
+        $provisionwith = 'IP';
+        try {
+            $globals = get_globals();
+            if ($globals && isset($globals->fqdnprov) && strtoupper((string) $globals->fqdnprov) === 'YES') {
+                $provisionwith = 'FQDN';
+            }
+        } catch (\Throwable $e) {
+            // keep default IP
+        }
+        $attrs['provisionwith'] = $provisionwith;
+
+        if ($extensionType === 'SIP') {
             $attrs['desc'] = $desc ?: ('Ext' . $pkey);
-            $attrs['device'] = 'General SIP';
             $attrs['transport'] = $request->input('transport', 'udp');
+            $attrs['protocol'] = $protocolInput;
+
+            if ($macaddr !== null && $macaddr !== '') {
+                $deviceVendor = $this->getVendorFromMac($macaddr);
+                if ($deviceVendor === null) {
+                    return response()->json(['macaddr' => ["Can't find Manufacturer for this MAC."]], 422);
+                }
+                $attrs['macaddr'] = $macaddr;
+                $attrs['device'] = $deviceVendor;
+                $deviceRow = $this->getDeviceRow($deviceVendor);
+                if ($deviceRow) {
+                    $attrs['pjsipuser'] = $deviceRow->sipiaxfriend ?? null;
+                    $attrs['technology'] = $deviceRow->technology ?? 'SIP';
+                }
+                $provision = '#INCLUDE ' . $deviceVendor;
+                if (preg_match('/^[Cc]isco/', $deviceVendor)) {
+                    $provision .= "\n</flat-profile>\n</device>";
+                }
+                $attrs['provision'] = $provision;
+            } else {
+                $attrs['device'] = 'General SIP';
+                $deviceRow = $this->getDeviceRow('General SIP');
+                if ($deviceRow) {
+                    $attrs['pjsipuser'] = $deviceRow->sipiaxfriend ?? null;
+                    $attrs['technology'] = $deviceRow->technology ?? 'SIP';
+                }
+                $attrs['provision'] = null;
+            }
         } else {
             $attrs['desc'] = $desc ?: ('Ext' . $pkey);
             $attrs['device'] = 'WebRTC';
             $attrs['transport'] = $request->input('transport', 'wss');
-        }
-
-        if ($macaddr !== null && $macaddr !== '') {
-            $attrs['macaddr'] = $macaddr;
+            $attrs['protocol'] = $protocolInput;
+            $deviceRow = $this->getDeviceRow('WebRTC');
+            if ($deviceRow) {
+                $attrs['pjsipuser'] = $deviceRow->sipiaxfriend ?? null;
+                $attrs['technology'] = $deviceRow->technology ?? 'SIP';
+            }
+            $attrs['provision'] = null;
         }
 
         if ($request->has('active')) {
@@ -190,9 +247,6 @@ class ExtensionController extends Controller
         if ($request->has('devicerec')) {
             $attrs['devicerec'] = $request->input('devicerec');
         }
-        if ($request->has('ipversion')) {
-            $attrs['protocol'] = $request->input('ipversion');
-        }
         if ($request->has('vmailfwd')) {
             $attrs['vmailfwd'] = $request->input('vmailfwd') ?: null;
         }
@@ -207,11 +261,23 @@ class ExtensionController extends Controller
             ], 409);
         }
 
-        if ($protocol !== 'Mailbox') {
-            $this->create_default_cos_instances($extension);
+        if ($extension->provision !== null && $extension->provision !== '') {
+            $this->adjustAstProvSettings($extension);
+            Extension::where('id', $extension->id)->update(['provision' => $extension->provision]);
         }
 
-        return response()->json($extension, 201);
+        $this->create_default_cos_instances($extension);
+
+        return response()->json($extension->fresh(), 201);
+    }
+
+    /** Get Device row by pkey (instance schema). */
+    private function getDeviceRow(string $devicePkey) {
+        try {
+            return DB::table('Device')->where('pkey', $devicePkey)->first(['sipiaxfriend', 'technology']);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
 /**
@@ -475,42 +541,80 @@ class ExtensionController extends Controller
     }  
 
     /**
-     * @param  Request
-     * @param  Extension
-     * @return response
+     * @param  ExtensionRequest $request
+     * @param  Extension $extension
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(ExtensionRequest $request, Extension $extension) {
+        $originalMac = $extension->getOriginal('macaddr');
+        $originalMac = $originalMac !== null && $originalMac !== '' ? preg_replace('/[^0-9a-fA-F]/', '', $originalMac) : null;
 
-// Move request body to the model (use all() so JSON body is read; post() is empty for application/json)
-    	foreach ($request->all() as $key => $value) {
-    		if (array_key_exists($key, $this->updateableColumns)) {
-    			$extension->$key = is_string($value) ? trim($value) : $value;
-    		}
-    	}
+        foreach ($request->all() as $key => $value) {
+            if (array_key_exists($key, $this->updateableColumns)) {
+                $extension->$key = is_string($value) ? trim($value) : $value;
+            }
+        }
 
-// adjust the provisioning string if the transport or protocol has changed
-    	if ( $extension->isDirty('transport') ) {
-    		$this->adjustAstProvSettings($extension);
-    	}
+        $newMac = $extension->macaddr;
+        $newMac = $newMac !== null && $newMac !== '' ? preg_replace('/[^0-9a-fA-F]/', '', $newMac) : null;
 
-// store the model if it has changed — update by id only so only this row is updated (tenant-safe)
-    	try {
-    		if ($extension->isDirty()) {
-    			$id = $extension->id;
-    			if ($id === null || $id === '') {
-    				return Response::json(['Error' => 'Extension id is missing'], 409);
-    			}
-    			$dirty = $extension->getDirty();
-    			Extension::where('id', $id)->update($dirty);
-    			$extension->syncOriginal();
-    		}
+        $macAdded = $originalMac === null && $newMac !== null;
+        $macChanged = $originalMac !== null && $newMac !== null && $originalMac !== $newMac;
+        $macRemoved = $originalMac !== null && $newMac === null;
 
+        if ($macAdded || $macChanged) {
+            if (strlen($newMac) !== 12 || !preg_match('/^[0-9a-fA-F]{12}$/', $newMac)) {
+                return response()->json(['macaddr' => ['MAC must be 12 hex characters.']], 422);
+            }
+            $exists = Extension::where('macaddr', $newMac)->where('id', '!=', $extension->id)->exists();
+            if ($exists) {
+                return response()->json(['macaddr' => ['This MAC already exists.']], 422);
+            }
+            $deviceVendor = $this->getVendorFromMac($newMac);
+            if ($deviceVendor === null) {
+                return response()->json(['macaddr' => ["Can't find Manufacturer for this MAC."]], 422);
+            }
+            $extension->macaddr = $newMac;
+            $extension->device = $deviceVendor;
+            $deviceRow = $this->getDeviceRow($deviceVendor);
+            if ($deviceRow) {
+                $extension->pjsipuser = $deviceRow->sipiaxfriend ?? null;
+                $extension->technology = $deviceRow->technology ?? 'SIP';
+            }
+            $provision = '#INCLUDE ' . $deviceVendor;
+            if (preg_match('/^[Cc]isco/', $deviceVendor)) {
+                $provision .= "\n</flat-profile>\n</device>";
+            }
+            $extension->provision = $provision;
+            $this->adjustAstProvSettings($extension);
+        } elseif ($macRemoved) {
+            $extension->device = 'General SIP';
+            $extension->provision = null;
+            $extension->pjsipuser = null;
+            $deviceRow = $this->getDeviceRow('General SIP');
+            if ($deviceRow) {
+                $extension->pjsipuser = $deviceRow->sipiaxfriend ?? null;
+                $extension->technology = $deviceRow->technology ?? 'SIP';
+            }
+        } elseif (($extension->isDirty('transport') || $extension->isDirty('protocol')) && $extension->provision !== null && trim((string) $extension->provision) !== '') {
+            $this->adjustAstProvSettings($extension);
+        }
+
+        try {
+            if ($extension->isDirty()) {
+                $id = $extension->id;
+                if ($id === null || $id === '') {
+                    return response()->json(['Error' => 'Extension id is missing'], 409);
+                }
+                $dirty = $extension->getDirty();
+                Extension::where('id', $id)->update($dirty);
+                $extension->syncOriginal();
+            }
         } catch (\Exception $e) {
-    		return Response::json(['Error' => $e->getMessage()],409);
-    	}
+            return response()->json(['Error' => $e->getMessage()], 409);
+        }
 
-		return response()->json($extension, 200);
-		
+        return response()->json($extension->fresh(), 200);
     } 
 
 /**
@@ -581,143 +685,88 @@ class ExtensionController extends Controller
 
 
 /**
- * search the Wireshark vendor database for the root of a given Mac address
- * 
- * @param  string mac address
- * @return string short vendor name, e.g. Yealink, or NULL if not satisfied
+ * Search the vendor database for the OUI of a given MAC address.
+ *
+ * @param  string $mac 12 hex chars (no colons)
+ * @return string|null short vendor name, e.g. Yealink, or null if not found
  */
     private function getVendorFromMac($mac) {
-
-		$short_vendor = NULL;
-		$shortmac = strtoupper(substr($mac,0,6));
-
-		preg_match(" /^([0-9A-F][0-9A-F])([0-9A-F][0-9A-F])([0-9A-F][0-9A-F])$/ ", $shortmac,$matches);
-
-		$findmac = $matches[1] . ":" . trim($matches[2]) . ':' . trim($matches[3]);
-
-		$vendorline = `grep -i $findmac /opt/pbx3/www/pbx3-common/manuf.txt`;
-
-		$delim="\t";
-		$short_vendor_cols = explode($delim,$vendorline,3);
-		if ( ! empty($short_vendor_cols[1]) ) {
-			$short_vendor = $short_vendor_cols[1];
-		}
-		if (preg_match('/(Snom|Panasonic|Yealink|Polycom|Cisco|Gigaset|Aastra|Grandstream|Vtech)/i',$short_vendor_cols[2],$matches)) {
-				$short_vendor = $matches[1];
-		}
-		else {
-			if (preg_match('/(Snom|Panasonic|Yealink|Polycom|Cisco|Gigaset|Aastra|Grandstream|Vtech)/i',$short_vendor,$matches)) {
-				$short_vendor = $matches[1];
-			}
-			else {
-				return 0;
-			}
-		}
-// Not all Yealinks advertise themselvs as Yealink, sometimes it's YEALINK
-		if (strcasecmp($short_vendor, 'yealink') == 0) {
-			$short_vendor = "Yealink";
-		}
-		return $short_vendor;
-
-}
+        $short_vendor = null;
+        $shortmac = strtoupper(preg_replace('/[^0-9A-F]/', '', substr($mac, 0, 6)));
+        if (strlen($shortmac) !== 6 || !preg_match('/^[0-9A-F]{6}$/', $shortmac)) {
+            return null;
+        }
+        $findmac = substr($shortmac, 0, 2) . ':' . substr($shortmac, 2, 2) . ':' . substr($shortmac, 4, 2);
+        $manufPath = '/opt/pbx3/cache/manuf.txt';
+        if (!is_readable($manufPath)) {
+            return null;
+        }
+        $vendorline = `grep -i "^$findmac" "$manufPath" 2>/dev/null`;
+        $vendorline = trim($vendorline);
+        if ($vendorline === '') {
+            return null;
+        }
+        $delim = "\t";
+        $short_vendor_cols = explode($delim, $vendorline, 3);
+        if (!empty($short_vendor_cols[1])) {
+            $short_vendor = trim($short_vendor_cols[1]);
+        }
+        $supported = 'Snom|Panasonic|Yealink|Polycom|Fanvil|Cisco|Gigaset|Aastra|Grandstream|Vtech';
+        $third = isset($short_vendor_cols[2]) ? $short_vendor_cols[2] : '';
+        if (preg_match('/(' . $supported . ')/i', $third, $m)) {
+            $short_vendor = $m[1];
+        } elseif (preg_match('/(' . $supported . ')/i', (string) $short_vendor, $m)) {
+            $short_vendor = $m[1];
+        } else {
+            return null;
+        }
+        if (strcasecmp($short_vendor, 'yealink') === 0) {
+            $short_vendor = 'Yealink';
+        }
+        return $short_vendor;
+    }
 
 
 /**
- * Adjust the provisioning includes depending upon protocol and transport
- * Delete old sipiaxfriend includes (no longer used)
- * 
- * @param  Extension
- * @return null
+ * Adjust the provisioning includes depending upon protocol and transport.
+ * Only runs when extension has a non-empty provision string.
+ *
+ * @param  Extension $extension
+ * @return void
  */
-	private function adjustAstProvSettings(Extension $extension) {
-
- 	// Remove any old sipiax settings (from V5 or earlier)
-		$extension->sipiaxfriend = preg_replace( " /^\#include\s*pbx3_sip_tls.conf.*$/m ",'',$extension->sipiaxfriend);	
-		$extension->sipiaxfriend = preg_replace( " /^\#include\s*pbx3_sip_tcp.conf.*$/m ",'',$extension->sipiaxfriend);	
-		$extension->sipiaxfriend = rtrim($extension->sipiaxfriend);	
-
-	// remove any existing TCP settings
-		if (isset($extension->provision)) {
-			$extension->provision = preg_replace( " /^\#INCLUDE.*\.tcp.*$/m ",'',$extension->provision);		
-	// remove any existing TLS settungs	
-			$extension->provision = preg_replace( " /^\#INCLUDE.*\.tls.*$/m ",'',$extension->provision);
-	// remove any existing UDP settings		
-			$extension->provision = preg_replace( " /^\#INCLUDE.*\.udp.*$/m ",'',$extension->provision);
-		
-	// remove any existing IPV6 settings	
-			$extension->provision = preg_replace( " /^\#INCLUDE.*\.ipv6.*$/m ",'',$extension->provision);	
-	// remove sny existing IPV4 settings	
-			$extension->provision = preg_replace( " /^\#INCLUDE.*\.ipv4.*$/m ",'',$extension->provision);	
-	// clean up			
-			$extension->provision = rtrim ($extension->provision);
-		}
-		
-	// Insert new INCLUDES according to transport and protocol settings					
-		$shortdevice = substr($extension->device,0,4);
-		switch ($shortdevice) {			
-			case 'Snom':
-			case 'snom':					
-				switch ($extension['transport']) {						
-					case 'tcp':
-						$extension->provision .= "\n#INCLUDE snom.tcp";
-						break;
-					case 'tls':
-						$extension->provision .= "\n#INCLUDE snom.tls";						
-						break;
-					default: 
-						$extension->provision .= "\n#INCLUDE snom.udp";
-				}
-				switch ($extension['protocol']) {
-					case 'IPV6':
-						$extension->provision .= "\n#INCLUDE snom.ipv6";
-						break;
-					default:
-						$extension->provision .= "\n#INCLUDE snom.ipv4";
-				}
-			break;
-					
-			case 'Yeal':					
-				switch ($extension['transport']) {						
-					case 'tcp':
-						$extension->provision .= "\n#INCLUDE yealink.tcp";
-						break;
-					case 'tls':
-						$extension->provision .= "\n#INCLUDE yealink.tls";
-						break;
-					default: 
-						$extension->provision .= "\n#INCLUDE yealink.udp";
-				}
-				switch ($extension['protocol']) {
-					case 'IPV6':
-						$extension->provision .= "\n#INCLUDE yealink.ipv6";
-						break;
-					default:
-						$extension->provision .= "\n#INCLUDE yealink.ipv4";
-				}
-			break;				
-			
-			case 'Pana':					
-				switch ($extension['transport']) {						
-					case 'tcp':
-						$extension->provision .= "\n#INCLUDE panasonic.tcp";
-						break;
-					case 'tls':
-						$extension->provision .= "\n#INCLUDE panasonic.tls";
-						break;	
-					default: 
-						$extension->provision .= "\n#INCLUDE panasonic.udp";
-				}
-				switch ($extension['protocol']) {
-					case 'IPV6':
-						$extension->provision .= "\n#INCLUDE panasonic.ipv6";
-						break;
-					default:
-						$extension->provision .= "\n#INCLUDE panasonic.ipv4";
-				}
-			break;						
-		}
-
-	}
+    private function adjustAstProvSettings(Extension $extension) {
+        if ($extension->provision === null || trim((string) $extension->provision) === '') {
+            return;
+        }
+        $provision = $extension->provision;
+        $provision = preg_replace('/^\#INCLUDE.*\.tcp.*$/m', '', $provision);
+        $provision = preg_replace('/^\#INCLUDE.*\.tls.*$/m', '', $provision);
+        $provision = preg_replace('/^\#INCLUDE.*\.udp.*$/m', '', $provision);
+        $provision = preg_replace('/^\#INCLUDE.*\.ipv6.*$/m', '', $provision);
+        $provision = preg_replace('/^\#INCLUDE.*\.ipv4.*$/m', '', $provision);
+        $provision = rtrim($provision);
+        $transport = $extension->transport ?? 'udp';
+        $protocol = $extension->protocol ?? 'IPV4';
+        $shortdevice = substr((string) $extension->device, 0, 4);
+        switch ($shortdevice) {
+            case 'Snom':
+            case 'snom':
+                $provision .= $transport === 'tcp' ? "\n#INCLUDE snom.tcp" : ($transport === 'tls' ? "\n#INCLUDE snom.tls" : "\n#INCLUDE snom.udp");
+                $provision .= $protocol === 'IPV6' ? "\n#INCLUDE snom.ipv6" : "\n#INCLUDE snom.ipv4";
+                break;
+            case 'Yeal':
+                $provision .= $transport === 'tcp' ? "\n#INCLUDE yealink.tcp" : ($transport === 'tls' ? "\n#INCLUDE yealink.tls" : "\n#INCLUDE yealink.udp");
+                $provision .= $protocol === 'IPV6' ? "\n#INCLUDE yealink.ipv6" : "\n#INCLUDE yealink.ipv4";
+                break;
+            case 'Pana':
+                $provision .= $transport === 'tcp' ? "\n#INCLUDE panasonic.tcp" : ($transport === 'tls' ? "\n#INCLUDE panasonic.tls" : "\n#INCLUDE panasonic.udp");
+                $provision .= $protocol === 'IPV6' ? "\n#INCLUDE panasonic.ipv6" : "\n#INCLUDE panasonic.ipv4";
+                break;
+            default:
+                break;
+        }
+        $extension->provision = $provision;
+    }
 
 	private function create_default_cos_instances($extension) {
 

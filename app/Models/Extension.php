@@ -42,7 +42,7 @@ class Extension extends Model
     		'firstseen',
     		'lastseen',
 			'passwd',
-    		'provisionwith',  // not in tenant schema (sqlite_create_tenant.sql)
+    		// provision, provisionwith: in tenant schema for extension provisioning
     		'sndcreds',       // not in tenant schema
     		'z_created',
     		'z_updated',
