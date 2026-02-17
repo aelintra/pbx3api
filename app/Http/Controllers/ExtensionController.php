@@ -696,7 +696,6 @@ class ExtensionController extends Controller
  * @return string|null short vendor name, e.g. Yealink, or null if not found
  */
     private function getVendorFromMac($mac) {
-        $short_vendor = null;
         $shortmac = strtoupper(preg_replace('/[^0-9A-F]/', '', substr($mac, 0, 6)));
         if (strlen($shortmac) !== 6 || !preg_match('/^[0-9A-F]{6}$/', $shortmac)) {
             return null;
@@ -711,22 +710,18 @@ class ExtensionController extends Controller
         if ($vendorline === '') {
             return null;
         }
-        $delim = "\t";
-        $short_vendor_cols = explode($delim, $vendorline, 3);
-        if (!empty($short_vendor_cols[1])) {
-            $short_vendor = trim($short_vendor_cols[1]);
-        }
+        // manuf.txt can be "OUI\trest" or "OUI rest" (tab or space). Strip OUI and match vendor in the rest.
+        $rest = trim(substr($vendorline, strlen($findmac)));
         $supported = 'Snom|Panasonic|Yealink|Polycom|Fanvil|Cisco|Gigaset|Aastra|Grandstream|Vtech';
-        $third = isset($short_vendor_cols[2]) ? $short_vendor_cols[2] : '';
-        if (preg_match('/(' . $supported . ')/i', $third, $m)) {
-            $short_vendor = $m[1];
-        } elseif (preg_match('/(' . $supported . ')/i', (string) $short_vendor, $m)) {
-            $short_vendor = $m[1];
-        } else {
+        if (!preg_match('/(' . $supported . ')/i', $rest, $m)) {
             return null;
         }
+        $short_vendor = $m[1];
         if (strcasecmp($short_vendor, 'yealink') === 0) {
             $short_vendor = 'Yealink';
+        }
+        if (strcasecmp($short_vendor, 'snom') === 0) {
+            $short_vendor = 'Snom';
         }
         return $short_vendor;
     }
