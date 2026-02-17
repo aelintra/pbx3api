@@ -188,7 +188,7 @@ class SysCommandController extends Controller
 
     /**
      * Get Asterisk version (e.g. "21.2.0") via core show version.
-     * Uses shell_exec so output is captured reliably when run from web.
+     * Uses sudo so www-data can connect to the Asterisk socket (same as old pbx3 AmiHelperClass).
      */
     private function getAsteriskRelease($asterisk)
     {
@@ -196,7 +196,7 @@ class SysCommandController extends Controller
         if (!$check) {
             return null;
         }
-        $cmd = escapeshellarg($asterisk) . ' -rx ' . escapeshellarg('core show version') . ' 2>/dev/null';
+        $cmd = 'sudo ' . escapeshellarg($asterisk) . ' -rx ' . escapeshellarg('core show version') . ' 2>/dev/null';
         $ver = shell_exec($cmd);
         if (!$ver) {
             return null;
