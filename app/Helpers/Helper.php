@@ -338,6 +338,16 @@ if (!function_exists('pjsip_endpoint_live')) {
                 $kv[$m[1]] = $m[2];
             }
         }
+        // Debug logging - remove after fixing
+        Log::info('PJSIPShowEndpoint response', [
+            'pkey' => $pkey,
+            'raw_response' => $response,
+            'parsed_kv' => $kv,
+            'has_Contact' => isset($kv['Contact']),
+            'has_URI' => isset($kv['URI']),
+            'has_Match' => isset($kv['Match']),
+            'has_RoundtripUsec' => isset($kv['RoundtripUsec']),
+        ]);
         if (!empty($kv['Contact'])) {
             // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
             if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $kv['Contact'], $m)) {
