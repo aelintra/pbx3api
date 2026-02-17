@@ -132,21 +132,7 @@ class SysCommandController extends Controller
             'local_ip' => $this->getLocalIpV4(),
             'mac' => $this->safeShell("ip route show default 2>/dev/null | head -1 | awk '{for(i=1;i<=NF;i++)if(\$i==\"dev\"){print \$(i+1);exit}}' | xargs -I{} ip link show {} 2>/dev/null | awk '/ether/{print \$2}'"),
             'public_ip' => $this->safeShell("curl -s -m 2 ifconfig.me 2>/dev/null") ?: null,
-            'dhcp_ip' => null,
-            'static_ip' => null,
         ];
-
-        try {
-            $g = DB::table('globals')->where('pkey', 'global')->first();
-            if ($g && !empty($g->staticipv4)) {
-                $network['static_ip'] = $g->staticipv4;
-            }
-            if ($g && !empty($g->localip)) {
-                $network['static_ip'] = $network['static_ip'] ?? $g->localip;
-            }
-        } catch (\Throwable $e) {
-            // ignore
-        }
 
         $free = `/usr/bin/free -b 2>/dev/null`;
         $totmem = $freemem = null;
