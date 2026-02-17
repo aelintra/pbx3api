@@ -331,67 +331,55 @@ if (!function_exists('pjsip_endpoint_live')) {
             $out['latency'] = 'Unknown';
             return $out;
         }
+        // Parse multi-event response - collect ALL key-value pairs from all events (like old system)
+        // Old system ignores Event, ListItems, EventList, ObjectType, ObjectName and collects everything else
         $lines = explode("\r\n", (string) $response);
-        $currentEvent = null;
-        $contactDetail = [];
-        
-        // Parse multi-event response - look for ContactDetail event
+        $kv = [];
         foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) {
+            // Ignore lines that aren't key-value pairs
+            if (!preg_match('/:/', $line)) {
                 continue;
             }
             
-            // Check for event type
-            if (preg_match('/^Event:\s*(.+)$/i', $line, $m)) {
-                $currentEvent = trim($m[1]);
-                if ($currentEvent === 'ContactDetail') {
-                    $contactDetail = []; // Reset for new ContactDetail event
-                }
+            // Parse the key-value pair
+            $couplet = explode(': ', $line, 2);
+            if (count($couplet) !== 2) {
                 continue;
             }
             
-            // If we're in a ContactDetail event, collect its fields
-            if ($currentEvent === 'ContactDetail' && preg_match('/^([^:]+):\s*(.*)$/', $line, $m)) {
-                $contactDetail[$m[1]] = trim($m[2]);
+            $key = trim($couplet[0]);
+            $value = trim($couplet[1]);
+            
+            // Ignore event metadata fields (like old system)
+            if ($key === 'Event' || $key === 'ListItems' || $key === 'EventList' || 
+                $key === 'ObjectType' || $key === 'ObjectName' || $key === 'Response' || 
+                $key === 'Message') {
+                continue;
             }
+            
+            // Collect all other fields into flat array
+            $kv[$key] = $value;
         }
         
-        // Debug logging - remove after fixing
-        Log::info('PJSIPShowEndpoint response', [
-            'pkey' => $pkey,
-            'contactDetail' => $contactDetail,
-            'has_Contact' => isset($contactDetail['Contact']),
-            'has_URI' => isset($contactDetail['URI']),
-            'has_RoundtripUsec' => isset($contactDetail['RoundtripUsec']),
-        ]);
-        
-        // Extract IP from ContactDetail event
-        if (!empty($contactDetail['Contact'])) {
-            // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
-            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $contactDetail['Contact'], $m)) {
+        // Extract IP: URI first (sip:user@ip:port), then Match field
+        if (!empty($kv['URI'])) {
+            if (preg_match('/^sip:.*@([^:]+)(?::|;|$)/', $kv['URI'], $m)) {
                 $out['ip'] = trim($m[1]);
             }
         }
-        if ($out['ip'] === null && !empty($contactDetail['URI'])) {
-            // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
-            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $contactDetail['URI'], $m)) {
-                $out['ip'] = trim($m[1]);
-            }
-        }
-        if ($out['ip'] === null && !empty($contactDetail['Match'])) {
-            $parts = explode('/', $contactDetail['Match']);
-            if (!empty($parts[0])) {
-                $out['ip'] = $parts[0];
+        if ($out['ip'] === null && !empty($kv['Match'])) {
+            $matchParts = explode('/', $kv['Match']);
+            if (!empty($matchParts[0])) {
+                $out['ip'] = trim($matchParts[0]);
             }
         }
         if ($out['ip'] === null) {
             $out['ip'] = 'Unknown';
         }
         
-        // Extract latency from ContactDetail event
-        if (!empty($contactDetail['RoundtripUsec']) && is_numeric($contactDetail['RoundtripUsec'])) {
-            $ms = (int) round((float) $contactDetail['RoundtripUsec'] / 1000);
+        // Extract latency from RoundtripUsec
+        if (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
+            $ms = (int) round((float) $kv['RoundtripUsec'] / 1000);
             $out['latency'] = 'OK (' . $ms . ' ms)';
         } else {
             $out['latency'] = 'Unknown';
