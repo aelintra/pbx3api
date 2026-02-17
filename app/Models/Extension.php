@@ -67,6 +67,28 @@ class Extension extends Model
     		'twin'
     ];
 
+    /** Appended when serialized (no DB column). Derived from device. */
+    protected $appends = ['extension_type'];
+
+    /**
+     * Extension type derived from device: WebRTC | MAILBOX | SIP.
+     * WebRTC and MAILBOX have a single device template; all other devices are SIP (hard or soft).
+     */
+    public function getExtensionTypeAttribute(): string
+    {
+        $device = $this->attributes['device'] ?? null;
+        if ($device === null || $device === '') {
+            return 'SIP';
+        }
+        if (strcasecmp($device, 'WebRTC') === 0) {
+            return 'WebRTC';
+        }
+        if (strcasecmp($device, 'MAILBOX') === 0) {
+            return 'MAILBOX';
+        }
+        return 'SIP';
+    }
+
 	public function __construct(array $attributes = array())
 	{
     parent::__construct($attributes);
