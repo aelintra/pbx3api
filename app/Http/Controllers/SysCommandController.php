@@ -114,19 +114,11 @@ class SysCommandController extends Controller
 
         $system = [
             'distro' => $this->safeShell("lsb_release -ds 2>/dev/null"),
-            'pbx_release' => null,
-            'app_release' => null,
-            'endpoints_licenced' => null,
+            'asterisk_release' => $this->getAsteriskRelease($asterisk),
+            'app_release' => trim(shell_exec("dpkg-query -W -f '\${Version}' pbx3 2>/dev/null") ?: '') ?: null,
             'endpoints_defined' => null,
             'serial' => null,
         ];
-
-        if (`/bin/ps -e 2>/dev/null | /bin/grep asterisk | /bin/grep -v grep`) {
-            $ver = trim(`$asterisk -rx 'core show version' 2>/dev/null`);
-            $system['pbx_release'] = preg_match('/^Asterisk\s+([^\s~]+)/', $ver, $m) ? $m[1] : (strlen($ver) ? $ver : null);
-        }
-
-        $system['app_release'] = trim(`dpkg-query -W -f '\${Version}' pbx3 2>/dev/null`) ?: null;
 
         try {
             $extcount = DB::table('ipphone')->count();
@@ -135,26 +127,9 @@ class SysCommandController extends Controller
             $system['endpoints_defined'] = null;
         }
 
-        try {
-            $row = DB::table('globals')->where('pkey', 'global')->first();
-            if ($row && isset($row->EXTLIM)) {
-                $system['endpoints_licenced'] = $row->EXTLIM;
-            }
-            if ($row && isset($row->extlim)) {
-                $system['endpoints_licenced'] = $row->extlim;
-            }
-            if ($system['endpoints_licenced'] === null) {
-                $c = DB::table('cluster')->where('pkey', 'default')->first();
-                if ($c && isset($c->ext_lim)) {
-                    $system['endpoints_licenced'] = $c->ext_lim;
-                }
-            }
-        } catch (\Throwable $e) {
-            // ignore
-        }
-
         $network = [
             'hostname' => gethostname() ?: null,
+            'local_ip' => $this->getLocalIpV4(),
             'mac' => $this->safeShell("ip route show default 2>/dev/null | head -1 | awk '{for(i=1;i<=NF;i++)if(\$i==\"dev\"){print \$(i+1);exit}}' | xargs -I{} ip link show {} 2>/dev/null | awk '/ether/{print \$2}'"),
             'public_ip' => $this->safeShell("curl -s -m 2 ifconfig.me 2>/dev/null") ?: null,
             'dhcp_ip' => null,
@@ -223,5 +198,53 @@ class SysCommandController extends Controller
     {
         $out = @shell_exec($cmd);
         return $out ? trim(preg_replace('/\s+/', ' ', $out)) : null;
+    }
+
+    /**
+     * Get Asterisk version (e.g. "21.2.0") via core show version.
+     * Uses shell_exec so output is captured reliably when run from web.
+     */
+    private function getAsteriskRelease($asterisk)
+    {
+        $check = shell_exec('/bin/ps -e 2>/dev/null | /bin/grep asterisk | /bin/grep -v grep');
+        if (!$check) {
+            return null;
+        }
+        $cmd = escapeshellarg($asterisk) . ' -rx ' . escapeshellarg('core show version') . ' 2>/dev/null';
+        $ver = shell_exec($cmd);
+        if (!$ver) {
+            return null;
+        }
+        $ver = trim($ver);
+        if (preg_match('/Asterisk\s+([^\s]+)/', $ver, $m)) {
+            return $m[1];
+        }
+        return strlen($ver) ? $ver : null;
+    }
+
+    /**
+     * Get local IPv4 (same logic as pbx3 NetHelperClass::get_localIPV4):
+     * if globals.staticipv4 is set use that, else first inet from default/UP interface.
+     */
+    private function getLocalIpV4()
+    {
+        try {
+            $row = DB::table('globals')->where('pkey', 'global')->first();
+            if ($row && !empty($row->staticipv4)) {
+                return trim($row->staticipv4);
+            }
+        } catch (\Throwable $e) {
+            // fall through to shell
+        }
+        $firstUp = trim(shell_exec("ip addr 2>/dev/null | grep UP | grep -v 'lo:' | head -1") ?: '');
+        if ($firstUp === '' || !preg_match('/\d+:\s*(\w+):?/', $firstUp, $m)) {
+            return null;
+        }
+        $iface = $m[1];
+        $out = shell_exec("ip addr show dev " . escapeshellarg($iface) . " 2>/dev/null");
+        if ($out && preg_match('/inet\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/\d{1,2}/', $out, $m)) {
+            return $m[1];
+        }
+        return null;
     }
 }
