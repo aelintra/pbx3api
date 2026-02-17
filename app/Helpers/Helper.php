@@ -327,8 +327,8 @@ if (!function_exists('pjsip_endpoint_live')) {
             $response = $amiHandle->amiQueryUntilBlankLine("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
         } catch (\Throwable $e) {
             Log::warning('PJSIPShowEndpoint failed', ['pkey' => $pkey, 'error' => $e->getMessage()]);
-            $out['ip'] = '—';
-            $out['latency'] = '—';
+            $out['ip'] = 'Unknown';
+            $out['latency'] = 'Unknown';
             return $out;
         }
         $lines = explode("\r\n", (string) $response);
@@ -339,13 +339,15 @@ if (!function_exists('pjsip_endpoint_live')) {
             }
         }
         if (!empty($kv['Contact'])) {
-            if (preg_match('/^sip:.*@([^:]+)(?::|$)/', $kv['Contact'], $m)) {
-                $out['ip'] = $m[1];
+            // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
+            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $kv['Contact'], $m)) {
+                $out['ip'] = trim($m[1]);
             }
         }
         if ($out['ip'] === null && !empty($kv['URI'])) {
-            if (preg_match('/^sip:.*@([^:]+)(?::|$)/', $kv['URI'], $m)) {
-                $out['ip'] = $m[1];
+            // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
+            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $kv['URI'], $m)) {
+                $out['ip'] = trim($m[1]);
             }
         }
         if ($out['ip'] === null && !empty($kv['Match'])) {
@@ -355,13 +357,13 @@ if (!function_exists('pjsip_endpoint_live')) {
             }
         }
         if ($out['ip'] === null) {
-            $out['ip'] = '—';
+            $out['ip'] = 'Unknown';
         }
         if (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
             $ms = (int) round((float) $kv['RoundtripUsec'] / 1000);
             $out['latency'] = 'OK (' . $ms . ' ms)';
         } else {
-            $out['latency'] = '—';
+            $out['latency'] = 'Unknown';
         }
         return $out;
     }

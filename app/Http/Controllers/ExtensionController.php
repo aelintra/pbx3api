@@ -116,15 +116,14 @@ class ExtensionController extends Controller
             return Response::json(['message' => 'PBX not running'], 503);
         }
         $extensions = Extension::where('technology', 'SIP')
-            ->where('active', 'YES')
             ->orderBy('pkey')
             ->limit(200)
-            ->get(['pkey']);
+            ->get(['pkey', 'shortuid']);
         $live = [];
         try {
             $amiHandle = get_ami_handle();
             foreach ($extensions as $ext) {
-                $live[$ext->pkey] = pjsip_endpoint_live($amiHandle, $ext->pkey);
+                $live[$ext->pkey] = pjsip_endpoint_live($amiHandle, $ext->shortuid ?? $ext->pkey);
             }
             $amiHandle->logout();
         } catch (\Throwable $e) {
@@ -351,7 +350,7 @@ class ExtensionController extends Controller
         $rets['ringdelay'] = $amiHandle->GetDB('ringdelay', $extension->pkey);
 
         if (($extension->technology ?? '') === 'SIP') {
-            $live = pjsip_endpoint_live($amiHandle, $extension->pkey);
+            $live = pjsip_endpoint_live($amiHandle, $extension->shortuid ?? $extension->pkey);
             $rets['ip'] = $live['ip'];
             $rets['latency'] = $live['latency'];
         }
