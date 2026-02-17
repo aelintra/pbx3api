@@ -310,6 +310,61 @@ if (!function_exists('get_ami_handle')) {
         } 
         return $amiHandle;  
     } 
+}
+
+if (!function_exists('pjsip_endpoint_live')) {
+    /**
+     * Get live PJSIP endpoint data (IP and RTT) from Asterisk AMI.
+     * Uses existing AMI handle; does not logout.
+     *
+     * @param \App\CustomClasses\Ami $amiHandle Connected AMI handle
+     * @param string $pkey Extension/endpoint pkey (e.g. 101)
+     * @return array{ip: string, latency: string} ip address and latency display (e.g. "OK (5 ms)" or "Unknown")
+     */
+    function pjsip_endpoint_live($amiHandle, $pkey) {
+        $out = ['ip' => null, 'latency' => null];
+        try {
+            $response = $amiHandle->amiQuery("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey . "\r\n");
+        } catch (\Throwable $e) {
+            Log::warning('PJSIPShowEndpoint failed', ['pkey' => $pkey, 'error' => $e->getMessage()]);
+            $out['ip'] = '—';
+            $out['latency'] = '—';
+            return $out;
+        }
+        $lines = explode("\r\n", (string) $response);
+        $kv = [];
+        foreach ($lines as $line) {
+            if (preg_match('/^([^:]+):\s*(.*)$/', trim($line), $m)) {
+                $kv[$m[1]] = $m[2];
+            }
+        }
+        if (!empty($kv['Contact'])) {
+            if (preg_match('/^sip:.*@([^:]+)(?::|$)/', $kv['Contact'], $m)) {
+                $out['ip'] = $m[1];
+            }
+        }
+        if ($out['ip'] === null && !empty($kv['URI'])) {
+            if (preg_match('/^sip:.*@([^:]+)(?::|$)/', $kv['URI'], $m)) {
+                $out['ip'] = $m[1];
+            }
+        }
+        if ($out['ip'] === null && !empty($kv['Match'])) {
+            $parts = explode('/', $kv['Match']);
+            if (!empty($parts[0])) {
+                $out['ip'] = $parts[0];
+            }
+        }
+        if ($out['ip'] === null) {
+            $out['ip'] = '—';
+        }
+        if (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
+            $ms = (int) round((float) $kv['RoundtripUsec'] / 1000);
+            $out['latency'] = 'OK (' . $ms . ' ms)';
+        } else {
+            $out['latency'] = '—';
+        }
+        return $out;
+    }
 } 
 
 if (!function_exists('pbx_is_running')) {

@@ -105,6 +105,34 @@ class ExtensionController extends Controller
     }
 
 /**
+ * Return live PJSIP data (IP, latency) for all active SIP extensions.
+ * Keyed by pkey for merging with list view. Requires Asterisk running.
+ *
+ * @return object keyed by extension pkey, values { ip, latency }
+ */
+    public function indexLive() {
+        if (!function_exists('pbx_is_running') || !pbx_is_running()) {
+            return Response::json(['message' => 'PBX not running'], 503);
+        }
+        $extensions = Extension::where('technology', 'SIP')
+            ->where('active', 'YES')
+            ->orderBy('pkey')
+            ->get(['pkey']);
+        $live = [];
+        try {
+            $amiHandle = get_ami_handle();
+            foreach ($extensions as $ext) {
+                $live[$ext->pkey] = pjsip_endpoint_live($amiHandle, $ext->pkey);
+            }
+            $amiHandle->logout();
+        } catch (\Throwable $e) {
+            Log::warning('Extensions live data failed', ['error' => $e->getMessage()]);
+            return Response::json(['message' => 'Could not fetch live endpoint data'], 503);
+        }
+        return Response::json($live, 200);
+    }
+
+/**
  * Create a new extension (single endpoint). extensionType: SIP | WebRTC.
  * Sets id (ksuid), dvrvmail = pkey. Device/provision from Device table and optional MAC.
  *
@@ -306,23 +334,29 @@ class ExtensionController extends Controller
     }
 
 /**
- * Return named extension runtime values from the PBX
- * 
+ * Return named extension runtime values from the PBX (CFIM, CFBS, ringdelay; for SIP also ip and latency).
+ *
  * @param  Extension
- * @return extension object
+ * @return object cfim, cfbs, ringdelay; for SIP extensions also ip, latency
  */
     public function showruntime (Extension $extension) {
 
         $amiHandle = get_ami_handle();
 
-        $rets = array();
+        $rets = [];
         $rets['cfim'] = $amiHandle->GetDB('cfim', $extension->pkey);
         $rets['cfbs'] = $amiHandle->GetDB('cfbs', $extension->pkey);
         $rets['ringdelay'] = $amiHandle->GetDB('ringdelay', $extension->pkey);
 
+        if (($extension->technology ?? '') === 'SIP') {
+            $live = pjsip_endpoint_live($amiHandle, $extension->pkey);
+            $rets['ip'] = $live['ip'];
+            $rets['latency'] = $live['latency'];
+        }
+
         $amiHandle->logout();
 
-        return Response::json($rets,200);
+        return Response::json($rets, 200);
     }    
 
 /**
