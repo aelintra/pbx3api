@@ -112,7 +112,19 @@ class SysCommandController extends Controller
     {
         $asterisk = env('PBX3_ASTERISK_EXEC', '/usr/sbin/asterisk');
 
+        // Instance = globals.pkey (only one row in globals)
+        $instance = null;
+        try {
+            $g = DB::table('globals')->first();
+            if ($g && isset($g->pkey)) {
+                $instance = $g->pkey;
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
         $system = [
+            'instance' => $instance,
             'distro' => $this->safeShell("lsb_release -ds 2>/dev/null"),
             'asterisk_release' => $this->getAsteriskRelease($asterisk),
             'app_release' => trim(shell_exec("dpkg-query -W -f '\${Version}' pbx3 2>/dev/null") ?: '') ?: null,
@@ -220,7 +232,7 @@ class SysCommandController extends Controller
     private function getLocalIpV4()
     {
         try {
-            $row = DB::table('globals')->where('pkey', 'global')->first();
+            $row = DB::table('globals')->first();
             if ($row && !empty($row->staticipv4)) {
                 return trim($row->staticipv4);
             }
