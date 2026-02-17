@@ -203,7 +203,12 @@ class SysCommandController extends Controller
         }
         $ver = trim($ver);
         if (preg_match('/Asterisk\s+([^\s]+)/', $ver, $m)) {
-            return $m[1];
+            $raw = $m[1];
+            // Return only major.minor.patch (e.g. 20.6.0 from 20.6.0~dfsg+~cs6.13.40431414-2build5)
+            if (preg_match('/^(\d+\.\d+\.\d+)/', $raw, $v)) {
+                return $v[1];
+            }
+            return $raw;
         }
         return strlen($ver) ? $ver : null;
     }
