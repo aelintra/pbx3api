@@ -342,6 +342,47 @@ class Ami
     }
 
     /**
+     * Send an AMI command and read until EventList: Complete (for multi-event responses like PJSIPShowEndpoint).
+     * Reads all events including ContactDetail which contains IP and latency info.
+     *
+     * @param string $query AMI command (e.g. "Action: PJSIPShowEndpoint\r\nEndpoint: pxfq5JbM")
+     * @return string Raw response including all events until completion
+     */
+    public function amiQueryUntilComplete($query)
+    {
+        $this->_checkSocket();
+        if (substr($query, -4) !== "\r\n\r\n") {
+            $query .= "\r\n\r\n";
+        }
+        if (!fwrite($this->_socket, $query)) {
+            Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
+        }
+        $response = '';
+        $foundComplete = false;
+        while (($line = fgets($this->_socket)) !== false) {
+            $response .= $line;
+            // Check for completion markers
+            if (preg_match('/^EventList:\s*Complete/i', trim($line)) || 
+                preg_match('/^Event:\s*EndpointDetailComplete/i', trim($line))) {
+                $foundComplete = true;
+                // Read one more blank line if present
+                $nextLine = fgets($this->_socket);
+                if ($nextLine !== false) {
+                    $response .= $nextLine;
+                    if (trim($nextLine) === '') {
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        if ($response === false || $response === '') {
+            Response::make(['message' => "Asterisk manager did not respond"], 503)->send();
+        }
+        return $response;
+    }
+
+    /**
      * A simple 'ping' command which the server responds with 'pong'
      *
      * @return bool

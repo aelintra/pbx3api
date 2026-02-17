@@ -324,7 +324,7 @@ if (!function_exists('pjsip_endpoint_live')) {
     function pjsip_endpoint_live($amiHandle, $pkey) {
         $out = ['ip' => null, 'latency' => null];
         try {
-            $response = $amiHandle->amiQueryUntilBlankLine("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
+            $response = $amiHandle->amiQueryUntilComplete("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
         } catch (\Throwable $e) {
             Log::warning('PJSIPShowEndpoint failed', ['pkey' => $pkey, 'error' => $e->getMessage()]);
             $out['ip'] = 'Unknown';
@@ -332,36 +332,55 @@ if (!function_exists('pjsip_endpoint_live')) {
             return $out;
         }
         $lines = explode("\r\n", (string) $response);
-        $kv = [];
+        $currentEvent = null;
+        $contactDetail = [];
+        
+        // Parse multi-event response - look for ContactDetail event
         foreach ($lines as $line) {
-            if (preg_match('/^([^:]+):\s*(.*)$/', trim($line), $m)) {
-                $kv[$m[1]] = $m[2];
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+            
+            // Check for event type
+            if (preg_match('/^Event:\s*(.+)$/i', $line, $m)) {
+                $currentEvent = trim($m[1]);
+                if ($currentEvent === 'ContactDetail') {
+                    $contactDetail = []; // Reset for new ContactDetail event
+                }
+                continue;
+            }
+            
+            // If we're in a ContactDetail event, collect its fields
+            if ($currentEvent === 'ContactDetail' && preg_match('/^([^:]+):\s*(.*)$/', $line, $m)) {
+                $contactDetail[$m[1]] = trim($m[2]);
             }
         }
+        
         // Debug logging - remove after fixing
         Log::info('PJSIPShowEndpoint response', [
             'pkey' => $pkey,
-            'raw_response' => $response,
-            'parsed_kv' => $kv,
-            'has_Contact' => isset($kv['Contact']),
-            'has_URI' => isset($kv['URI']),
-            'has_Match' => isset($kv['Match']),
-            'has_RoundtripUsec' => isset($kv['RoundtripUsec']),
+            'contactDetail' => $contactDetail,
+            'has_Contact' => isset($contactDetail['Contact']),
+            'has_URI' => isset($contactDetail['URI']),
+            'has_RoundtripUsec' => isset($contactDetail['RoundtripUsec']),
         ]);
-        if (!empty($kv['Contact'])) {
+        
+        // Extract IP from ContactDetail event
+        if (!empty($contactDetail['Contact'])) {
             // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
-            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $kv['Contact'], $m)) {
+            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $contactDetail['Contact'], $m)) {
                 $out['ip'] = trim($m[1]);
             }
         }
-        if ($out['ip'] === null && !empty($kv['URI'])) {
+        if ($out['ip'] === null && !empty($contactDetail['URI'])) {
             // Handle formats like "sip:user@ip:port" or "prefix/sip:user@ip:port"
-            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $kv['URI'], $m)) {
+            if (preg_match('/sip:[^@]+@([^:;]+)(?::|;|$)/', $contactDetail['URI'], $m)) {
                 $out['ip'] = trim($m[1]);
             }
         }
-        if ($out['ip'] === null && !empty($kv['Match'])) {
-            $parts = explode('/', $kv['Match']);
+        if ($out['ip'] === null && !empty($contactDetail['Match'])) {
+            $parts = explode('/', $contactDetail['Match']);
             if (!empty($parts[0])) {
                 $out['ip'] = $parts[0];
             }
@@ -369,8 +388,10 @@ if (!function_exists('pjsip_endpoint_live')) {
         if ($out['ip'] === null) {
             $out['ip'] = 'Unknown';
         }
-        if (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
-            $ms = (int) round((float) $kv['RoundtripUsec'] / 1000);
+        
+        // Extract latency from ContactDetail event
+        if (!empty($contactDetail['RoundtripUsec']) && is_numeric($contactDetail['RoundtripUsec'])) {
+            $ms = (int) round((float) $contactDetail['RoundtripUsec'] / 1000);
             $out['latency'] = 'OK (' . $ms . ' ms)';
         } else {
             $out['latency'] = 'Unknown';
