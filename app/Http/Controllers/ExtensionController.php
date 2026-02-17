@@ -117,7 +117,12 @@ class ExtensionController extends Controller
         if (!$extensionTypeInput && isset($all['protocol']) && in_array($all['protocol'], ['SIP', 'WebRTC'], true)) {
             $extensionTypeInput = $all['protocol'];
         }
-        $validator = Validator::make(array_merge($all, ['extensionType' => $extensionTypeInput]), [
+        // Normalise for validation: if client sent protocol=SIP|WebRTC (old frontend), use ipversion for protocol (IP version)
+        $validateInput = array_merge($all, ['extensionType' => $extensionTypeInput]);
+        if (isset($validateInput['protocol']) && in_array($validateInput['protocol'], ['SIP', 'WebRTC'], true)) {
+            $validateInput['protocol'] = $all['ipversion'] ?? 'IPV4';
+        }
+        $validator = Validator::make($validateInput, [
             'pkey' => 'required',
             'cluster' => 'required|exists:cluster,pkey',
             'desc' => 'nullable|string|max:255',
