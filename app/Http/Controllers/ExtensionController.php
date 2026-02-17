@@ -111,12 +111,14 @@ class ExtensionController extends Controller
  * @return object keyed by extension pkey, values { ip, latency }
  */
     public function indexLive() {
+        set_time_limit(30);
         if (!function_exists('pbx_is_running') || !pbx_is_running()) {
             return Response::json(['message' => 'PBX not running'], 503);
         }
         $extensions = Extension::where('technology', 'SIP')
             ->where('active', 'YES')
             ->orderBy('pkey')
+            ->limit(200)
             ->get(['pkey']);
         $live = [];
         try {

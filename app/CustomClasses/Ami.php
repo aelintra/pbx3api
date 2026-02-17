@@ -313,6 +313,35 @@ class Ami
     }
 
     /**
+     * Send an AMI command and read until a blank line (AMI response end).
+     * Avoids waiting for socket timeout when no terminator is used.
+     *
+     * @param string $query AMI command (e.g. "Action: PJSIPShowEndpoint\r\nEndpoint: 101")
+     * @return string Raw response up to and including the blank line
+     */
+    public function amiQueryUntilBlankLine($query)
+    {
+        $this->_checkSocket();
+        if (substr($query, -4) !== "\r\n\r\n") {
+            $query .= "\r\n\r\n";
+        }
+        if (!fwrite($this->_socket, $query)) {
+            Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
+        }
+        $response = '';
+        while (($line = fgets($this->_socket)) !== false) {
+            $response .= $line;
+            if (trim($line) === '') {
+                break;
+            }
+        }
+        if ($response === false || $response === '') {
+            Response::make(['message' => "Asterisk manager did not respond"], 503)->send();
+        }
+        return $response;
+    }
+
+    /**
      * A simple 'ping' command which the server responds with 'pong'
      *
      * @return bool
