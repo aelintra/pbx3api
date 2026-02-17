@@ -124,8 +124,6 @@ class ExtensionController extends Controller
             $amiHandle = get_ami_handle();
             foreach ($extensions as $ext) {
                 $endpointId = $ext->shortuid ?? $ext->pkey;
-                // Debug logging - remove after fixing
-                Log::info('Querying endpoint', ['pkey' => $ext->pkey, 'shortuid' => $ext->shortuid, 'endpointId' => $endpointId]);
                 $live[$ext->pkey] = pjsip_endpoint_live($amiHandle, $endpointId);
             }
             $amiHandle->logout();
