@@ -273,6 +273,8 @@ class ExtensionController extends Controller
 
         $this->create_default_cos_instances($extension);
 
+        set_commit_dirty();
+
         return response()->json($extension->fresh(), 201);
     }
 
@@ -614,6 +616,7 @@ class ExtensionController extends Controller
                 $dirty = $extension->getDirty();
                 Extension::where('id', $id)->update($dirty);
                 $extension->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return response()->json(['Error' => $e->getMessage()], 409);
@@ -683,6 +686,8 @@ class ExtensionController extends Controller
         }
 
         $extension->delete();
+
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

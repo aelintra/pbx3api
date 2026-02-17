@@ -56,6 +56,20 @@ if (!function_exists('get_globals')) {
     }
 }
 
+if (!function_exists('set_commit_dirty')) {
+    /**
+     * Mark instance as having uncommitted DB changes (Save was done; Commit not yet run).
+     * Sets globals.mycommit = 'YES' so the Commit button shows red.
+     */
+    function set_commit_dirty() {
+        try {
+            DB::table('globals')->update(['mycommit' => 'YES']);
+        } catch (\Throwable $e) {
+            // instance schema may not be in use; ignore
+        }
+    }
+}
+
 if (!function_exists('valid_ip_or_domain')) {
     /**
      * checks host for valid IP or valid domain name

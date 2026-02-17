@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
+
 //use App\SysCommand;
 //use Illuminate\Http\Request;
 //use Illuminate\Support\Facades\Response;
@@ -11,37 +13,59 @@ class SysCommandController extends Controller
 
 /**
  * SysCommands
- * 
- * Just GET
- * 
+ *
+ * GET commitstatus = dirty state (Save vs Commit).
+ * GET commit = run generator + Asterisk reload, clear dirty.
  */
 {
-    //
-    //
-    //Route::get('syscommands/commit', 'SysCommandController@commit');
-
     private $commands = [
-    	'commit' => 'null',
-    	'reboot' => 'null',
-    	'pbxstart' => 'null',
-    	'pbxstop' => 'null',
+        'commit' => 'run generator and Asterisk reload',
+        'commitstatus' => 'returns { dirty: boolean }',
+        'reboot' => 'null',
+        'pbxstart' => 'null',
+        'pbxstop' => 'null',
         'pbxrunstate' => 'returns PBX state (boolean)'
     ];
-/**
- * Return SysCommand Index in pkey order asc
- * @return SysCommands
- */
+
+    /**
+     * Return SysCommand index.
+     */
     public function index () {
+        return response()->json($this->commands, 200);
+    }
 
-    	return response()->json($this->commands,200);
+    /**
+     * GET commit status: true if there are uncommitted DB changes (Commit button should be red).
+     */
+    public function commitstatus () {
+        try {
+            $row = DB::table('globals')->first(['mycommit']);
+            $dirty = isset($row->mycommit) && strtoupper((string) $row->mycommit) === 'YES';
+            return response()->json(['dirty' => $dirty], 200);
+        } catch (\Throwable $e) {
+            return response()->json(['dirty' => false], 200);
+        }
+    }
 
-    } 
-
+    /**
+     * Run Asterisk config generator then reload. Clears dirty state (mycommit = NO).
+     */
     public function commit () {
-
-        `/bin/sh /opt/pbx3/scripts/srkgenAst`;
-         return response()->json(['message' => 'System Commit issued'],200);
-
+        $genAst = env('PBX3_GENAST_SCRIPT', '/opt/pbx3/scripts/genAst.sh');
+        $asterisk = env('PBX3_ASTERISK_EXEC', '/usr/sbin/asterisk');
+        if (is_readable($genAst)) {
+            exec('/bin/sh ' . escapeshellarg($genAst) . ' 2>&1', $out, $code);
+            if ($code !== 0) {
+                return response()->json(['message' => 'Generator failed', 'detail' => implode("\n", $out)], 502);
+            }
+        }
+        exec(escapeshellarg($asterisk) . ' -rx ' . escapeshellarg('core reload') . ' 2>&1', $relout, $relcode);
+        try {
+            DB::table('globals')->update(['mycommit' => 'NO']);
+        } catch (\Throwable $e) {
+            // ignore
+        }
+        return response()->json(['message' => 'Commit completed'], 200);
     } 
 
     public function reboot () {

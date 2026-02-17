@@ -266,6 +266,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * System Commands
      */
         Route::get('syscommands', [SysCommandController::class, 'index']);
+        Route::get('syscommands/commitstatus', [SysCommandController::class, 'commitstatus']);
         Route::get('syscommands/commit', [SysCommandController::class, 'commit']);
         Route::get('syscommands/reboot', [SysCommandController::class, 'reboot']);
         Route::get('syscommands/pbxrunstate', [SysCommandController::class, 'pbxrunstate']);
