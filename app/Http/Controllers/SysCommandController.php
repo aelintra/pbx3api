@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 //use App\SysCommand;
 //use Illuminate\Http\Request;
@@ -68,32 +69,58 @@ class SysCommandController extends Controller
         return response()->json(['message' => 'Commit completed'], 200);
     } 
 
-    public function reboot () {
-       
-        `sudo /sbin/reboot`;
-        return response()->json(['message' => 'Reboot issued'],200);
-    } 
-
-    public function start () {
-
-        if  (`/bin/ps -e | /bin/grep asterisk | /bin/grep -v grep`) {
-            return response()->json(['message' => 'PBX already running'],503);
+    public function reboot ()
+    {
+        Log::info('SysCommandController::reboot called');
+        $cmd = 'sudo /sbin/reboot 2>&1';
+        exec($cmd, $out, $code);
+        if ($code !== 0) {
+            Log::warning('syscommands/reboot failed', ['code' => $code, 'output' => $out]);
+            return response()->json([
+                'message' => 'Reboot command failed',
+                'detail' => implode("\n", $out),
+                'exit_code' => $code,
+            ], 502);
         }
+        return response()->json(['message' => 'Reboot issued'], 200);
+    }
 
-        `sudo /bin/systemctl start asterisk`;
-        return response()->json(['message' => 'PBX started'],200);
-
-    } 
-
-    public function stop () {
-
-        if  (!`/bin/ps -e | /bin/grep asterisk | /bin/grep -v grep`) {
-            return response()->json(['message' => 'PBX not running'],503);
+    public function start ()
+    {
+        Log::info('SysCommandController::start called');
+        if (`/bin/ps -e 2>/dev/null | /bin/grep asterisk | /bin/grep -v grep`) {
+            return response()->json(['message' => 'PBX already running'], 503);
         }
+        $cmd = 'sudo /bin/systemctl start asterisk 2>&1';
+        exec($cmd, $out, $code);
+        if ($code !== 0) {
+            Log::warning('syscommands/start failed', ['code' => $code, 'output' => $out]);
+            return response()->json([
+                'message' => 'Start PBX command failed',
+                'detail' => implode("\n", $out),
+                'exit_code' => $code,
+            ], 502);
+        }
+        return response()->json(['message' => 'PBX started'], 200);
+    }
 
-        `sudo /bin/systemctl stop asterisk`;
-        return response()->json(['message' => 'PBX stopped'],200);
-
+    public function stop ()
+    {
+        Log::info('SysCommandController::stop called');
+        if (!`/bin/ps -e 2>/dev/null | /bin/grep asterisk | /bin/grep -v grep`) {
+            return response()->json(['message' => 'PBX not running'], 503);
+        }
+        $cmd = 'sudo /bin/systemctl stop asterisk 2>&1';
+        exec($cmd, $out, $code);
+        if ($code !== 0) {
+            Log::warning('syscommands/stop failed', ['code' => $code, 'output' => $out]);
+            return response()->json([
+                'message' => 'Stop PBX command failed',
+                'detail' => implode("\n", $out),
+                'exit_code' => $code,
+            ], 502);
+        }
+        return response()->json(['message' => 'PBX stopped'], 200);
     }
 
     public function pbxrunstate () {
