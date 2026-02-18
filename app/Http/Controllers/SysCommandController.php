@@ -129,7 +129,6 @@ class SysCommandController extends Controller
             'asterisk_release' => $this->getAsteriskRelease($asterisk),
             'app_release' => trim(shell_exec("dpkg-query -W -f '\${Version}' pbx3 2>/dev/null") ?: '') ?: null,
             'endpoints_defined' => null,
-            'serial' => null,
         ];
 
         try {
