@@ -57,6 +57,18 @@ return [
             'throw' => false,
         ],
 
+        'backups' => [
+            'driver' => 'local',
+            'root' => '/opt/pbx3/bkup',
+            'throw' => false,
+        ],
+
+        'snapshots' => [
+            'driver' => 'local',
+            'root' => '/opt/pbx3/snap',
+            'throw' => false,
+        ],
+
     ],
 
     /*
