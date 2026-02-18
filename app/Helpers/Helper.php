@@ -195,8 +195,8 @@ if (!function_exists('create_new_snapshot')) {
      * */
     function create_new_snapshot() {
 
-        $newSnapshotName = "pbx3.db." . time();
-        shell_exec("/bin/cp /opt/pbx3/db/pbx3.db /opt/pbx3/snap/$newSnapshotName");
+        $newSnapshotName = "sqlite.db." . time();
+        shell_exec("/bin/cp /opt/pbx3/db/sqlite.db /opt/pbx3/snap/$newSnapshotName");
         shell_exec("/bin/chown www-data:www-data /opt/pbx3/snap/$newSnapshotName");
         shell_exec("/bin/chmod 664 /opt/pbx3/snap/$newSnapshotName");
         return $newSnapshotName;  
@@ -235,11 +235,18 @@ function restore_from_backup($request) {
  * now we can begin the restore
  */     
     if ( $request->restoredb === true) {
-        if (file_exists($tempDname . '/opt/pbx3/db/pbx3.db')) {
-            Log::info("Restoring the Database from $tempDname/opt/pbx3/db/pbx3.db");
-            shell_exec("/bin/cp -f $tempDname/opt/pbx3/db/pbx3.db  /opt/pbx3/db/pbx3.db");
+        // Check for sqlite.db (new) or pbx3.db (old backups) for backward compatibility
+        $dbSource = null;
+        if (file_exists($tempDname . '/opt/pbx3/db/sqlite.db')) {
+            $dbSource = $tempDname . '/opt/pbx3/db/sqlite.db';
+        } elseif (file_exists($tempDname . '/opt/pbx3/db/pbx3.db')) {
+            $dbSource = $tempDname . '/opt/pbx3/db/pbx3.db';
+        }
+        if ($dbSource) {
+            Log::info("Restoring the Database from $dbSource");
+            shell_exec("/bin/cp -f $dbSource /opt/pbx3/db/sqlite.db");
             Log::info("Setting DB ownership");
-            shell_exec("/bin/chown www-data:www-data  /opt/pbx3/db/pbx3.db");
+            shell_exec("/bin/chown www-data:www-data /opt/pbx3/db/sqlite.db");
             Log::info("Running the reloader to sync versions");
             shell_exec("/bin/sh /opt/pbx3/scripts/srkV4reloader.sh");      
             Log::info("Database restore complete");

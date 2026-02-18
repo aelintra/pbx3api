@@ -24,7 +24,7 @@ class SnapShotController extends Controller
     	if ($handle = opendir('/opt/pbx3/snap')) {
             while (false !== ($entry = readdir($handle))) {
                 if ($entry != '.' && $entry != '..') {
-                    if (preg_match (' /^pbx3\.db\.\d+$/ ', $entry)) {
+                    if (preg_match (' /^(pbx3|sqlite)\.db\.\d+$/ ', $entry)) {
                         array_push($snap, $entry);
                     }
                 }
@@ -114,9 +114,9 @@ class SnapShotController extends Controller
             return Response::json(['Error' => "snapshot file not found"],404);
         } 
 
-        shell_exec("/bin/cp /opt/pbx3/snap/$snapshot /opt/pbx3/db/pbx3.db");
-        shell_exec("/bin/chown www-data:www-data /opt/pbx3/db/pbx3.db");
-        shell_exec("/bin/chmod 664 /opt/pbx3/db/pbx3.db");
+        shell_exec("/bin/cp /opt/pbx3/snap/$snapshot /opt/pbx3/db/sqlite.db");
+        shell_exec("/bin/chown www-data:www-data /opt/pbx3/db/sqlite.db");
+        shell_exec("/bin/chmod 664 /opt/pbx3/db/sqlite.db");
 
 		return response()->json(['restored' => $snapshot], 200);
     }   
