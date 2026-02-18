@@ -91,14 +91,12 @@ class SysCommandController extends Controller
         if (`/bin/ps -e 2>/dev/null | /bin/grep asterisk | /bin/grep -v grep`) {
             return response()->json(['message' => 'PBX already running'], 503);
         }
-        $cmd = 'sudo /bin/systemctl start asterisk 2>&1';
-        exec($cmd, $out, $code);
-        if ($code !== 0) {
-            Log::warning('syscommands/start failed', ['code' => $code, 'output' => $out]);
+        [$response, $err] = $this->requestSyscmd('/bin/systemctl start asterisk');
+        if ($err !== null) {
+            Log::warning('syscommands/start failed', ['error' => $err]);
             return response()->json([
                 'message' => 'Start PBX command failed',
-                'detail' => implode("\n", $out),
-                'exit_code' => $code,
+                'detail' => $err,
             ], 502);
         }
         return response()->json(['message' => 'PBX started'], 200);
@@ -110,14 +108,12 @@ class SysCommandController extends Controller
         if (!`/bin/ps -e 2>/dev/null | /bin/grep asterisk | /bin/grep -v grep`) {
             return response()->json(['message' => 'PBX not running'], 503);
         }
-        $cmd = 'sudo /bin/systemctl stop asterisk 2>&1';
-        exec($cmd, $out, $code);
-        if ($code !== 0) {
-            Log::warning('syscommands/stop failed', ['code' => $code, 'output' => $out]);
+        [$response, $err] = $this->requestSyscmd('/bin/systemctl stop asterisk');
+        if ($err !== null) {
+            Log::warning('syscommands/stop failed', ['error' => $err]);
             return response()->json([
                 'message' => 'Stop PBX command failed',
-                'detail' => implode("\n", $out),
-                'exit_code' => $code,
+                'detail' => $err,
             ], 502);
         }
         return response()->json(['message' => 'PBX stopped'], 200);
@@ -129,6 +125,50 @@ class SysCommandController extends Controller
             return response()->json(['pbxrunstate' => True],200);
         }
         return response()->json(['pbxrunstate' => False],200);
+    }
+
+    /**
+     * Send a command to the privileged syshelper daemon (port 7601).
+     * Protocol: connect, read "Ready", send command+\n, read until <<EOT>>.
+     *
+     * @param string $command Command to run (no sudo; daemon runs privileged).
+     * @return array{0: string|null, 1: string|null} [response body, or null; error message, or null]
+     */
+    private function requestSyscmd(string $command): array
+    {
+        $host = env('PBX3_SYSCMD_HOST', '127.0.0.1');
+        $port = (int) env('PBX3_SYSCMD_PORT', 7601);
+        $timeout = (int) env('PBX3_SYSCMD_TIMEOUT', 5);
+
+        $errno = 0;
+        $errstr = '';
+        $fp = @fsockopen($host, $port, $errno, $errstr, $timeout);
+        if ($fp === false) {
+            return [null, "syshelper not reachable ({$host}:{$port}): {$errstr}"];
+        }
+
+        stream_set_timeout($fp, $timeout);
+        $ack = @fgets($fp, 8192);
+        if ($ack === false || trim($ack) !== 'Ready') {
+            fclose($fp);
+            return [null, 'syshelper did not send Ready'];
+        }
+
+        if (@fwrite($fp, $command . "\n") === false) {
+            fclose($fp);
+            return [null, 'failed to send command'];
+        }
+
+        $response = '';
+        while (($line = @fgets($fp, 8192)) !== false) {
+            if (strpos($line, '<<EOT>>') !== false) {
+                break;
+            }
+            $response .= $line;
+        }
+        fclose($fp);
+
+        return [trim($response), null];
     }
 
     /**
