@@ -154,10 +154,10 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Custom Apps
      */
         Route::get('customapps', [CustomAppController::class, 'index']);
-        Route::get('customapps/{cosopen}', [CustomAppController::class, 'show']);
+        Route::get('customapps/{customapp}', [CustomAppController::class, 'show']);
         Route::post('customapps', [CustomAppController::class, 'save']);
-        Route::put('customapps/{cosopen}', [CustomAppController::class, 'update']);
-        Route::delete('customapps/{cosopen}', [CustomAppController::class, 'delete']);
+        Route::put('customapps/{customapp}', [CustomAppController::class, 'update']);
+        Route::delete('customapps/{customapp}', [CustomAppController::class, 'delete']);
 
     /**
      * Day Timers

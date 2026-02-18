@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Models\Agent;
+use App\Models\CustomApp;
 use App\Models\Extension;
 use App\Models\InboundRoute;
 use App\Models\Ivr;
@@ -37,6 +39,7 @@ class SchemaService
         'extensions' => [ExtensionController::class, Extension::class],
         'queues'     => [QueueController::class, Queue::class],
         'agents'     => [AgentController::class, Agent::class],
+        'customapps' => [CustomAppController::class, CustomApp::class],
         'routes'     => [RouteController::class, Route::class],
         'trunks'     => [TrunkController::class, Trunk::class],
         'ivrs'       => [IvrController::class, Ivr::class],

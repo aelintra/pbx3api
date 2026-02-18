@@ -14,12 +14,21 @@ class CustomAppController extends Controller
 
     private $updateableColumns = [
 
+        'active' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
+        'cname' => 'string|nullable',
         'description' => 'string|nullable',
+        'directdial' => 'integer|nullable',
         'extcode' => 'string|nullable',
         'span' => 'in:Internal,External,Both,Neither',
         'striptags' => 'in:YES,NO'
     ];
+
+    /** Return column names that are updateable (for schema metadata). */
+    public function getUpdateableColumns(): array
+    {
+        return array_keys($this->updateableColumns);
+    }
 
 /**
  *
@@ -51,7 +60,7 @@ class CustomAppController extends Controller
 
 // validate 
         $this->updateableColumns['pkey'] = 'required';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
+        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
 
         $customapp = new CustomApp;
 
