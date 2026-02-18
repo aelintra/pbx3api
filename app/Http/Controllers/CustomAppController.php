@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\CustomApp;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -102,13 +101,6 @@ class CustomAppController extends Controller
  * @return json response
  */
     public function update(Request $request, CustomApp $customapp) {
-        $logPrefix = '[CustomAppUpdate]';
-
-        // DEBUG: remove after finding why update does not persist
-        Log::info("{$logPrefix} request body", ['all' => $request->all()]);
-        Log::info("{$logPrefix} model before move", ['id' => $customapp->id, 'pkey' => $customapp->pkey, 'cname' => $customapp->cname]);
-
-        // Validate
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
         if ($validator->fails()) {
@@ -117,35 +109,25 @@ class CustomAppController extends Controller
 
         move_request_to_model($request, $customapp, $this->updateableColumns);
 
-        Log::info("{$logPrefix} after move_request_to_model", ['cname' => $customapp->cname, 'isDirty' => $customapp->isDirty(), 'getDirty' => $customapp->getDirty()]);
-
         try {
             if ($customapp->isDirty()) {
                 $dirty = $customapp->getDirty();
                 $id = $customapp->id;
                 $pkey = $customapp->pkey;
                 if ($id !== null && $id !== '') {
-                    $rowsAffected = CustomApp::where('id', $id)->update($dirty);
-                    Log::info("{$logPrefix} UPDATE by id", ['id' => $id, 'dirty_keys' => array_keys($dirty), 'rows_affected' => $rowsAffected]);
+                    CustomApp::where('id', $id)->update($dirty);
                 } elseif ($pkey !== null && $pkey !== '') {
-                    $rowsAffected = CustomApp::where('pkey', $pkey)->update($dirty);
-                    Log::info("{$logPrefix} UPDATE by pkey (id was null)", ['pkey' => $pkey, 'dirty_keys' => array_keys($dirty), 'rows_affected' => $rowsAffected]);
+                    CustomApp::where('pkey', $pkey)->update($dirty);
                 } else {
                     return Response::json(['Error' => 'Custom app id and pkey are missing'], 409);
                 }
                 $customapp->syncOriginal();
-            } else {
-                Log::info("{$logPrefix} skip UPDATE (not dirty)");
             }
         } catch (\Exception $e) {
-            Log::error("{$logPrefix} exception", ['message' => $e->getMessage()]);
             return Response::json(['Error' => $e->getMessage()], 409);
         }
 
-        $fresh = $customapp->fresh();
-        Log::info("{$logPrefix} fresh from DB", ['cname' => $fresh?->cname]);
-
-        return response()->json($fresh, 200);
+        return response()->json($customapp->fresh(), 200);
     } 
 
 
