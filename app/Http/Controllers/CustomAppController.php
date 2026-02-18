@@ -110,15 +110,19 @@ class CustomAppController extends Controller
 // Move post variables to the model   
         move_request_to_model($request,$customapp,$this->updateableColumns);
 
-
-// store the model if it has changed
+        // Persist only dirty attributes (same pattern as Queue/Agent/Route)
         try {
             if ($customapp->isDirty()) {
-                $customapp->update();
+                $pkey = $customapp->pkey;
+                if ($pkey === null || $pkey === '') {
+                    return Response::json(['Error' => 'Custom app pkey is missing'], 409);
+                }
+                $dirty = $customapp->getDirty();
+                CustomApp::where('pkey', $pkey)->update($dirty);
+                $customapp->syncOriginal();
             }
-
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()],409);
+            return Response::json(['Error' => $e->getMessage()], 409);
         }
 
         return response()->json($customapp, 200);
