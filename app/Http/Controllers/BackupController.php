@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class BackupController extends Controller
 {
@@ -68,7 +69,13 @@ class BackupController extends Controller
  */
     public function new () {
 
-        return response()->json(['newbackupname' => create_new_backup()]);
+        try {
+            $backupName = create_new_backup();
+            return response()->json(['newbackupname' => $backupName]);
+        } catch (\Exception $e) {
+            Log::error("Failed to create backup: " . $e->getMessage());
+            return response()->json(['Error' => 'Failed to create backup: ' . $e->getMessage()], 500);
+        }
 
     }
 

@@ -163,21 +163,50 @@ if (!function_exists('create_new_backup')) {
             '/tmp/pbx3.local.ldif'
         ];
 
+        // Ensure backup directory exists
+        if (!file_exists('/opt/pbx3/bkup')) {
+            shell_exec('/bin/mkdir -p /opt/pbx3/bkup');
+            shell_exec('/bin/chown www-data:www-data /opt/pbx3/bkup');
+            shell_exec('/bin/chmod 755 /opt/pbx3/bkup');
+        }
+
         shell_exec('/usr/sbin/slapcat > /tmp/pbx3.local.ldif');
         $newBackupName = "pbx3bak." . time() . ".zip";
+        $tmpBackupPath = "/tmp/$newBackupName";
+        $finalBackupPath = "/opt/pbx3/bkup/$newBackupName";
        
+        // Remove any existing temp backup file
+        if (file_exists($tmpBackupPath)) {
+            unlink($tmpBackupPath);
+        }
+
         foreach($backupSet as $file) { 
             if(file_exists($file)) {
                 Log::info("zipping " . $file); 
-                shell_exec("/usr/bin/zip -r /tmp/$newBackupName $file");
+                shell_exec("/usr/bin/zip -r $tmpBackupPath $file");
             } 
             else {
                 Log::info($file . " not found");
             }
         } 
-        shell_exec("/bin/mv /tmp/$newBackupName /opt/pbx3/bkup/");
-        shell_exec("/bin/chown www-data:www-data /opt/pbx3/bkup/$newBackupName ");
-        shell_exec("/bin/chmod 664 /opt/pbx3/bkup/$newBackupName ");
+        
+        // Verify backup file was created before moving
+        if (!file_exists($tmpBackupPath)) {
+            Log::error("Backup file was not created at $tmpBackupPath");
+            throw new \Exception("Failed to create backup file");
+        }
+
+        shell_exec("/bin/mv $tmpBackupPath $finalBackupPath");
+        
+        // Verify file was moved successfully
+        if (!file_exists($finalBackupPath)) {
+            Log::error("Backup file was not moved to $finalBackupPath");
+            throw new \Exception("Failed to move backup file to destination");
+        }
+
+        shell_exec("/bin/chown www-data:www-data $finalBackupPath");
+        shell_exec("/bin/chmod 664 $finalBackupPath");
+        
         return $newBackupName;  
 
     }
