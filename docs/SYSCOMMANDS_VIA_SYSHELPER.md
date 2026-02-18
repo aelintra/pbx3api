@@ -1,6 +1,8 @@
 # Syscommands via syshelper (no sudoers)
 
-**Goal:** Run Start PBX, Stop PBX, and Reboot through the existing pbx3 privileged worker (syshelper on port 7601) instead of sudo from the API. Avoids broad sudoers permissions for www-data.
+**Goal:** Run privileged commands through the existing pbx3 worker (syshelper on port 7601) instead of sudo from the API. Avoids broad sudoers permissions for www-data.
+
+**Pattern (for all new work):** Any new requirement that needs to run a privileged command (systemctl, reboot, asterisk -rx, shorewall, etc.) **must** use the syshelper daemon via `requestSyscmd()` in `SysCommandController` (or a shared helper). Do not add new sudo calls in the API.
 
 **TODO (separate):** Rewrite syshelper.pl daemon (modern language, same protocol, keep runit).
 
@@ -28,27 +30,28 @@ Daemon runs as privileged user (runit); no password, no sudo in PHP.
    - On connection refused / timeout: return error (no response).
    - Optional: short timeout (e.g. 5s) so API doesn’t hang if daemon is down.
 
-2. **Use it in SysCommandController** for `start`, `stop`, `reboot`:
-   - **start:** send `/bin/systemctl start asterisk` (after existing “already running” check via `ps`).
+2. **Use it in SysCommandController** for `start`, `stop`, `reboot`, and for **Asterisk version** (getAsteriskRelease):
+   - **start:** send `/bin/systemctl start asterisk` (after “already running” check via `ps`).
    - **stop:** send `/bin/systemctl stop asterisk` (after “not running” check).
    - **reboot:** send `/sbin/reboot`.
-   - If syscmd client fails (e.g. connection refused): return 502 with message/detail (e.g. “syshelper not reachable”).
-   - If client succeeds: return 200 with existing success message (daemon doesn’t send exit code; treat “got reply” as success, or inspect response for known errors if needed).
+   - **Asterisk version (sysnotes):** send `{PBX3_ASTERISK_EXEC} -rx 'core show version' 2>/dev/null` via requestSyscmd; parse major.minor.patch from response.
+   - On failure: return 502 with message/detail (e.g. “syshelper not reachable”). On success: 200 (or null for version if daemon unreachable).
 
-3. **No sudo in API:** Remove `exec('sudo ...')` for these three actions. No sudoers entries required for www-data for systemctl/reboot.
+3. **No sudo in API** for these actions. No sudoers entries required for www-data for systemctl, reboot, or asterisk -rx.
 
-4. **Optional fallback:** Env flag e.g. `PBX3_USE_SYSCMD=true` (default true); if false, keep current sudo path for environments where syshelper isn’t running (document that sudoers would then be required).
-
-5. **Commit / Asterisk version:** Already use sudo for `asterisk -rx` in some places (e.g. getAsteriskRelease). Those can stay as-is for now, or later be routed through syshelper with commands like `sudo /usr/sbin/asterisk -rx 'core show version'` if the daemon runs as root and can run sudo, or the daemon runs as a user that can hit the Asterisk socket — TBD when rewriting the daemon.
+4. **Optional fallback:** Env flag e.g. `PBX3_USE_SYSCMD=true` (default true); if false, keep current sudo path (document that sudoers would then be required).
 
 ---
 
-## Summary
+## Summary (implemented)
 
-| Action   | Command to send to syshelper     | Current (API)        |
-|----------|-----------------------------------|----------------------|
-| Start PBX| `/bin/systemctl start asterisk`   | sudo systemctl start |
-| Stop PBX | `/bin/systemctl stop asterisk`   | sudo systemctl stop  |
-| Reboot   | `/sbin/reboot`                   | sudo /sbin/reboot    |
+| Action          | Command to send to syshelper                    | Status   |
+|-----------------|-------------------------------------------------|----------|
+| Start PBX       | `/bin/systemctl start asterisk`                 | via daemon |
+| Stop PBX        | `/bin/systemctl stop asterisk`                  | via daemon |
+| Reboot          | `/sbin/reboot`                                  | via daemon |
+| Asterisk version| `{asterisk} -rx 'core show version' 2>/dev/null`| via daemon |
 
-One small client helper, three controller methods switched to it, optional env for host/port and use-syshelper flag. No sudoers for www-data.
+**Next candidates (single panel):** Firewall (shorewall / shorewall6 check & restart) — see SUDO_AND_PRIVILEGED_COMMANDS.md.
+
+**Later (pushed to end):** Restore flows (LDAP, Asterisk config/sounds/voicemail in Helper.php).

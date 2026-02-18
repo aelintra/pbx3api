@@ -72,14 +72,12 @@ class SysCommandController extends Controller
     public function reboot ()
     {
         Log::info('SysCommandController::reboot called');
-        $cmd = 'sudo /sbin/reboot 2>&1';
-        exec($cmd, $out, $code);
-        if ($code !== 0) {
-            Log::warning('syscommands/reboot failed', ['code' => $code, 'output' => $out]);
+        [$response, $err] = $this->requestSyscmd('/sbin/reboot');
+        if ($err !== null) {
+            Log::warning('syscommands/reboot failed', ['error' => $err]);
             return response()->json([
                 'message' => 'Reboot command failed',
-                'detail' => implode("\n", $out),
-                'exit_code' => $code,
+                'detail' => $err,
             ], 502);
         }
         return response()->json(['message' => 'Reboot issued'], 200);
@@ -266,7 +264,7 @@ class SysCommandController extends Controller
 
     /**
      * Get Asterisk version (e.g. "21.2.0") via core show version.
-     * Uses sudo so www-data can connect to the Asterisk socket (same as old pbx3 AmiHelperClass).
+     * Uses syshelper daemon so www-data does not need sudo (daemon runs privileged).
      */
     private function getAsteriskRelease($asterisk)
     {
@@ -274,9 +272,9 @@ class SysCommandController extends Controller
         if (!$check) {
             return null;
         }
-        $cmd = 'sudo ' . escapeshellarg($asterisk) . ' -rx ' . escapeshellarg('core show version') . ' 2>/dev/null';
-        $ver = shell_exec($cmd);
-        if (!$ver) {
+        $cmd = $asterisk . " -rx 'core show version' 2>/dev/null";
+        [$ver, $err] = $this->requestSyscmd($cmd);
+        if ($err !== null || $ver === null || $ver === '') {
             return null;
         }
         $ver = trim($ver);
