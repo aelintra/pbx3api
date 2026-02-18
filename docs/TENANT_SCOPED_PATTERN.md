@@ -20,6 +20,26 @@ Resources that belong to a tenant (cluster) share the same pattern so that the s
 - `$keyType = 'string'`, `$incrementing = false`
 - `resolveRouteBinding($value)`: resolve by shortuid (exact, then case-insensitive), then `id`, then pkey fallback so URLs can use shortuid or id.
 
+## Controller create
+
+**REQUIRED:** Set `id` (KSUID) and `shortuid` before `$model->save()`. The `id` field is the PRIMARY KEY and must be set for updates to work. Without it, `update()` will fail because `$model->id` will be null.
+
+```php
+move_request_to_model($request, $model, $this->updateableColumns);
+
+// REQUIRED: Set id and shortuid before save
+$model->id = generate_ksuid();
+$model->shortuid = generate_shortuid();
+
+try {
+    $model->save();
+} catch (\Exception $e) {
+    return Response::json(['Error' => $e->getMessage()], 409);
+}
+```
+
+**Note:** This is currently manual in each controller. See `TODO_KSUID_SHORTUID.md` for a plan to centralize this via a trait/model event.
+
 ## Controller update
 
 Do **not** rely on `$model->save()` for updates. Use an explicit update by `id` so only the resolved row is updated:
@@ -66,5 +86,6 @@ return [ 'pkey' => ['required', $pkeyRule], ... ];
 ## Reference implementations
 
 - **Model:** `App\Models\Extension`, `Queue`, `Agent`, `Route`, `Trunk`, `Ivr`, `InboundRoute`
+- **Controller create:** `TrunkController::save()`, `IvrController::save()`, `InboundRouteController::save()`, `TenantController::save()`
 - **Controller update:** `ExtensionController::update()`, `QueueController::update()`, etc.
 - **Form Request:** `ExtensionRequest`, `TrunkRequest`

@@ -80,11 +80,13 @@ class CustomAppController extends Controller
             return response()->json($validator->errors(),422);
         }
     
-// Move post variables to the model 
-        move_request_to_model($request,$customapp,$this->updateableColumns); 
+// Move post variables to the model
+        move_request_to_model($request, $customapp, $this->updateableColumns);
 
+        // Set id (KSUID) and shortuid like other tenant resources (appl table has id PRIMARY KEY)
+        $customapp->id = generate_ksuid();
+        $customapp->shortuid = generate_shortuid();
 
-// create the model         
         try {
             $customapp->save();
         } catch (\Exception $e) {
@@ -119,13 +121,18 @@ class CustomAppController extends Controller
 
         try {
             if ($customapp->isDirty()) {
-                $id = $customapp->id;
-                if ($id === null || $id === '') {
-                    return Response::json(['Error' => 'Custom app id is missing'], 409);
-                }
                 $dirty = $customapp->getDirty();
-                $rowsAffected = CustomApp::where('id', $id)->update($dirty);
-                Log::info("{$logPrefix} UPDATE executed", ['id' => $id, 'dirty_keys' => array_keys($dirty), 'rows_affected' => $rowsAffected]);
+                $id = $customapp->id;
+                $pkey = $customapp->pkey;
+                if ($id !== null && $id !== '') {
+                    $rowsAffected = CustomApp::where('id', $id)->update($dirty);
+                    Log::info("{$logPrefix} UPDATE by id", ['id' => $id, 'dirty_keys' => array_keys($dirty), 'rows_affected' => $rowsAffected]);
+                } elseif ($pkey !== null && $pkey !== '') {
+                    $rowsAffected = CustomApp::where('pkey', $pkey)->update($dirty);
+                    Log::info("{$logPrefix} UPDATE by pkey (id was null)", ['pkey' => $pkey, 'dirty_keys' => array_keys($dirty), 'rows_affected' => $rowsAffected]);
+                } else {
+                    return Response::json(['Error' => 'Custom app id and pkey are missing'], 409);
+                }
                 $customapp->syncOriginal();
             } else {
                 Log::info("{$logPrefix} skip UPDATE (not dirty)");
