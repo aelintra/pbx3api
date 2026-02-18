@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\CustomAppController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Models\Agent;
 use App\Models\CustomApp;
+use App\Models\Device;
 use App\Models\Extension;
 use App\Models\InboundRoute;
 use App\Models\Ivr;
@@ -40,6 +42,7 @@ class SchemaService
         'queues'     => [QueueController::class, Queue::class],
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
+        'devices'    => [DeviceController::class, Device::class],
         'routes'     => [RouteController::class, Route::class],
         'trunks'     => [TrunkController::class, Trunk::class],
         'ivrs'       => [IvrController::class, Ivr::class],
@@ -95,10 +98,11 @@ class SchemaService
                 }
 
                 $readOnly = array_values(array_diff($allColumnNames, $updateable));
-                if (! in_array('id', $readOnly, true)) {
+                // Only add id/shortuid to read_only when the table has those columns (e.g. Device has neither)
+                if (in_array('id', $allColumnNames, true) && ! in_array('id', $readOnly, true)) {
                     $readOnly[] = 'id';
                 }
-                if (! in_array('shortuid', $readOnly, true)) {
+                if (in_array('shortuid', $allColumnNames, true) && ! in_array('shortuid', $readOnly, true)) {
                     $readOnly[] = 'shortuid';
                 }
                 $readOnly = array_values(array_unique($readOnly));
