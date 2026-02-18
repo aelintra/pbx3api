@@ -95,31 +95,37 @@ create a new cosrule instance
 'dialplan' => 'required'
 ####DELETE/cosrules/{cosrule}
 -----
-##Custom Apps
-####GET /customapps/{customapp?}
-Return a list or instance of a custom app
-####POST /customapps
-Create a new custom app
+## Custom Apps
+
+Custom apps (tenant table `appl`) use the tenant-scoped pattern. The API sets `id` (KSUID) and `shortuid` on create; do not send them.
+
+#### GET /customapps
+Return list of custom apps (ordered by pkey).
+
+#### GET /customapps/{customapp}
+Return one custom app. Route binding by `pkey` (app name).
+
+#### POST /customapps
+Create a new custom app.
+
 **Body:**
-```
-key' => 'required'
-luster' => 'required'
-esc' => 'string|nullable',
-xtcode' => 'string|nullable',
-span' => 'in:Internal,External,Both,Neither',
-'striptags' => 'in:YES,NO'
-```
-####PUT /customapps/{customapp}
-update a custom app
-**Body:**
-```
-'cluster' => 'exists:cluster,pkey',
-'desc' => 'string|nullable',
-'extcode' => 'string|nullable',
-'span' => 'in:Internal,External,Both,Neither',
-'striptags' => 'in:YES,NO'
-```
-####DELETE  /customapps/{customapp}
+- `pkey` => required (app name; letters, numbers, underscore, hyphen)
+- `cluster` => required|exists:cluster,pkey
+- `cname` => string|nullable (display name)
+- `description` => string|nullable
+- `span` => in:Internal,External,Both,Neither
+- `active` => in:YES,NO
+- `striptags` => in:YES,NO
+- `directdial` => integer|nullable
+- `extcode` => string|nullable (extension/dialplan code)
+
+#### PUT /customapps/{customapp}
+Update a custom app. Route binding by `pkey`.
+
+**Body:** Same updateable fields as above (no `pkey`; cluster, cname, description, span, active, striptags, directdial, extcode).
+
+#### DELETE /customapps/{customapp}
+Delete a custom app.
 ----
 ##Recurring Timers (Daytimers)
 ####GET /daytimer/{daytimer?}

@@ -86,6 +86,6 @@ return [ 'pkey' => ['required', $pkeyRule], ... ];
 ## Reference implementations
 
 - **Model:** `App\Models\Extension`, `Queue`, `Agent`, `Route`, `Trunk`, `Ivr`, `InboundRoute`
-- **Controller create:** `TrunkController::save()`, `IvrController::save()`, `InboundRouteController::save()`, `TenantController::save()`
+- **Controller create:** `TrunkController::save()`, `IvrController::save()`, `InboundRouteController::save()`, `TenantController::save()`, `CustomAppController::save()`
 - **Controller update:** `ExtensionController::update()`, `QueueController::update()`, etc.
 - **Form Request:** `ExtensionRequest`, `TrunkRequest`

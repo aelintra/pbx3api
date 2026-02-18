@@ -17,6 +17,6 @@
 - Column list and defaults come from the **running database** at request time (`PRAGMA table_info`). No cache, no file.
 - Updateable list comes from each controller’s `getUpdateableColumns()` (backed by `$updateableColumns`).
 
-**Resources:** extensions, queues, agents, routes, trunks, ivrs, inroutes, tenants.
+**Resources:** extensions, queues, agents, routes, trunks, ivrs, inroutes, tenants, customapps.
 
 **Errors:** If a table or controller fails for one resource, that resource is still returned with empty arrays; the whole response is not failed. See `App\Services\SchemaService` and `pbx3spa/workingdocs/FIELD_MUTABILITY_API_PLAN.md` for rationale and implementation details.
