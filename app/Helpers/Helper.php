@@ -163,11 +163,21 @@ if (!function_exists('create_new_backup')) {
             '/tmp/pbx3.local.ldif'
         ];
 
-        // Ensure backup directory exists
+        // Ensure backup directory exists (via syshelper for privileged operation)
         if (!file_exists('/opt/pbx3/bkup')) {
-            shell_exec('/bin/mkdir -p /opt/pbx3/bkup');
-            shell_exec('/bin/chown www-data:www-data /opt/pbx3/bkup');
-            shell_exec('/bin/chmod 755 /opt/pbx3/bkup');
+            [$response, $error] = pbx3_request_syscmd('/bin/mkdir -p /opt/pbx3/bkup');
+            if ($error !== null) {
+                Log::error("Failed to create backup directory: $error");
+                throw new \Exception("Failed to create backup directory: $error");
+            }
+            [$response, $error] = pbx3_request_syscmd('/bin/chown www-data:www-data /opt/pbx3/bkup');
+            if ($error !== null) {
+                Log::warning("Failed to chown backup directory: $error");
+            }
+            [$response, $error] = pbx3_request_syscmd('/bin/chmod 755 /opt/pbx3/bkup');
+            if ($error !== null) {
+                Log::warning("Failed to chmod backup directory: $error");
+            }
         }
 
         shell_exec('/usr/sbin/slapcat > /tmp/pbx3.local.ldif');
@@ -196,7 +206,12 @@ if (!function_exists('create_new_backup')) {
             throw new \Exception("Failed to create backup file");
         }
 
-        shell_exec("/bin/mv $tmpBackupPath $finalBackupPath");
+        // Move file via syshelper (privileged operation)
+        [$response, $error] = pbx3_request_syscmd("/bin/mv $tmpBackupPath $finalBackupPath");
+        if ($error !== null) {
+            Log::error("Failed to move backup file via syshelper: $error");
+            throw new \Exception("Failed to move backup file to destination: $error");
+        }
         
         // Verify file was moved successfully
         if (!file_exists($finalBackupPath)) {
@@ -204,8 +219,15 @@ if (!function_exists('create_new_backup')) {
             throw new \Exception("Failed to move backup file to destination");
         }
 
-        shell_exec("/bin/chown www-data:www-data $finalBackupPath");
-        shell_exec("/bin/chmod 664 $finalBackupPath");
+        // Set ownership and permissions via syshelper (privileged operation)
+        [$response, $error] = pbx3_request_syscmd("/bin/chown www-data:www-data $finalBackupPath");
+        if ($error !== null) {
+            Log::warning("Failed to chown backup file: $error");
+        }
+        [$response, $error] = pbx3_request_syscmd("/bin/chmod 664 $finalBackupPath");
+        if ($error !== null) {
+            Log::warning("Failed to chmod backup file: $error");
+        }
         
         return $newBackupName;  
 
