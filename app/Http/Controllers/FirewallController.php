@@ -66,9 +66,12 @@ class FirewallController extends Controller
 
         $tempFileName = $this->set_new_rules($request);
 
-        shell_exec("/bin/mv /tmp/$tempFileName /etc/shorewall/pbx3_rules");
+        [$response, $err] = pbx3_request_syscmd("/bin/mv /tmp/$tempFileName /etc/shorewall/pbx3_rules");
+        if ($err !== null) {
+            return response()->json(['message' => 'Save failed', 'detail' => $err], 502);
+        }
 
-		return response()->json(['message' => "saved pbx3_rules"], 200);
+        return response()->json(['message' => "saved pbx3_rules"], 200);
     }  
 
 /**
@@ -91,7 +94,10 @@ class FirewallController extends Controller
 
         $tempFileName = $this->set_new_rules($request);
 
-        shell_exec("/bin/mv /tmp/$tempFileName /etc/shorewall6/pbx3_rules6");
+        [$response, $err] = pbx3_request_syscmd("/bin/mv /tmp/$tempFileName /etc/shorewall6/pbx3_rules6");
+        if ($err !== null) {
+            return response()->json(['message' => 'Save failed', 'detail' => $err], 502);
+        }
 
         return response()->json(['message' => "saved pbx3_rules"], 200);
     }
@@ -123,15 +129,17 @@ class FirewallController extends Controller
  * @param  null
  * @return msg
  */
-    public function ipv4restart() {
-
-        $rc = `sudo /sbin/shorewall check 2>&1`;
-
-        if (! strchr($rc, 'ERROR')) {
-            $rc = `sudo /sbin/shorewall restart`;
-            return response()->json(['message' => "Shorewall restarted OK"], 200);
+    public function ipv4restart()
+    {
+        [$rc, $err] = pbx3_request_syscmd('/sbin/shorewall check 2>&1');
+        if ($err !== null) {
+            return response()->json(['message' => 'Shorewall check failed', 'detail' => $err], 502);
         }
-        $errorLines = explode("\n", $rc);
+        if (strpos($rc ?? '', 'ERROR') === false) {
+            pbx3_request_syscmd('/sbin/shorewall restart');
+            return response()->json(['message' => 'Shorewall restarted OK'], 200);
+        }
+        $errorLines = array_filter(explode("\n", $rc ?? ''));
         return response()->json($errorLines, 500);
     }
 
@@ -141,15 +149,17 @@ class FirewallController extends Controller
  * @param  null
  * @return msg
  */
-    public function ipv6restart() {
-
-        $rc = `sudo /sbin/shorewall6 check 2>&1`;
-
-        if (! strchr($rc, 'ERROR')) {
-            $rc = `sudo /sbin/shorewall6 restart`;
-            return response()->json(['message' => "Shorewall restarted OK"], 200);
+    public function ipv6restart()
+    {
+        [$rc, $err] = pbx3_request_syscmd('/sbin/shorewall6 check 2>&1');
+        if ($err !== null) {
+            return response()->json(['message' => 'Shorewall6 check failed', 'detail' => $err], 502);
         }
-        $errorLines = explode("\n", $rc);
+        if (strpos($rc ?? '', 'ERROR') === false) {
+            pbx3_request_syscmd('/sbin/shorewall6 restart');
+            return response()->json(['message' => 'Shorewall6 restarted OK'], 200);
+        }
+        $errorLines = array_filter(explode("\n", $rc ?? ''));
         return response()->json($errorLines, 500);
     }
 

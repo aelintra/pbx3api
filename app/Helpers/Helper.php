@@ -70,6 +70,53 @@ if (!function_exists('set_commit_dirty')) {
     }
 }
 
+if (!function_exists('pbx3_request_syscmd')) {
+    /**
+     * Send a command to the privileged syshelper daemon (port 7601).
+     * Protocol: connect, read "Ready", send command+\n, read until <<EOT>>.
+     * Use for any privileged operation (no sudo in API).
+     *
+     * @param string $command Command to run (no sudo; daemon runs privileged).
+     * @return array{0: string|null, 1: string|null} [response body, or null; error message, or null]
+     */
+    function pbx3_request_syscmd(string $command): array
+    {
+        $host = env('PBX3_SYSCMD_HOST', '127.0.0.1');
+        $port = (int) env('PBX3_SYSCMD_PORT', 7601);
+        $timeout = (int) env('PBX3_SYSCMD_TIMEOUT', 5);
+
+        $errno = 0;
+        $errstr = '';
+        $fp = @fsockopen($host, $port, $errno, $errstr, $timeout);
+        if ($fp === false) {
+            return [null, "syshelper not reachable ({$host}:{$port}): {$errstr}"];
+        }
+
+        stream_set_timeout($fp, $timeout);
+        $ack = @fgets($fp, 8192);
+        if ($ack === false || trim($ack) !== 'Ready') {
+            fclose($fp);
+            return [null, 'syshelper did not send Ready'];
+        }
+
+        if (@fwrite($fp, $command . "\n") === false) {
+            fclose($fp);
+            return [null, 'failed to send command'];
+        }
+
+        $response = '';
+        while (($line = @fgets($fp, 8192)) !== false) {
+            if (strpos($line, '<<EOT>>') !== false) {
+                break;
+            }
+            $response .= $line;
+        }
+        fclose($fp);
+
+        return [trim($response), null];
+    }
+}
+
 if (!function_exists('valid_ip_or_domain')) {
     /**
      * checks host for valid IP or valid domain name
