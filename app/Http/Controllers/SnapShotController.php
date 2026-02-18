@@ -97,13 +97,28 @@ class SnapShotController extends Controller
 
         $fpath = $request->uploadsnap->storeAs('snaps', $request->uploadsnap->getClientOriginalName());
         $fullpath = storage_path() . "/app/" . $fpath;
+        $finalPath = "/opt/pbx3/snap/" . $request->uploadsnap->getClientOriginalName();
+        
+        // Verify uploaded file exists before moving
+        if (!file_exists($fullpath)) {
+            Log::error("Uploaded snapshot file not found at $fullpath");
+            return Response::json(['Error' => "Failed to upload snapshot: file not found"], 500);
+        }
+        
         // Use syshelper for privileged move operation
-        [$response, $error] = pbx3_request_syscmd("/bin/mv $fullpath /opt/pbx3/snap");
+        [$response, $error] = pbx3_request_syscmd("/bin/mv $fullpath $finalPath");
         if ($error !== null) {
             Log::error("Failed to move snapshot via syshelper: $error");
             return Response::json(['Error' => "Failed to upload snapshot: $error"], 500);
         }
-        return Response::json(['Uploaded ' . $fpath],200);
+        
+        // Verify file was moved successfully
+        if (!file_exists($finalPath)) {
+            Log::error("Snapshot file was not moved to $finalPath");
+            return Response::json(['Error' => "Failed to upload snapshot: file not moved"], 500);
+        }
+        
+        return Response::json(['Uploaded ' . $request->uploadsnap->getClientOriginalName()],200);
 
     }
 
