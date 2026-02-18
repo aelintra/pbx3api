@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Log;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AsteriskFileController;
 use App\Http\Controllers\AstAmiController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CosCloseController;
@@ -193,6 +194,13 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('firewalls/ipv6', [FirewallController::class, 'ipv6save']);
         Route::put('firewalls/ipv4', [FirewallController::class, 'ipv4restart']);
         Route::put('firewalls/ipv6', [FirewallController::class, 'ipv6restart']);
+
+    /**
+     * Asterisk config files (/etc/asterisk): list, view, edit (some files read-only).
+     */
+        Route::get('astfiles', [AsteriskFileController::class, 'index']);
+        Route::get('astfiles/{filename}', [AsteriskFileController::class, 'show']);
+        Route::put('astfiles/{filename}', [AsteriskFileController::class, 'update']);
 
     /**
      * Greetings
