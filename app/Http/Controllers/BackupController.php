@@ -159,11 +159,23 @@ class BackupController extends Controller
 
 // Don't allow deletion of default backup
 
-        if (!file_exists("/opt/pbx3/bkup/$backup")) {
+        $backupPath = "/opt/pbx3/bkup/$backup";
+        if (!file_exists($backupPath)) {
            return Response::json(['Error' => "$backup not found in backup set"],404); 
         }
 
-        shell_exec("/bin/rm -r /opt/pbx3/bkup/$backup");
+        // Use syshelper for privileged delete operation
+        [$response, $error] = pbx3_request_syscmd("/bin/rm -f $backupPath");
+        if ($error !== null) {
+            Log::error("Failed to delete backup via syshelper: $error");
+            return Response::json(['Error' => "Failed to delete backup: $error"], 500);
+        }
+
+        // Verify file was deleted
+        if (file_exists($backupPath)) {
+            Log::error("Backup file still exists after delete: $backupPath");
+            return Response::json(['Error' => "Failed to delete backup file"], 500);
+        }
 
         return response()->json(null, 204);
     }
