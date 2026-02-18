@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class SnapShotController extends Controller
 {
@@ -68,7 +69,13 @@ class SnapShotController extends Controller
  */
     public function new () {
 
-        return response()->json(['newsnapshotname' => create_new_snapshot()]);
+        try {
+            $snapshotName = create_new_snapshot();
+            return response()->json(['newsnapshotname' => $snapshotName]);
+        } catch (\Exception $e) {
+            Log::error("Failed to create snapshot: " . $e->getMessage());
+            return response()->json(['Error' => 'Failed to create snapshot: ' . $e->getMessage()], 500);
+        }
 
     }
 
@@ -88,9 +95,14 @@ class SnapShotController extends Controller
             return response()->json($validator->errors(),422);
         }
 
-        $fpath = $request->uploadzip->storeAs('snaps', $request->uploadzip->getClientOriginalName());
+        $fpath = $request->uploadsnap->storeAs('snaps', $request->uploadsnap->getClientOriginalName());
         $fullpath = storage_path() . "/app/" . $fpath;
-        shell_exec("/bin/mv $fullpath /opt/pbx3/snap");
+        // Use syshelper for privileged move operation
+        [$response, $error] = pbx3_request_syscmd("/bin/mv $fullpath /opt/pbx3/snap");
+        if ($error !== null) {
+            Log::error("Failed to move snapshot via syshelper: $error");
+            return Response::json(['Error' => "Failed to upload snapshot: $error"], 500);
+        }
         return Response::json(['Uploaded ' . $fpath],200);
 
     }
@@ -114,9 +126,20 @@ class SnapShotController extends Controller
             return Response::json(['Error' => "snapshot file not found"],404);
         } 
 
-        shell_exec("/bin/cp /opt/pbx3/snap/$snapshot /opt/pbx3/db/sqlite.db");
-        shell_exec("/bin/chown www-data:www-data /opt/pbx3/db/sqlite.db");
-        shell_exec("/bin/chmod 664 /opt/pbx3/db/sqlite.db");
+        // Use syshelper for privileged restore operations
+        [$response, $error] = pbx3_request_syscmd("/bin/cp /opt/pbx3/snap/$snapshot /opt/pbx3/db/sqlite.db");
+        if ($error !== null) {
+            Log::error("Failed to restore snapshot via syshelper: $error");
+            return Response::json(['Error' => "Failed to restore snapshot: $error"], 500);
+        }
+        [$response, $error] = pbx3_request_syscmd("/bin/chown www-data:www-data /opt/pbx3/db/sqlite.db");
+        if ($error !== null) {
+            Log::warning("Failed to chown restored snapshot: $error");
+        }
+        [$response, $error] = pbx3_request_syscmd("/bin/chmod 664 /opt/pbx3/db/sqlite.db");
+        if ($error !== null) {
+            Log::warning("Failed to chmod restored snapshot: $error");
+        }
 
 		return response()->json(['restored' => $snapshot], 200);
     }   
@@ -130,11 +153,23 @@ class SnapShotController extends Controller
 
 // Don't allow deletion of default tenant
 
-        if (!file_exists("/opt/pbx3/snap/$snapshot")) {
+        $snapshotPath = "/opt/pbx3/snap/$snapshot";
+        if (!file_exists($snapshotPath)) {
            return Response::json(['Error' => "$snapshot not found in snapshot set"],404); 
         }
 
-        shell_exec("/bin/rm -r /opt/pbx3/snap/$snapshot");
+        // Use syshelper for privileged delete operation
+        [$response, $error] = pbx3_request_syscmd("/bin/rm -f $snapshotPath");
+        if ($error !== null) {
+            Log::error("Failed to delete snapshot via syshelper: $error");
+            return Response::json(['Error' => "Failed to delete snapshot: $error"], 500);
+        }
+
+        // Verify file was deleted
+        if (file_exists($snapshotPath)) {
+            Log::error("Snapshot file still exists after delete: $snapshotPath");
+            return Response::json(['Error' => "Failed to delete snapshot file"], 500);
+        }
 
         return response()->json(null, 204);
     }

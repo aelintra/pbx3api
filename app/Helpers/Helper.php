@@ -246,10 +246,48 @@ if (!function_exists('create_new_snapshot')) {
      * */
     function create_new_snapshot() {
 
+        // Ensure snapshot directory exists (via syshelper for privileged operation)
+        if (!file_exists('/opt/pbx3/snap')) {
+            [$response, $error] = pbx3_request_syscmd('/bin/mkdir -p /opt/pbx3/snap');
+            if ($error !== null) {
+                Log::error("Failed to create snapshot directory: $error");
+                throw new \Exception("Failed to create snapshot directory: $error");
+            }
+            [$response, $error] = pbx3_request_syscmd('/bin/chown www-data:www-data /opt/pbx3/snap');
+            if ($error !== null) {
+                Log::warning("Failed to chown snapshot directory: $error");
+            }
+            [$response, $error] = pbx3_request_syscmd('/bin/chmod 755 /opt/pbx3/snap');
+            if ($error !== null) {
+                Log::warning("Failed to chmod snapshot directory: $error");
+            }
+        }
+
         $newSnapshotName = "sqlite.db." . time();
-        shell_exec("/bin/cp /opt/pbx3/db/sqlite.db /opt/pbx3/snap/$newSnapshotName");
-        shell_exec("/bin/chown www-data:www-data /opt/pbx3/snap/$newSnapshotName");
-        shell_exec("/bin/chmod 664 /opt/pbx3/snap/$newSnapshotName");
+        $snapshotPath = "/opt/pbx3/snap/$newSnapshotName";
+        
+        // Use syshelper for privileged snapshot creation
+        [$response, $error] = pbx3_request_syscmd("/bin/cp /opt/pbx3/db/sqlite.db $snapshotPath");
+        if ($error !== null) {
+            Log::error("Failed to create snapshot via syshelper: $error");
+            throw new \Exception("Failed to create snapshot: $error");
+        }
+        
+        // Verify snapshot was created
+        if (!file_exists($snapshotPath)) {
+            Log::error("Snapshot file was not created at $snapshotPath");
+            throw new \Exception("Failed to create snapshot file");
+        }
+
+        [$response, $error] = pbx3_request_syscmd("/bin/chown www-data:www-data $snapshotPath");
+        if ($error !== null) {
+            Log::warning("Failed to chown snapshot file: $error");
+        }
+        [$response, $error] = pbx3_request_syscmd("/bin/chmod 664 $snapshotPath");
+        if ($error !== null) {
+            Log::warning("Failed to chmod snapshot file: $error");
+        }
+        
         return $newSnapshotName;  
 
     }
