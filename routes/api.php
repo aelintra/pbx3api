@@ -258,10 +258,12 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::delete('ivrs/{ivr}', [IvrController::class, 'delete']);
 
     /**
-     * CDR Log
+     * Logs
      */
         Route::get('logs', [LogController::class, 'index']);
         Route::get('logs/cdrs{limit}', [LogController::class, 'showcdr']);
+        Route::get('logs/{logfile}/download', [LogController::class, 'download']);
+        Route::get('logs/{logfile}', [LogController::class, 'show']);
 
     /**
      * Queues
