@@ -262,10 +262,9 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      */
         Route::get('logs', [LogController::class, 'index']);
         Route::get('logs/cdrs{limit}', [LogController::class, 'showcdr']);
-        // Use catch-all pattern for paths with slashes (e.g., asterisk/messages)
-        // Note: Laravel splits routes on /, so we reconstruct the full path in the controller
-        Route::get('logs/{logfile}/download', [LogController::class, 'download'])->where('logfile', '(.*)');
-        Route::get('logs/{logfile}', [LogController::class, 'show'])->where('logfile', '(.*)');
+        // Use symbolic names (e.g., astmessages, astcdrs) instead of paths with slashes
+        Route::get('logs/{logfile}/download', [LogController::class, 'download']);
+        Route::get('logs/{logfile}', [LogController::class, 'show']);
 
     /**
      * Queues

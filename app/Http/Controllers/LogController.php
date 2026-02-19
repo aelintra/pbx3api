@@ -27,12 +27,54 @@ class LogController extends Controller
 		'auth.log',
 	];
 
+	/** Map symbolic names to actual log file paths (relative to /var/log/). */
+	private const LOG_FILE_MAP = [
+		'astmessages' => 'asterisk/messages',
+		'astfull' => 'asterisk/full',
+		'astcdrs' => 'asterisk/cdr-csv/Master.csv',
+		'astqueues' => 'asterisk/queue_log',
+	];
+
 	/** Safe log path: no path traversal. */
 	private static function isValidLogPath(string $path): bool
 	{
 		return $path !== '' && $path !== '.' && $path !== '..'
 			&& strpos($path, '..') === false
 			&& strpos($path, '/') !== 0; // Must be relative
+	}
+
+	/**
+	 * Resolve symbolic name to actual file path.
+	 * Returns the mapped path if name is in LOG_FILE_MAP, otherwise returns the name as-is.
+	 */
+	private static function resolveLogPath(string $name): string
+	{
+		return self::LOG_FILE_MAP[$name] ?? $name;
+	}
+
+	/**
+	 * Check if a log name/path is valid (either a symbolic name or a direct path in LOG_FILES).
+	 */
+	private static function isValidLogName(string $name): bool
+	{
+		// Check if it's a symbolic name
+		if (isset(self::LOG_FILE_MAP[$name])) {
+			return true;
+		}
+		// Check if it's a direct path in LOG_FILES
+		if (in_array($name, self::LOG_FILES, true)) {
+			return self::isValidLogPath($name);
+		}
+		return false;
+	}
+
+	/**
+	 * Get display name for log file (symbolic name if mapped, otherwise path).
+	 */
+	private static function getLogDisplayName(string $logPath): string
+	{
+		$symbolic = array_search($logPath, self::LOG_FILE_MAP, true);
+		return $symbolic !== false ? $symbolic : $logPath;
 	}
 
 	/**
@@ -58,8 +100,12 @@ class LogController extends Controller
 					}
 				}
 				
+				// Use symbolic name if mapped, otherwise use path
+				$displayName = self::getLogDisplayName($logPath);
+				
 				$logs[] = [
-					'path' => $logPath,
+					'path' => $displayName, // Return symbolic name for asterisk logs
+					'actualPath' => $logPath, // Keep actual path for reference
 					'exists' => $exists,
 					'size' => $size,
 				];
@@ -78,30 +124,22 @@ class LogController extends Controller
 	 * @param Request $request
 	 * @param string $logfile Log file path (relative to /var/log/) - may be partial if route split on /
 	 */
-	public function show(Request $request, string $logfile = null)
+	public function show(Request $request, string $logfile)
 	{
-		// Reconstruct full path from request URI since Laravel router splits on /
-		// Get the path info (e.g., /api/logs/asterisk/messages)
-		$pathInfo = $request->getPathInfo();
-		$logfile = null;
-		
-		// Try to extract from pathInfo first (handles paths with slashes)
-		if (preg_match('#^/api/logs/(.+)$#', $pathInfo, $matches)) {
-			$logfile = urldecode($matches[1]);
-		} elseif (preg_match('#^/logs/(.+)$#', $pathInfo, $matches)) {
-			$logfile = urldecode($matches[1]);
+		// Validate the log name (symbolic or direct path)
+		if (!self::isValidLogName($logfile)) {
+			return response()->json(['message' => 'Invalid log name'], 422);
 		}
 		
-		// Fallback to route parameter (for simple paths without slashes like 'syslog')
-		if (!$logfile) {
-			$logfile = $request->route('logfile');
-		}
+		// Resolve symbolic name to actual path (e.g., astmessages → asterisk/messages)
+		$actualPath = self::resolveLogPath($logfile);
 		
-		$logfile = $logfile ?? '';
-		
-		if (!self::isValidLogPath($logfile)) {
+		if (!self::isValidLogPath($actualPath)) {
 			return response()->json(['message' => 'Invalid log path'], 422);
 		}
+		
+		// Use actual path for file operations
+		$logfile = $actualPath;
 
 		$validator = Validator::make($request->all(), [
 			'offset' => 'integer|min:0',
@@ -153,8 +191,11 @@ class LogController extends Controller
 
 		$hasMore = ($offset + $limit) < $totalLines;
 
+		// Return symbolic name if mapped, otherwise actual path
+		$displayName = self::getLogDisplayName($logfile);
+
 		return response()->json([
-			'path' => $logfile,
+			'path' => $displayName,
 			'lines' => $lines,
 			'offset' => $offset,
 			'limit' => $limit,
@@ -169,29 +210,22 @@ class LogController extends Controller
 	 * @param Request $request
 	 * @param string $logfile Log file path (relative to /var/log/) - may be partial if route split on /
 	 */
-	public function download(Request $request, string $logfile = null)
+	public function download(Request $request, string $logfile)
 	{
-		// Reconstruct full path from request URI since Laravel router splits on /
-		$pathInfo = $request->getPathInfo();
-		$logfile = null;
-		
-		// Try to extract from pathInfo first (handles paths with slashes)
-		if (preg_match('#^/api/logs/(.+)/download$#', $pathInfo, $matches)) {
-			$logfile = urldecode($matches[1]);
-		} elseif (preg_match('#^/logs/(.+)/download$#', $pathInfo, $matches)) {
-			$logfile = urldecode($matches[1]);
+		// Validate the log name (symbolic or direct path)
+		if (!self::isValidLogName($logfile)) {
+			return response()->json(['message' => 'Invalid log name'], 422);
 		}
 		
-		// Fallback to route parameter (for simple paths without slashes)
-		if (!$logfile) {
-			$logfile = $request->route('logfile');
-		}
+		// Resolve symbolic name to actual path (e.g., astmessages → asterisk/messages)
+		$actualPath = self::resolveLogPath($logfile);
 		
-		$logfile = $logfile ?? '';
-		
-		if (!self::isValidLogPath($logfile)) {
+		if (!self::isValidLogPath($actualPath)) {
 			return response()->json(['message' => 'Invalid log path'], 422);
 		}
+		
+		// Use actual path for file operations
+		$logfile = $actualPath;
 
 		$fullPath = '/var/log/' . $logfile;
 		[$testOut, $testErr] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullPath) . ' && echo exists || echo missing');
@@ -210,7 +244,11 @@ class LogController extends Controller
 		// Make readable
 		@chmod($tmpPath, 0644);
 
-		return Response::download($tmpPath, basename($logfile))->deleteFileAfterSend(true);
+		// Use symbolic name for download filename if mapped
+		$displayName = self::getLogDisplayName($logfile);
+		$downloadName = strpos($displayName, '/') === false ? basename($logfile) : basename($logfile);
+
+		return Response::download($tmpPath, $downloadName)->deleteFileAfterSend(true);
 	}
 
 /**
