@@ -76,10 +76,29 @@ class LogController extends Controller
 	 * offset=0 means last N lines (tail), offset>0 means older lines.
 	 * 
 	 * @param Request $request
-	 * @param string $logfile Log file path (relative to /var/log/)
+	 * @param string $logfile Log file path (relative to /var/log/) - may be partial if route split on /
 	 */
-	public function show(Request $request, string $logfile)
+	public function show(Request $request, string $logfile = null)
 	{
+		// Reconstruct full path from request URI since Laravel router splits on /
+		// Get the path info (e.g., /api/logs/asterisk/messages)
+		$pathInfo = $request->getPathInfo();
+		$logfile = null;
+		
+		// Try to extract from pathInfo first (handles paths with slashes)
+		if (preg_match('#^/api/logs/(.+)$#', $pathInfo, $matches)) {
+			$logfile = urldecode($matches[1]);
+		} elseif (preg_match('#^/logs/(.+)$#', $pathInfo, $matches)) {
+			$logfile = urldecode($matches[1]);
+		}
+		
+		// Fallback to route parameter (for simple paths without slashes like 'syslog')
+		if (!$logfile) {
+			$logfile = $request->route('logfile');
+		}
+		
+		$logfile = $logfile ?? '';
+		
 		if (!self::isValidLogPath($logfile)) {
 			return response()->json(['message' => 'Invalid log path'], 422);
 		}
@@ -147,10 +166,29 @@ class LogController extends Controller
 	/**
 	 * Download full log file.
 	 * 
-	 * @param string $logfile Log file path (relative to /var/log/)
+	 * @param Request $request
+	 * @param string $logfile Log file path (relative to /var/log/) - may be partial if route split on /
 	 */
-	public function download(string $logfile)
+	public function download(Request $request, string $logfile = null)
 	{
+		// Reconstruct full path from request URI since Laravel router splits on /
+		$pathInfo = $request->getPathInfo();
+		$logfile = null;
+		
+		// Try to extract from pathInfo first (handles paths with slashes)
+		if (preg_match('#^/api/logs/(.+)/download$#', $pathInfo, $matches)) {
+			$logfile = urldecode($matches[1]);
+		} elseif (preg_match('#^/logs/(.+)/download$#', $pathInfo, $matches)) {
+			$logfile = urldecode($matches[1]);
+		}
+		
+		// Fallback to route parameter (for simple paths without slashes)
+		if (!$logfile) {
+			$logfile = $request->route('logfile');
+		}
+		
+		$logfile = $logfile ?? '';
+		
 		if (!self::isValidLogPath($logfile)) {
 			return response()->json(['message' => 'Invalid log path'], 422);
 		}
