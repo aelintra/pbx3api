@@ -17,7 +17,6 @@ class DeviceController extends Controller
         'blfkeyname' => 'string|nullable',
         'blfkeys' => 'integer|nullable',
         'desc' => 'string|nullable',
-        'device' => 'string|nullable',
         'fkeys' => 'integer|nullable',
         'imageurl' => 'string|nullable',
         'legacy' => 'string|nullable',
