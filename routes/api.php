@@ -16,6 +16,7 @@ use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\DestinationController;
+use App\Http\Controllers\HelpCoreController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\FirewallController;
 use App\Http\Controllers\GreetingController;
@@ -168,6 +169,15 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('devices', [DeviceController::class, 'save']);
         Route::put('devices/{device}', [DeviceController::class, 'update']);
         Route::delete('devices/{device}', [DeviceController::class, 'delete']);
+
+    /**
+     * Help messages (tt_help_core; instance-scoped, pkey-only)
+     */
+        Route::get('helpcore', [HelpCoreController::class, 'index']);
+        Route::get('helpcore/{helpcore}', [HelpCoreController::class, 'show']);
+        Route::post('helpcore', [HelpCoreController::class, 'save']);
+        Route::put('helpcore/{helpcore}', [HelpCoreController::class, 'update']);
+        Route::delete('helpcore/{helpcore}', [HelpCoreController::class, 'delete']);
 
     /**
      * Day Timers
