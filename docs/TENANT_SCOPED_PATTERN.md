@@ -33,8 +33,11 @@ Resources that belong to a tenant (cluster) share the same pattern so that the s
 
 **REQUIRED:** Set `id` (KSUID) and `shortuid` before `$model->save()`. The `id` field is the PRIMARY KEY and must be set for updates to work. Without it, `update()` will fail because `$model->id` will be null.
 
+**REQUIRED:** Resolve request `cluster` (pkey) to shortuid and set `$model->cluster = cluster_identifier_to_shortuid($request->cluster)` after `move_request_to_model`, so the DB stores shortuid not pkey. Use the same shortuid in any duplicate (pkey+cluster) check.
+
 ```php
 move_request_to_model($request, $model, $this->updateableColumns);
+$model->cluster = cluster_identifier_to_shortuid($request->cluster); // store shortuid, not pkey
 
 // REQUIRED: Set id and shortuid before save
 $model->id = generate_ksuid();
@@ -50,6 +53,8 @@ try {
 **Note:** This is currently manual in each controller. See `TODO_KSUID_SHORTUID.md` for a plan to centralize this via a trait/model event.
 
 ## Controller update
+
+After `move_request_to_model`, if `cluster` was in the request, set `$model->cluster = cluster_identifier_to_shortuid($request->cluster)` so the DB stores shortuid not pkey.
 
 Do **not** rely on `$model->save()` for updates. Use an explicit update by `id` so only the resolved row is updated:
 
@@ -83,8 +88,9 @@ $pkeyUnchanged = $resource instanceof \App\Models\Resource
 if ($pkeyUnchanged) {
     $pkeyRule = 'required';
 } else {
-    $cluster = $this->input('cluster');
-    $pkeyRule = Rule::unique('table', 'pkey')->where('cluster', $cluster);
+    // DB stores cluster shortuid; unique check must use shortuid
+    $clusterShortuid = cluster_identifier_to_shortuid($this->input('cluster'));
+    $pkeyRule = Rule::unique('table', 'pkey')->where('cluster', $clusterShortuid ?? $this->input('cluster'));
     if ($resource instanceof \App\Models\Resource) {
         $pkeyRule->ignore($resource->getKey(), 'id');
     }
