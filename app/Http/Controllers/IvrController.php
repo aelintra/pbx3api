@@ -93,15 +93,20 @@ class IvrController extends Controller
  */
     public function save(Request $request) {
 
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
+
 // validation 
   		$this->updateableColumns['pkey'] = 'required|digits_between:3,5';
-		$this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
+		$this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
 
     	$validator = Validator::make($request->all(),$this->updateableColumns);
 
-        $validator->after(function ($validator) use ($request) {
-            // Check if key exists within tenant (cluster)
-            if (Ivr::where('pkey', '=', $request->pkey)->where('cluster', $request->cluster)->exists()) {
+        $validator->after(function ($validator) use ($request, $clusterShortuid) {
+            // Check if key exists within tenant (cluster); DB stores shortuid
+            if (Ivr::where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
             }
         });
@@ -112,7 +117,8 @@ class IvrController extends Controller
 
     	$ivr = new Ivr;  	
 
-    	move_request_to_model($request,$ivr,$this->updateableColumns); 
+    	move_request_to_model($request,$ivr,$this->updateableColumns);
+        $ivr->cluster = $clusterShortuid; 
         $this->check_options($request, $ivr);
 
         // Populate id (KSUID) and shortuid per ivrmenu schema (same pattern as Trunk/InboundRoute)
@@ -155,6 +161,10 @@ class IvrController extends Controller
 // Move post variables to the model   
 
 		move_request_to_model($request,$ivr,$this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid !== null) {
+            $ivr->cluster = $clusterShortuid;
+        }
         $this->check_options($request, $ivr);
 
 // store the model if it has changed — update by id only (tenant-safe)

@@ -56,6 +56,28 @@ if (!function_exists('get_globals')) {
     }
 }
 
+/**
+ * Resolve cluster identifier (pkey, shortuid, or id) to cluster shortuid for storage.
+ * Tenant-scoped tables must store cluster shortuid (not pkey) for RI and uniqueness,
+ * since pkey is human-provided and can be duplicated across systems.
+ *
+ * @param string|null $identifier  Cluster pkey, shortuid, or id from client
+ * @return string|null  Cluster shortuid, or null if not found
+ */
+if (!function_exists('cluster_identifier_to_shortuid')) {
+    function cluster_identifier_to_shortuid($identifier) {
+        if ($identifier === null || $identifier === '') {
+            return null;
+        }
+        $row = DB::table('cluster')
+            ->where('pkey', $identifier)
+            ->orWhere('shortuid', $identifier)
+            ->orWhere('id', $identifier)
+            ->first(['shortuid']);
+        return $row ? $row->shortuid : null;
+    }
+}
+
 if (!function_exists('set_commit_dirty')) {
     /**
      * Mark instance as having uncommitted DB changes (Save was done; Commit not yet run).

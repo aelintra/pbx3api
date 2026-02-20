@@ -24,8 +24,9 @@ class TrunkRequest extends FormRequest
         if ($pkeyUnchanged) {
             $pkeyRule = 'required';
         } else {
-            $cluster = $this->input('cluster');
-            $pkeyRule = Rule::unique('trunks', 'pkey')->where('cluster', $cluster);
+            // Uniqueness is per cluster; DB stores cluster shortuid
+            $clusterShortuid = cluster_identifier_to_shortuid($this->input('cluster'));
+            $pkeyRule = Rule::unique('trunks', 'pkey')->where('cluster', $clusterShortuid ?? $this->input('cluster'));
             if ($trunk instanceof \App\Models\Trunk) {
                 $pkeyRule->ignore($trunk->getKey(), 'id');
             }

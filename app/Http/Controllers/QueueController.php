@@ -66,18 +66,23 @@ class QueueController extends Controller
  */
     public function save(Request $request) {
 
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
+
 // validate 
         $this->updateableColumns['pkey'] = 'required';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
+        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
 
         $queue = new Queue;
 
         $validator = Validator::make($request->all(),$this->updateableColumns);
 
-        $validator->after(function ($validator) use ($request,$queue) {
+        $validator->after(function ($validator) use ($request, $queue, $clusterShortuid) {
 
-//Check if key exists within tenant (cluster)
-            if ($queue->where('pkey','=',$request->pkey)->where('cluster', $request->cluster)->exists()) {
+//Check if key exists within tenant (cluster); DB stores shortuid
+            if ($queue->where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                     $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
                     return;
             }                 
@@ -88,7 +93,8 @@ class QueueController extends Controller
         }
     
 // Move post variables to the model 
-        move_request_to_model($request,$queue,$this->updateableColumns); 
+        move_request_to_model($request,$queue,$this->updateableColumns);
+        $queue->cluster = $clusterShortuid;
 
 
 // create the model         
@@ -117,6 +123,10 @@ class QueueController extends Controller
 
 // Move post variables to the model   
         move_request_to_model($request,$queue,$this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid !== null) {
+            $queue->cluster = $clusterShortuid;
+        }
 
 
 // store the model if it has changed — update by id only (tenant-safe)

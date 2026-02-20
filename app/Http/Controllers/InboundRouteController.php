@@ -78,6 +78,11 @@ class InboundRouteController extends Controller
  */
     public function save(Request $request) {
 
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
+
 // validate (carrier is request-only, stored as technology in DB; pkey must be valid Asterisk extension)
         $rules = array_merge($this->updateableColumns, [
             'pkey' => ['required', 'regex:' . self::PKEY_EXTENSION_REGEX],
@@ -96,9 +101,9 @@ class InboundRouteController extends Controller
         $validator = Validator::make($request->all(), $rules, $messages);
         $validator->setAttributeNames(['pkey' => 'Number (DiD/CLiD)']);
 
-        $validator->after(function ($validator) use ($request, $inboundroute) {
-            // Check if key exists within tenant (cluster)
-            if ($inboundroute->where('pkey', '=', $request->pkey)->where('cluster', $request->cluster)->exists()) {
+        $validator->after(function ($validator) use ($request, $inboundroute, $clusterShortuid) {
+            // Check if key exists within tenant (cluster); DB stores shortuid
+            if ($inboundroute->where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
             }
             // Reject single "0" — not a valid DiD/CLiD
@@ -113,6 +118,7 @@ class InboundRouteController extends Controller
         }
 
         move_request_to_model($request, $inboundroute, $this->updateableColumns);
+        $inboundroute->cluster = $clusterShortuid;
         // Set pkey from request (may be "0" — valid DiD/CLiD; don't use empty() here)
         $inboundroute->pkey = trim((string) $request->input('pkey', ''));
 
@@ -149,6 +155,10 @@ class InboundRouteController extends Controller
         }
 
         move_request_to_model($request, $inboundroute, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid !== null) {
+            $inboundroute->cluster = $clusterShortuid;
+        }
         if ($request->has('carrier')) {
             $inboundroute->technology = $request->input('carrier');
         }

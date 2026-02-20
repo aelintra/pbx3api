@@ -7,12 +7,21 @@ Resources that belong to a tenant (cluster) share the same pattern so that the s
 - **API:** Extensions, Queues, Agents, Routes, Trunks, IVRs, Inbound routes. Also any future tenant-scoped resource (e.g. Custom apps).
 - **Not:** Tenants (cluster table) themselves — they are top-level and already unique.
 
+## Rule: store cluster shortuid, not pkey
+
+**The `cluster` column in all tenant-scoped tables must store the cluster (tenant) *shortuid*, not the cluster pkey.**
+
+- **Why:** Cluster pkey is human-provided and can be duplicated across systems. Shortuid is system-generated and unique, so it is used internally for referential integrity (RI) and uniqueness.
+- **API receive:** The client sends the tenant identifier (cluster pkey) for display/selection. The API must resolve it to cluster shortuid and store the shortuid.
+- **API return:** When returning resources, resolve the stored shortuid (or id) to cluster pkey for display as `tenant_pkey`.
+- **Helper:** Use `cluster_identifier_to_shortuid($value)` (in `app/Helpers/Helper.php`) to resolve pkey, shortuid, or id to the shortuid to store. Validate with `exists:cluster,pkey` (or resolve and then validate) so the client can continue to send pkey.
+
 ## Rule: two roles for two fields
 
 | Role | Field | Use |
 |------|--------|-----|
 | **Identity** (which row) | `id` (KSUID) | Primary key. Route binding, UPDATE/DELETE. Prefer `id`; shortuid in URLs is optional and resolves to one row. |
-| **Uniqueness / display** | `pkey` + `cluster` | Uniqueness is *per cluster*. Same pkey in different clusters is allowed. |
+| **Uniqueness / display** | `pkey` + `cluster` | Uniqueness is *per cluster*. Same pkey in different clusters is allowed. The `cluster` column stores **cluster shortuid** (not pkey). |
 
 ## Model
 
@@ -61,7 +70,7 @@ if ($model->isDirty()) {
 When validating `pkey` (e.g. in a Form Request):
 
 1. **Update, pkey unchanged** — skip unique check (only `required`). Avoids 422 when only other fields (e.g. Active) change.
-2. **Update, pkey changed, or Create** — `Rule::unique('table', 'pkey')->where('cluster', $cluster)`; on update add `->ignore($model->getKey(), 'id')`.
+2. **Update, pkey changed, or Create** — resolve client’s cluster (pkey) to shortuid with `cluster_identifier_to_shortuid($this->input('cluster'))`, then `Rule::unique('table', 'pkey')->where('cluster', $clusterShortuid)`; on update add `->ignore($model->getKey(), 'id')`. The DB stores shortuid, so the unique check must use shortuid.
 
 Example (pattern used in ExtensionRequest, TrunkRequest):
 

@@ -171,7 +171,11 @@ class ExtensionController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request, $extensionTypeInput) {
-            if (Extension::where('pkey', $request->pkey)->where('cluster', $request->cluster)->exists()) {
+            $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+            if ($clusterShortuid === null && $request->cluster !== null && $request->cluster !== '') {
+                $validator->errors()->add('cluster', 'Invalid cluster.');
+            }
+            if ($clusterShortuid !== null && Extension::where('pkey', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('save', 'Duplicate extension - ' . $request->pkey . ' in this tenant.');
             }
             if ($extensionTypeInput === 'SIP' && $request->macaddr) {
@@ -187,7 +191,10 @@ class ExtensionController extends Controller
         }
 
         $pkey = $request->input('pkey');
-        $cluster = $request->input('cluster');
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
         $desc = $request->input('desc');
         $extensionType = $request->input('extensionType') ?: $extensionTypeInput;
         $macaddr = $request->input('macaddr');
@@ -205,7 +212,7 @@ class ExtensionController extends Controller
             'id' => $id,
             'shortuid' => $shortuid,
             'pkey' => $pkey,
-            'cluster' => $cluster,
+            'cluster' => $clusterShortuid,
             'dvrvmail' => $dvrvmail,
         ];
 
@@ -395,12 +402,16 @@ class ExtensionController extends Controller
             }                 
         });        
 
+    	$clusterShortuid = cluster_identifier_to_shortuid($request->post('cluster'));
+    	if ($clusterShortuid === null) {
+    		return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+    	}
     	try {
     		$extension = Extension::create([
     			'pkey' => $request->post('pkey'),
     			'desc' => 'MAILBOX',
     			'device' => 'MAILBOX',
-    			'cluster' => $request->post('cluster'),
+    			'cluster' => $clusterShortuid,
                 'location' => 'local'
     			]);
     	} catch (\Exception $e) {
@@ -436,6 +447,10 @@ class ExtensionController extends Controller
     		return response()->json($validator->errors(),422);
     	}
 
+        $clusterShortuid = cluster_identifier_to_shortuid($request->post('cluster'));
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
         $location = get_location();
 
     	try {
@@ -443,7 +458,7 @@ class ExtensionController extends Controller
     			'pkey' => $request->post('pkey'),
     			'desc' => 'Ext' .$request->post('pkey'),
     			'device' => 'General SIP',
-    			'cluster' => $request->post('cluster'),
+    			'cluster' => $clusterShortuid,
                 'location' => $location
     			]);
     	} catch (\Exception $e) {
@@ -483,6 +498,10 @@ class ExtensionController extends Controller
 		return response()->json($validator->errors(),422);
 	}
 
+	$clusterShortuid = cluster_identifier_to_shortuid($request->post('cluster'));
+	if ($clusterShortuid === null) {
+		return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+	}
 	$location = get_location();
 
 	try {
@@ -491,7 +510,7 @@ class ExtensionController extends Controller
 			'desc' => 'Ext' .$request->post('pkey'),
 			'device' => 'WebRTC',
 			'transport' => 'wss',
-			'cluster' => $request->post('cluster'),
+			'cluster' => $clusterShortuid,
 			'location' => $location
 			]);
 	} catch (\Exception $e) {
@@ -558,6 +577,10 @@ class ExtensionController extends Controller
     	$provision .= "#INCLUDE " .  $device . '.udp' . "\n";
     	$provision .= "#INCLUDE " .  $device . '.ipv4' . "\n";
 
+        $clusterShortuid = cluster_identifier_to_shortuid($request->post('cluster'));
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
         $location = get_location();
 
     	// store it
@@ -567,7 +590,7 @@ class ExtensionController extends Controller
         		'pkey' => $request->post('pkey'),
         		'provision' => $provision,
         		'device' => $device,
-        		'cluster' => $request->post('cluster'),
+        		'cluster' => $clusterShortuid,
         		'macaddr' => $request->post('macaddr'),
                 'location' => $location
         	]);
@@ -594,7 +617,11 @@ class ExtensionController extends Controller
 
         foreach ($request->all() as $key => $value) {
             if (array_key_exists($key, $this->updateableColumns)) {
-                $extension->$key = is_string($value) ? trim($value) : $value;
+                if ($key === 'cluster') {
+                    $extension->cluster = cluster_identifier_to_shortuid($value) ?? trim((string) $value);
+                } else {
+                    $extension->$key = is_string($value) ? trim($value) : $value;
+                }
             }
         }
 

@@ -84,19 +84,23 @@ class TrunkController extends Controller
 
 		// First cut: all new trunks belong to the default tenant (TRUNK_ROUTE_MULTITENANCY)
 		$request->merge(['cluster' => 'default']);
+		$clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+		if ($clusterShortuid === null) {
+			return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+		}
 
 // validation 
   		$this->updateableColumns['pkey'] = 'required';
   		$this->updateableColumns['carrier'] = 'required|in:GeneralSIP,GeneralIAX2';
-		$this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
+		$this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
 		$this->updateableColumns['username'] = 'required';
 		$this->updateableColumns['host'] = 'required';
 
     	$validator = Validator::make($request->all(),$this->updateableColumns);
 
-        $validator->after(function ($validator) use ($request) {
-//Check if key exists within tenant (cluster)
-            if (Trunk::where('pkey','=',$request->pkey)->where('cluster', $request->cluster)->exists()) {
+        $validator->after(function ($validator) use ($request, $clusterShortuid) {
+//Check if key exists within tenant (cluster); DB stores shortuid
+            if (Trunk::where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
                 return;
             }                 
@@ -109,6 +113,7 @@ class TrunkController extends Controller
     	$trunk = new Trunk;
 
     	move_request_to_model($request,$trunk,$this->updateableColumns);
+		$trunk->cluster = $clusterShortuid;
 
 // Populate id (ksuid) and shortuid via helpers; both in tenant schema (sqlite_create_tenant.sql) and persisted
     	$trunk->id = generate_ksuid();
@@ -166,7 +171,6 @@ class TrunkController extends Controller
 		$request->merge(['cluster' => 'default']);
 
 // Validate   
-
     	$validator = Validator::make($request->all(),$this->updateableColumns);
 
     	$validator->after(function ($validator) use ($request) {
@@ -183,9 +187,11 @@ class TrunkController extends Controller
     	}
 
 // Move post variables to the model   
-
 		move_request_to_model($request,$trunk,$this->updateableColumns);
-
+		$clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+		if ($clusterShortuid !== null) {
+			$trunk->cluster = $clusterShortuid;
+		}
 
 // store the model if it has changed — update by id only (tenant-safe)
     	try {

@@ -62,9 +62,14 @@ class AgentController extends Controller
  */
     public function save(Request $request) {
 
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
+
 // validate 
         $this->updateableColumns['pkey'] = 'required|integer|min:1000|max:9999';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,' . $request->cluster;
+        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
         $this->updateableColumns['name'] = 'required|alpha_dash';
         $this->updateableColumns['passwd'] = 'required|integer|min:1001|max:9999';
 
@@ -72,10 +77,10 @@ class AgentController extends Controller
 
         $validator = Validator::make($request->all(),$this->updateableColumns);
 
-        $validator->after(function ($validator) use ($request,$agent) {
+        $validator->after(function ($validator) use ($request, $agent, $clusterShortuid) {
 
-//Check if key exists within tenant (cluster)
-            if ($agent->where('pkey','=',$request->pkey)->where('cluster', $request->cluster)->exists()) {
+//Check if key exists within tenant (cluster); DB stores shortuid
+            if ($agent->where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
                 return;
             }                 
@@ -86,7 +91,8 @@ class AgentController extends Controller
         }
     
 // Move post variables to the model 
-        move_request_to_model($request,$agent,$this->updateableColumns); 
+        move_request_to_model($request,$agent,$this->updateableColumns);
+        $agent->cluster = $clusterShortuid;
 
 
 // create the model         
@@ -115,6 +121,10 @@ class AgentController extends Controller
 
 // Move post variables to the model   
         move_request_to_model($request,$agent,$this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid !== null) {
+            $agent->cluster = $clusterShortuid;
+        }
 
 
 // store the model if it has changed — update by id only (tenant-safe)

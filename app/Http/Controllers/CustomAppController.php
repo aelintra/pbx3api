@@ -78,9 +78,15 @@ class CustomAppController extends Controller
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
         }
+
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
     
 // Move post variables to the model
         move_request_to_model($request, $customapp, $this->updateableColumns);
+        $customapp->cluster = $clusterShortuid;
 
         // Set id (KSUID) and shortuid like other tenant resources (appl table has id PRIMARY KEY)
         $customapp->id = generate_ksuid();
@@ -108,6 +114,10 @@ class CustomAppController extends Controller
         }
 
         move_request_to_model($request, $customapp, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid !== null) {
+            $customapp->cluster = $clusterShortuid;
+        }
 
         try {
             if ($customapp->isDirty()) {
