@@ -608,7 +608,7 @@ if (!function_exists('generate_shortuid')) {
      */
     function generate_shortuid($length = 8, $charset = '')
     {
-        $charset = $charset ?: '0123456789bcdfghjkmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ';
+        $charset = $charset ?: '123456789bcdfghjkmnpqrstvwxyz';
         $charset_size = strlen($charset);
         $uid = '';
         while ($length-- > 0) {
