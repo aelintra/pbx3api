@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class CosClose extends Model
 {
     //
-    protected $table = 'IPphoneCOSclosed';
-    protected $primaryKey = 'IPphone_pkey';
+    protected $table = 'ipphonecosclosed';
+    protected $primaryKey = 'ipphone_pkey';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;

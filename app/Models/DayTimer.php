@@ -8,7 +8,7 @@ class DayTimer extends Model
 {
     //
     protected $table = 'dateseg';
-//    protected $primaryKey = 'IPphone_pkey';
+//    protected $primaryKey = 'ipphone_pkey';
 //    protected $keyType = 'string';
 //    public $incrementing = false;
     public $timestamps = false;

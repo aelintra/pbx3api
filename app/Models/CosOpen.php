@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class CosOpen extends Model
 {
     //
-    protected $table = 'IPphoneCOSopen';
-    protected $primaryKey = 'IPphone_pkey';
+    protected $table = 'ipphonecosopen';
+    protected $primaryKey = 'ipphone_pkey';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;

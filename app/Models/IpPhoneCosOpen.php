@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class IpPhoneCosOpen extends Model
 {
-    protected $table = 'IPphoneCOSopen';
+    protected $table = 'ipphonecosopen';
     public $timestamps = false;
-    protected $fillable = ['IPphone_pkey', 'COS_pkey', 'cluster'];
+    protected $fillable = ['ipphone_pkey', 'cos_pkey', 'cluster'];
 
     public function extension()
     {
-        return $this->belongsTo(IpPhone::class, 'IPphone_pkey', 'pkey');
+        return $this->belongsTo(IpPhone::class, 'ipphone_pkey', 'pkey');
     }
 }

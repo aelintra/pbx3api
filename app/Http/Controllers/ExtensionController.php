@@ -318,7 +318,7 @@ class ExtensionController extends Controller
     /** Get Device row by pkey (instance schema). */
     private function getDeviceRow(string $devicePkey) {
         try {
-            return DB::table('Device')->where('pkey', $devicePkey)->first(['sipiaxfriend', 'technology']);
+            return DB::table('device')->where('pkey', $devicePkey)->first(['sipiaxfriend', 'technology']);
         } catch (\Throwable $e) {
             return null;
         }
@@ -738,12 +738,12 @@ class ExtensionController extends Controller
 
         // Delete related rows only if tables exist; missing tables must not block extension delete
         try {
-            IpPhoneCosOpen::where('IPphone_pkey', $extension->pkey)->delete();
+            IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)->delete();
         } catch (\Throwable $e) {
             // table may not exist
         }
         try {
-            IpPhoneCosClosed::where('IPphone_pkey', $extension->pkey)->delete();
+            IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)->delete();
         } catch (\Throwable $e) {
             // table may not exist
         }
@@ -844,16 +844,16 @@ class ExtensionController extends Controller
 
 			if ($cos->defaultopen == 'YES') {
 				IpPhoneCosOpen::create([
-    				'IPphone_pkey' => $extension->pkey,
-    				'COS_pkey' => $cos->pkey,
+    				'ipphone_pkey' => $extension->pkey,
+    				'cos_pkey' => $cos->pkey,
     				'cluster' => $extension->cluster,
     				]);
 			}
 
 			if ($cos->defaultclosed == 'YES') {
 				IpPhoneCosClosed::create([
-    				'IPphone_pkey' => $extension->pkey,
-    				'COS_pkey' => $cos->pkey,
+    				'ipphone_pkey' => $extension->pkey,
+    				'cos_pkey' => $cos->pkey,
     				'cluster' => $extension->cluster,
     				]);
 			}		

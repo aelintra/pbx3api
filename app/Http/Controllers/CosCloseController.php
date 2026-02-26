@@ -14,8 +14,8 @@ class CosCloseController extends Controller
 
     private $updateableColumns = [
 
-        'IPphone_pkey' => 'exists:ipphone,pkey',
-        'COS_pkey' => 'exists:cos,pkey'
+        'ipphone_pkey' => 'exists:ipphone,pkey',
+        'cos_pkey' => 'exists:cos,pkey'
 
     ];
 
@@ -48,8 +48,8 @@ class CosCloseController extends Controller
     public function save(Request $request) {
 
 // validate 
-        $this->updateableColumns['IPphone_pkey'] = 'required|exists:ipphone,pkey';
-        $this->updateableColumns['COS_pkey'] = 'required|exists:cos,pkey';
+        $this->updateableColumns['ipphone_pkey'] = 'required|exists:ipphone,pkey';
+        $this->updateableColumns['cos_pkey'] = 'required|exists:cos,pkey';
 
         $cosclose = new CosClose;
 
@@ -58,8 +58,8 @@ class CosCloseController extends Controller
         $validator->after(function ($validator) use ($request,$cosclose) {
 
 //Check if key exists
-            if ($cosclose->where('IPphone_pkey','=',$request->IPphone_pkey)
-                    ->where('COS_pkey','=',$request->COS_pkey)
+            if ($cosclose->where('ipphone_pkey','=',$request->ipphone_pkey)
+                    ->where('cos_pkey','=',$request->cos_pkey)
                     ->count()) {
                 $validator->errors()->add('save', "Duplicate Keys, relationship already exists - " . $request->pkey);
                 return;

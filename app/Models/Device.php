@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Device extends Model
 {
-    protected $table = 'Device';
+    protected $table = 'device';
 
     protected $primaryKey = 'pkey';
 
