@@ -173,8 +173,9 @@ class TrunkController extends Controller
     	$validator = Validator::make($request->all(), $this->updateableColumns);
 
     	$validator->after(function ($validator) use ($request, $trunk) {
-			if ($request->host && ! valid_ip_or_domain($request->host)) {
-				$validator->errors()->add('host', "Host must be valid IP or valid domain name " . $request->host);
+			$host = $request->host;
+			if ($host && strcasecmp($host, 'dynamic') !== 0 && ! valid_ip_or_domain($host)) {
+				$validator->errors()->add('host', "Host must be valid IP, valid domain name, or 'dynamic': " . $host);
 			}
 			// pkey uniqueness when client sends a different pkey
 			$pkeySubmitted = $request->input('pkey');
