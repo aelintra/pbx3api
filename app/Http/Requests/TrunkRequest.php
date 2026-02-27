@@ -35,7 +35,6 @@ class TrunkRequest extends FormRequest
         return [
             'pkey' => ['required', $pkeyRule],
             'cluster' => 'required|exists:cluster,pkey',
-            'carrier' => 'required|in:GeneralSIP,GeneralIAX2',
             'active' => 'in:YES,NO',
             'alertinfo' => 'string|nullable',
             'callerid' => 'integer|nullable',
@@ -51,8 +50,6 @@ class TrunkRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:8', 'regex:/[A-Za-z]/', 'regex:/[0-9]/'],
             'peername' => 'required|string|max:255',
             'register' => 'string|nullable',
-            'sipiaxpeer' => 'string|required',
-            'sipiaxuser' => 'string|required',
             'swoclip' => 'in:YES,NO',
             'tag' => 'string|nullable',
             'transport' => 'in:udp,tcp,tls,wss',

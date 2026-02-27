@@ -29,7 +29,7 @@ Resources that belong to a tenant (cluster) share the same pattern so that the s
 - `$keyType = 'string'`, `$incrementing = false`
 - `resolveRouteBinding($value)`: resolve by shortuid (exact, then case-insensitive), then `id`, then pkey fallback so URLs can use shortuid or id.
 
-**Mass assignment:** Use **`$fillable`** (whitelist), not `$guarded`. List every column that may be set from the API (all table columns except `id`, `shortuid` — set on create — and `z_*` — system-only). New columns added to the table are then not mass-assignable until explicitly added to `$fillable`, which is safer.
+**Mass assignment (required):** **MUST** use **`$fillable`** (whitelist). **Do not use `$guarded`.** When converting or auditing a tenant-scoped model, replace any `$guarded` with a `$fillable` list. List every column that may be set from the API (all table columns except `id`, `shortuid` — set on create — and `z_*` — system-only; omit display-only/fixed columns from the list). New columns added to the table are then not mass-assignable until explicitly added to `$fillable`, which is safer.
 
 **Serialization:** Use **`$hidden`** only for attributes that must not appear in array/JSON output. If the table has no such fields, use `protected $hidden = [];`. Other tables may have redundant or sensitive fields to hide; set `$hidden` per resource as we audit.
 

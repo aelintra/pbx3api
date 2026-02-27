@@ -18,53 +18,55 @@ class Extension extends Model
     public $incrementing = false;
     public $timestamps = false;
 
-    // column defaults
+    // column defaults (schema: sqlite_create_tenant.sql ipphone)
     protected $attributes = [
-    	'abstimeout' => '14400',  
-    	'active' => 'YES',
-    	'basemacaddr' => NULL,
-    	'callbackto' => 'desk',
-    	'devicerec' => 'default',
-    	'cluster' => 'default',
-    	'protocol' => 'IPV4',
-    	'transport' => 'udp',
+        'abstimeout' => 1440,
+        'active' => 'YES',
+        'callbackto' => 'desk',
+        'devicerec' => 'default',
+        'cluster' => 'default',
+        'protocol' => 'IPV4',
+        'transport' => 'udp',
         'technology' => 'SIP',
-    	'z_updater' => 'system'
-
+        'z_updater' => 'system',
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-    		'abstimeout',
-    		'basemacaddr',
-    		'devicemodel',
-    		'dialstring',
-    		'firstseen',
-    		'lastseen',
-			'passwd',
-    		// provision, provisionwith: in tenant schema for extension provisioning
-    		'sndcreds',       // not in tenant schema
-    		'z_created',
-    		'z_updated',
-    		'newformat',
-    		'openfirewall',
-    		'stealtime',
-    		'stolen',
-    		'tls',
-    		'twin'
+    /**
+     * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql ipphone.
+     * id/shortuid: only set by controller on create (generate_ksuid/generate_shortuid), not from request.
+     * Excludes z_* (system-only) and display-only/fixed: abstimeout, basemacaddr, devicemodel, passwd, stealtime, stolen, tls.
+     */
+    protected $fillable = [
+        'id',
+        'shortuid',
+        'pkey',
+        'active',
+        'callerid',
+        'callbackto',
+        'cname',
+        'callmax',
+        'cellphone',
+        'celltwin',
+        'cluster',
+        'desc',
+        'description',
+        'device',
+        'devicerec',
+        'dvrvmail',
+        'extalert',
+        'macaddr',
+        'protocol',
+        'provision',
+        'provisionwith',
+        'pjsipuser',
+        'technology',
+        'transport',
+        'vmailfwd',
     ];
 
-    // hidden columns (mostly no longer used)
+    /** Attributes excluded from array/JSON (e.g. passwd). */
     protected $hidden = [
-    		'abstimeout',
-    		'channel',
-    		'dialstring',
-    		'externalip',
-    		'newformat',
-    		'openfirewall',
-			'sipiaxfriend',
-    		'tls',
-    		'twin'
+        'passwd',
     ];
 
     /** Appended when serialized (no DB column). Derived from device. */

@@ -8,6 +8,10 @@ alwaysApply: false
 
 Use for resources that belong to a tenant: **Extensions, Queues, Agents, Routes, Trunks, IVRs, Inbound routes**, and any new tenant-scoped resource (e.g. Custom apps). **Not** for Tenants (cluster) themselves.
 
+## Model (mass assignment)
+
+- **MUST** use **`$fillable`** (whitelist). **Do not use `$guarded`.** When converting or auditing a model, replace `$guarded` with a `$fillable` list of every column that may be set from the API (exclude `id`, `shortuid`, `z_*`, and display-only/fixed columns). Use `$hidden` only for attributes to exclude from array/JSON (e.g. passwords).
+
 ## Identity (which row)
 
 - **id** (KSUID) is the canonical key. Model: `primaryKey = 'id'`, `$keyType = 'string'`, `$incrementing = false`.

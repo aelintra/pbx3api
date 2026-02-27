@@ -6,7 +6,7 @@ Two related tasks to bring the API in line with the actual database and with a s
 
 **Audit rule (applied by default):** Columns whose names start with **`z_`** are **never updateable** but **are displayable**.
 
-**Model pattern (see TENANT_SCOPED_PATTERN.md):** Use **$fillable** (whitelist), not $guarded. Use **$hidden** only for attributes to exclude from array/JSON; can be `[]` if none; other tables may have hidden fields — adapt per resource as we audit.
+**Model pattern (see TENANT_SCOPED_PATTERN.md):** **MUST** use **$fillable** (whitelist); do **not** use $guarded. When converting or auditing a model, replace $guarded with $fillable. Use **$hidden** only for attributes to exclude from array/JSON; can be `[]` if none; other tables may have hidden fields — adapt per resource as we audit.
 
 ---
 
