@@ -69,8 +69,8 @@ returns a list of the cosrule/extension intersections from the database
 ####POST /coscloses/{cosclose}
 create a new cosclose instance
 **Body:**
-'IPphone_pkey' => 'exists:ipphone,pkey',
-'COS_pkey' => 'exists:cos,pkey'
+'ipphone_pkey' => 'exists:ipphone,pkey',
+'cos_pkey' => 'exists:cos,pkey'
 ####DELETE/coscloses/{cosclose}
 
 ##cosopens
@@ -80,8 +80,8 @@ returns a list of the cosrule/extension intersections from the database
 ####POST /cosopenes/{cosopen}
 create a new cosopen instance
 **Body:**
-'IPphone_pkey' => 'exists:ipphone,pkey',
-'COS_pkey' => 'exists:cos,pkey'
+'ipphone_pkey' => 'exists:ipphone,pkey',
+'cos_pkey' => 'exists:cos,pkey'
 ####DELETE/cosopens/{cosopen}
 
 ##cosrules
