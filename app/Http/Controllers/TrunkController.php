@@ -93,9 +93,9 @@ class TrunkController extends Controller
 			return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
 		}
 
-// validation 
+// validation (technology set by user on create; no Carrier table)
   		$this->updateableColumns['pkey'] = 'required';
-  		$this->updateableColumns['carrier'] = 'required|in:GeneralSIP,GeneralIAX2';
+		$this->updateableColumns['technology'] = 'required|in:SIP,IAX2';
 		$this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
 		$this->updateableColumns['username'] = 'required';
 		$this->updateableColumns['host'] = 'required';
@@ -133,13 +133,10 @@ class TrunkController extends Controller
     		$trunk->trunkname = $trunk->peername;
     	}
 
-// Set technology
-    	$trunk->technology = 'SIP';
-		if ($trunk->carrier == 'GeneralIAX2') {
-			$trunk->technology = 'IAX2';
-		}
+		// Technology set from request (dropdown: SIP | IAX2); default SIP if missing
+		$trunk->technology = $request->input('technology', 'SIP');
 
-		// Omit request-only / template-only attributes not in trunks table (full_schema.sql)
+		// Omit request-only attributes not in trunks table (no Carrier table)
 		$omitFromInsert = [ 'carrier', 'sipiaxpeer', 'sipiaxuser' ];
 		foreach ($omitFromInsert as $key) {
 			$trunk->offsetUnset($key);
