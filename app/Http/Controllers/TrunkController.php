@@ -8,17 +8,19 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Carrier;
-use App\Http\Requests\TrunkRequest;
 
 class TrunkController extends Controller
 {
     //
-	// trunks table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Model guarded: many (see Trunk.php).
+	// trunks table (sqlite_create_instance.sql). Only columns that exist in DB; exclude id, shortuid, z_*. Updateable set from TRUNK_AUDIT_PROTOTYPE.md.
     	private $updateableColumns = [
+    		'pkey' => 'string|nullable',
     		'active' => 'in:YES,NO',
 			'alertinfo' => 'string|nullable',
+			'callback' => 'string|nullable',
 			'callerid' => 'string|nullable',
 			'callprogress' => 'in:YES,NO',
+			'closeroute' => 'string|nullable',
 			'cluster' => 'exists:cluster,pkey',
 			'cname' => 'string|nullable',
 			'description' => 'string|nullable',
@@ -30,14 +32,17 @@ class TrunkController extends Controller
 			'inprefix' => 'string|nullable',
 			'match' => 'string|nullable',
 			'moh' => 'in:YES,NO',
+			'openroute' => 'string|nullable',
 			'password' => 'string|nullable',
 			'peername' => 'string|nullable',
 			'pjsipreg' => 'string|nullable',
+			'privileged' => 'string|nullable',
 			'register' => 'string|nullable',
 			'swoclip' => 'in:YES,NO',
 			'tag' => 'string|nullable',
-			'transport' => 'in:udp,tcp,tls,wss',
+			'technology' => 'in:SIP,IAX2|nullable',
 			'transform' => 'string|nullable',
+			'transport' => 'in:udp,tcp,tls,wss',
 			'trunkname' => 'string|nullable',
 			'username' => 'string|nullable',
     	];
@@ -165,21 +170,26 @@ class TrunkController extends Controller
  * @param  Trunk
  * @return json response
  */
-    public function update(TrunkRequest $request, Trunk $trunk) {
+    public function update(Request $request, Trunk $trunk) {
 
 		// First cut: trunk tenant is not changeable; force default (TRUNK_ROUTE_MULTITENANCY). When layered permissions are added, users with the right role may be allowed to modify trunk tenant (later phase).
 		$request->merge(['cluster' => 'default']);
 
-// Validate   
-    	$validator = Validator::make($request->all(),$this->updateableColumns);
+// Validate (Request + Validator only; no Form Request)
+    	$validator = Validator::make($request->all(), $this->updateableColumns);
 
-    	$validator->after(function ($validator) use ($request) {
-			// check the host
-			if ($request->host){
-    			if ( ! valid_ip_or_domain ($request->host) ) {
-        			$validator->errors()->add('host', "Host must be valid IP or valid domain name " . $request->host);
-    			}
-    		}
+    	$validator->after(function ($validator) use ($request, $trunk) {
+			if ($request->host && ! valid_ip_or_domain($request->host)) {
+				$validator->errors()->add('host', "Host must be valid IP or valid domain name " . $request->host);
+			}
+			// pkey uniqueness when client sends a different pkey
+			$pkeySubmitted = $request->input('pkey');
+			if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $trunk->getAttribute('pkey')) {
+				$clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+				if ($clusterShortuid !== null && Trunk::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $trunk->id)->exists()) {
+					$validator->errors()->add('pkey', 'That name is already in use in this tenant.');
+				}
+			}
 		});
 
 		if ($validator->fails()) {

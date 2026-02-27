@@ -29,6 +29,10 @@ Resources that belong to a tenant (cluster) share the same pattern so that the s
 - `$keyType = 'string'`, `$incrementing = false`
 - `resolveRouteBinding($value)`: resolve by shortuid (exact, then case-insensitive), then `id`, then pkey fallback so URLs can use shortuid or id.
 
+**Mass assignment:** Use **`$fillable`** (whitelist), not `$guarded`. List every column that may be set from the API (all table columns except `id`, `shortuid` — set on create — and `z_*` — system-only). New columns added to the table are then not mass-assignable until explicitly added to `$fillable`, which is safer.
+
+**Serialization:** Use **`$hidden`** only for attributes that must not appear in array/JSON output. If the table has no such fields, use `protected $hidden = [];`. Other tables may have redundant or sensitive fields to hide; set `$hidden` per resource as we audit.
+
 ## Controller create
 
 **REQUIRED:** Set `id` (KSUID) and `shortuid` before `$model->save()`. The `id` field is the PRIMARY KEY and must be set for updates to work. Without it, `update()` will fail because `$model->id` will be null.
