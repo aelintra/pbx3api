@@ -44,7 +44,7 @@ Once you’ve confirmed updateable columns in `TRUNK_AUDIT_PROTOTYPE.md`:
    - If TrunkRequest is kept only for create, restrict those rules to create; for update the request will be replaced in Task 2 anyway.
 2. **TrunkController**  
    - `updateableColumns`: ensure every key exists as a column in `trunks`; remove any that don’t.
-   - `save()`: keep `carrier` as request-only for create; keep `copy_asterisk_stanzas_from_carrier` and `omitFromInsert` so sipiaxpeer/sipiaxuser are never written to `trunks`.
+   - `save()`: keep `carrier` as request-only for create; keep `omitFromInsert` so sipiaxpeer/sipiaxuser are never written to `trunks`.
 3. **Trunk model** (see Model pattern above)  
    - Use `$fillable` (whitelist) and `$hidden` per pattern. No references to non-existent columns.
 

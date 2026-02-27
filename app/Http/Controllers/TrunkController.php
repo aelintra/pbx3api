@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
-use App\Models\Carrier;
 
 class TrunkController extends Controller
 {
@@ -140,11 +139,6 @@ class TrunkController extends Controller
 			$trunk->technology = 'IAX2';
 		}
 
-// Copy in the Asterisk stanzas from carrier template when instance has carrier table (legacy/catalog DB)
-		if (Schema::hasTable('carrier')) {
-			$this->copy_asterisk_stanzas_from_carrier($request, $trunk);
-		}
-
 		// Omit request-only / template-only attributes not in trunks table (full_schema.sql)
 		$omitFromInsert = [ 'carrier', 'sipiaxpeer', 'sipiaxuser' ];
 		foreach ($omitFromInsert as $key) {
@@ -233,55 +227,4 @@ class TrunkController extends Controller
 
         return response()->json(null, 204);
     }
-
- 
-/**
- * Copies and sets Asterisk stanza template from Carrier into trunk model
- * 
- * @param  REQUEST
- * @param  MODEL
- * @return NULL
- */
-	private function copy_asterisk_stanzas_from_carrier ($request, $trunk) {
- 
-// Get the templates from the carrier row
-
-        $template = Carrier::where('pkey', $trunk->carrier)->first();
-
-        if (isset( $template->sipiaxpeer )) {
-
-      		$template->sipiaxpeer = preg_replace ('/username=/',"username=" . $trunk->username, $template->sipiaxpeer);
-      		$template->sipiaxpeer = preg_replace ('/fromuser=/',"fromuser=" . $trunk->username, $template->sipiaxpeer);
-      		$template->sipiaxpeer = preg_replace ('/secret=/',"secret=" . $trunk->password, $template->sipiaxpeer);
-      		$template->sipiaxpeer = preg_replace ('/host=/',"host=" . $trunk->host, $template->sipiaxpeer);
-      		$template->sipiaxpeer = preg_replace ('/^\s+/',"", $template->sipiaxpeer);
-      		$template->sipiaxpeer = preg_replace ('/\s+$/',"", $template->sipiaxpeer);
-
-            if ( $trunk->carrier == "Interpbx3") {
-				$template->sipiaxpeer = preg_replace ('/mainmenu/',"priv_sibling", $template->sipiaxpeer);
-				$template->sipiaxpeer = preg_replace ('/trunk=yes/',"trunk=no", $template->sipiaxpeer);
-            }  
-
-            if ( !preg_match(' /allow=/ ',$template->sipiaxpeer)) {				
-        		$template->sipiaxpeer .= "\ndisallow=all\nallow=alaw\nallow=ulaw";
-        	}       	
-        }
-
-// sipiaxuser only gets set for IAX2 trynks
-        if (isset( $template->sipiaxuser )) {
-        	
-      		$template->sipiaxuser = preg_replace ('/username=/',"username=" . $trunk->username, $template->sipiaxuser);
-      		$template->sipiaxuser = preg_replace ('/fromuser=/',"fromuser=" . $trunk->username, $template->sipiaxuser);
-      		$template->sipiaxuser = preg_replace ('/secret=/',"secret=" . $trunk->password, $template->sipiaxuser);
-        	$template->sipiaxuser = preg_replace ('/^\s+/',"", $template->sipiaxuser);
-      		$template->sipiaxuser = preg_replace ('/\s+$/',"", $template->sipiaxuser);
-			
-// Possibly handle trunk privilege here - it used to be in V3/4 but it was never used so I think it's better left alone.
-          
-        }
-        $trunk->sipiaxpeer = $template->sipiaxpeer;
-		$trunk->sipiaxuser = $template->sipiaxuser;
-
-	}
-
 }
