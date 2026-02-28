@@ -96,6 +96,8 @@ class QueueController extends Controller
         move_request_to_model($request,$queue,$this->updateableColumns);
         $queue->cluster = $clusterShortuid;
 
+        $queue->id = generate_ksuid();
+        $queue->shortuid = generate_shortuid();
 
 // create the model         
         try {

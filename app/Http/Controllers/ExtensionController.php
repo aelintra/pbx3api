@@ -408,11 +408,12 @@ class ExtensionController extends Controller
     	}
     	try {
     		$extension = Extension::create([
+    			'id' => generate_ksuid(),
+    			'shortuid' => generate_shortuid(),
     			'pkey' => $request->post('pkey'),
     			'desc' => 'MAILBOX',
     			'device' => 'MAILBOX',
     			'cluster' => $clusterShortuid,
-                'location' => 'local'
     			]);
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
@@ -451,15 +452,14 @@ class ExtensionController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
-        $location = get_location();
-
     	try {
     		$extension = Extension::create([
+    			'id' => generate_ksuid(),
+    			'shortuid' => generate_shortuid(),
     			'pkey' => $request->post('pkey'),
     			'desc' => 'Ext' .$request->post('pkey'),
     			'device' => 'General SIP',
     			'cluster' => $clusterShortuid,
-                'location' => $location
     			]);
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
@@ -502,16 +502,16 @@ class ExtensionController extends Controller
 	if ($clusterShortuid === null) {
 		return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
 	}
-	$location = get_location();
 
 	try {
 		$extension = Extension::create([
+			'id' => generate_ksuid(),
+			'shortuid' => generate_shortuid(),
 			'pkey' => $request->post('pkey'),
 			'desc' => 'Ext' .$request->post('pkey'),
 			'device' => 'WebRTC',
 			'transport' => 'wss',
 			'cluster' => $clusterShortuid,
-			'location' => $location
 			]);
 	} catch (\Exception $e) {
 		return Response::json(['Error' => $e->getMessage()],409);
@@ -581,19 +581,19 @@ class ExtensionController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
-        $location = get_location();
 
     	// store it
 
     	try {
         	$extension = Extension::create([
+        		'id' => generate_ksuid(),
+        		'shortuid' => generate_shortuid(),
         		'pkey' => $request->post('pkey'),
         		'provision' => $provision,
         		'device' => $device,
         		'cluster' => $clusterShortuid,
         		'macaddr' => $request->post('macaddr'),
-                'location' => $location
-        	]);
+        		]);
         } catch (\Exception $e) {
    			return Response::json(['Error' => $e->getMessage()],409);
     	}

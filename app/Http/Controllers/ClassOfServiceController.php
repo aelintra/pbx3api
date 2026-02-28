@@ -73,8 +73,10 @@ class ClassOfServiceController extends Controller
         }
     
 // Move post variables to the model 
-        move_request_to_model($request,$classofservice,$this->updateableColumns); 
+        move_request_to_model($request,$classofservice,$this->updateableColumns);
 
+        $classofservice->id = generate_ksuid();
+        $classofservice->shortuid = generate_shortuid();
 
 // create the model         
         try {

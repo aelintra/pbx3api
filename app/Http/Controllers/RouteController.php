@@ -93,6 +93,8 @@ class RouteController extends Controller
         move_request_to_model($request,$route,$this->updateableColumns);
         $route->cluster = $clusterShortuid;
 
+        $route->id = generate_ksuid();
+        $route->shortuid = generate_shortuid();
 
 // create the model         
         try {

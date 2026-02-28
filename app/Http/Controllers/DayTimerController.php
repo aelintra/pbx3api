@@ -67,9 +67,11 @@ class DayTimerController extends Controller
         }
     
 // Move post variables to the model 
-        move_request_to_model($request,$daytimer,$this->updateableColumns); 
+        move_request_to_model($request,$daytimer,$this->updateableColumns);
 
-        $daytimer['pkey'] = 'dateSeg' . rand(100000, 999999);
+        $daytimer->id = generate_ksuid();
+        $daytimer->shortuid = generate_shortuid();
+        $daytimer->pkey = 'dateSeg' . rand(100000, 999999);
 
 // create the model         
         try {

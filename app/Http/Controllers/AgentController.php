@@ -94,6 +94,8 @@ class AgentController extends Controller
         move_request_to_model($request,$agent,$this->updateableColumns);
         $agent->cluster = $clusterShortuid;
 
+        $agent->id = generate_ksuid();
+        $agent->shortuid = generate_shortuid();
 
 // create the model         
         try {

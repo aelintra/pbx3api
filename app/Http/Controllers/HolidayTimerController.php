@@ -62,9 +62,11 @@ class HolidayTimerController extends Controller
         }
     
 // Move post variables to the model 
-        move_request_to_model($request,$holidaytimer,$this->updateableColumns); 
+        move_request_to_model($request,$holidaytimer,$this->updateableColumns);
 
-        $holidaytimer['pkey'] = 'sched' . rand(100000, 999999);
+        $holidaytimer->id = generate_ksuid();
+        $holidaytimer->shortuid = generate_shortuid();
+        $holidaytimer->pkey = 'sched' . rand(100000, 999999);
 
 // create the model         
         try {
