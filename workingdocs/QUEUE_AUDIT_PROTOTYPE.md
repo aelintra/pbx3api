@@ -16,11 +16,11 @@
 |-------------|-------|------------------|----------------------|-----------------------------|--------|
 | id          | ✓     | Identity         | no                   | guarded                    | KSUID, set on create. Not updateable. |
 | shortuid    | ✓     | Identity         | no                   | —                          | Set on create. Not updateable. |
-| pkey        | ✓     | Updateable       | save only            | —                          | Queue name/number; unique per cluster. |
+| pkey        | ✓     | Updateable       | yes            | —                          | Queue name/number; unique per cluster. |
 | active      | ✓     | Updateable       | yes                  | —                          | YES/NO. |
 | alertinfo   | ✓     | Updateable       | yes                  | —                          | |
 | cluster     | ✓     | Updateable       | yes                  | —                          | Tenant; store shortuid. |
-| cname       | ✓     | Updateable?      | no                   | guarded                    | Common name. Schema has it; model guards it. |
+| cname       | ✓     | Updateable       | yes                   | -                    | Common name. Schema has it; model guards it. |
 | description | ✓     | Updateable       | yes                  | —                          | |
 | devicerec   | ✓     | Updateable       | yes                  | —                          | None/OTR/OTRR/Inbound/default. |
 | divert      | ✓     | Updateable       | yes                  | —                          | INTEGER. |
@@ -33,7 +33,7 @@
 | retry       | ✓     | Updateable       | yes                  | —                          | INTEGER DEFAULT 1. |
 | wrapuptime  | ✓     | Updateable       | yes                  | —                          | INTEGER DEFAULT 0. |
 | maxlen      | ✓     | Updateable       | yes                  | —                          | INTEGER DEFAULT 0. |
-| outcome     | ✓     | Display / fixed  | no                   | guarded                    | DEFAULT 'None'. |
+| outcome     | ✓     | Updateable  | no                   | guarded                    | DEFAULT 'None'. |
 | strategy    | ✓     | Updateable       | yes                  | —                          | ringall, roundrobin, etc. |
 | timeout     | ✓     | Updateable       | yes                  | — (hidden)                 | INTEGER DEFAULT 30. Model hides it. |
 | z_created   | ✓     | Display only     | no                   | guarded                    | z_* never updateable. |

@@ -14,35 +14,43 @@ class Queue extends Model
     public $incrementing = false;
     public $timestamps = false;
 
-    // queue table (full_schema.sql; no conf column)
+    // queue table (schema: sqlite_create_tenant.sql)
     protected $attributes = [
-    'cluster' => 'default',
-    'devicerec' => 'None',
-    'greetnum' => null,
-    'options' => 't',
-    'name' => null,
-    'outcome' => null,
-    'timeout' => 0
+        'cluster' => 'default',
+        'devicerec' => 'None',
+        'options' => 'CiIknrtT',
+        'timeout' => 30,
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-    'id',
-    'cname',
-    'name',
-    'outcome',
-	'z_created',
-	'z_updated',
-	'z_updater'
+    /**
+     * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql queue.
+     * Excludes id, shortuid (set on create), z_* (system-only), name (deprecated, display only).
+     */
+    protected $fillable = [
+        'pkey',
+        'active',
+        'alertinfo',
+        'cluster',
+        'cname',
+        'description',
+        'devicerec',
+        'divert',
+        'greetnum',
+        'greeting',
+        'members',
+        'musicclass',
+        'options',
+        'retry',
+        'wrapuptime',
+        'maxlen',
+        'outcome',
+        'strategy',
+        'timeout',
     ];
 
-    // hidden columns (mostly no longer used)
+    /** name is deprecated (use cname); hide from array/JSON. */
     protected $hidden = [
-    'name',
- //   'id',
- //   'outcome',
-    'timeout'
-
+        'name',
     ];
 
 	/**

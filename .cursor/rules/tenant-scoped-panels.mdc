@@ -12,6 +12,10 @@ Use for resources that belong to a tenant: **Extensions, Queues, Agents, Routes,
 
 - **MUST** use **`$fillable`** (whitelist). **Do not use `$guarded`.** When converting or auditing a model, replace `$guarded` with a `$fillable` list of every column that may be set from the API (exclude `id`, `shortuid`, `z_*`, and display-only/fixed columns). Use `$hidden` only for attributes to exclude from array/JSON (e.g. passwords).
 
+## Controller create (id and shortuid)
+
+- **REQUIRED:** For every table that has `id` and `shortuid` columns, the API **must** set both on create. The client must not send them. Use `$model->id = generate_ksuid();` and `$model->shortuid = generate_shortuid();` before `$model->save()`, or include them in the array passed to `Model::create($attrs)` (and have both in `$fillable`). See `docs/TENANT_SCOPED_PATTERN.md` and `workingdocs/CREATE_ID_SHORTUID_SCAN.md`.
+
 ## Identity (which row)
 
 - **id** (KSUID) is the canonical key. Model: `primaryKey = 'id'`, `$keyType = 'string'`, `$incrementing = false`.

@@ -35,7 +35,10 @@ Resources that belong to a tenant (cluster) share the same pattern so that the s
 
 ## Controller create
 
-**REQUIRED:** Set `id` (KSUID) and `shortuid` before `$model->save()`. The `id` field is the PRIMARY KEY and must be set for updates to work. Without it, `update()` will fail because `$model->id` will be null.
+**REQUIRED (every create for tables with id and shortuid):** The API **must** generate and set `id` (KSUID) and `shortuid` for every create when the table has those columns. The client must **not** send `id` or `shortuid`; the API owns identity generation. Without them, the row will have a null primary key and create/update will fail.
+
+- When using `$model->save()`: set `$model->id = generate_ksuid();` and `$model->shortuid = generate_shortuid();` before `save()`.
+- When using `Model::create($attrs)`: include `'id' => generate_ksuid(), 'shortuid' => generate_shortuid()` in `$attrs`, and ensure both are in the model’s `$fillable` so they are written.
 
 **REQUIRED:** Resolve request `cluster` (pkey) to shortuid and set `$model->cluster = cluster_identifier_to_shortuid($request->cluster)` after `move_request_to_model`, so the DB stores shortuid not pkey. Use the same shortuid in any duplicate (pkey+cluster) check.
 

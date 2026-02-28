@@ -12,11 +12,13 @@ class QueueController extends Controller
 {
     //
 
-    // Assignable queue columns only (model guarded: id, cname, name, outcome, z_*). Schema: queue table.
+    // queue table (sqlite_create_tenant.sql). Exclude id, shortuid, z_*, name (deprecated).
     private $updateableColumns = [
+        'pkey' => 'string|nullable',
         'active' => 'in:YES,NO',
         'alertinfo' => 'string|nullable',
         'cluster' => 'exists:cluster,pkey',
+        'cname' => 'string|nullable',
         'description' => 'string|nullable',
         'devicerec' => 'in:None,OTR,OTRR,Inbound,default',
         'divert' => 'integer|nullable',
@@ -28,6 +30,7 @@ class QueueController extends Controller
         'retry' => 'integer|nullable',
         'wrapuptime' => 'integer|nullable',
         'maxlen' => 'integer|nullable',
+        'outcome' => 'string|nullable',
         'strategy' => 'in:ringall,roundrobin,leastrecent,fewestcalls,random,rrmemory',
         'timeout' => 'integer|nullable',
     ];
@@ -116,8 +119,18 @@ class QueueController extends Controller
  */
     public function update(Request $request, Queue $queue) {
 
-// Validate   
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+// Validate
+        $validator = Validator::make($request->all(), $this->updateableColumns);
+
+        $validator->after(function ($validator) use ($request, $queue) {
+            $pkeySubmitted = $request->input('pkey');
+            if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $queue->getAttribute('pkey')) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $queue->cluster;
+                if ($clusterShortuid !== null && Queue::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $queue->id)->exists()) {
+                    $validator->errors()->add('pkey', 'That queue name is already in use in this tenant.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);

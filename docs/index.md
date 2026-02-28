@@ -1,6 +1,6 @@
 # Introduction
 
-**For AI/agent context and recent session summary** (schema yardstick, API conventions, what's done/left), see **pbx3spa/workingdocs/README.md** (then SESSION_HANDOFF.md and PROJECT_PLAN.md).
+**For AI/agent context and recent session summary** (schema yardstick, API conventions, what's done/left), see **pbx3spa/workingdocs/README.md** (then SESSION_HANDOFF.md and PROJECT_PLAN.md). **Workspace:** pbx3-master is a holding folder, not a git repo; the repos are pbx3, pbx3api, pbx3cagi, pbx3spa—commit inside the relevant repo.
 
 ## Background
 pbx3api is a fairly vanilla OAS JSON API. It allows you to programmatically do anything you can do manually at the pbx3 browser. <br/>
