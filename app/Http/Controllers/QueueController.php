@@ -12,9 +12,9 @@ class QueueController extends Controller
 {
     //
 
-    // queue table (sqlite_create_tenant.sql). Exclude id, shortuid, z_*, name (deprecated). pkey = queue number, 2-5 digits, unique per tenant.
+    // queue table (sqlite_create_tenant.sql). Exclude id, shortuid, z_*, name (deprecated). pkey = queue dial, 3-5 digits, unique per tenant.
     private $updateableColumns = [
-        'pkey' => 'nullable|string|regex:/^\d{2,5}$/',
+        'pkey' => 'nullable|string|regex:/^\d{3,5}$/',
         'active' => 'in:YES,NO',
         'alertinfo' => 'string|nullable',
         'cluster' => 'exists:cluster,pkey',
@@ -121,7 +121,7 @@ class QueueController extends Controller
  */
     public function update(Request $request, Queue $queue) {
 
-// Validate — pkey when present must be 2-5 digits (updateableColumns); uniqueness in after()
+// Validate — pkey when present must be 3-5 digits (updateableColumns); uniqueness in after()
         $validator = Validator::make($request->all(), $this->updateableColumns, [
             'pkey.regex' => 'Queue number must be 3-5 digits.',
         ]);
