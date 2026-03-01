@@ -12,9 +12,9 @@ class QueueController extends Controller
 {
     //
 
-    // queue table (sqlite_create_tenant.sql). Exclude id, shortuid, z_*, name (deprecated).
+    // queue table (sqlite_create_tenant.sql). Exclude id, shortuid, z_*, name (deprecated). pkey = queue number, 2-5 digits, unique per tenant.
     private $updateableColumns = [
-        'pkey' => 'string|nullable',
+        'pkey' => 'nullable|string|regex:/^\d{2,5}$/',
         'active' => 'in:YES,NO',
         'alertinfo' => 'string|nullable',
         'cluster' => 'exists:cluster,pkey',
@@ -74,29 +74,31 @@ class QueueController extends Controller
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
 
-// validate 
-        $this->updateableColumns['pkey'] = 'required';
+// validate — pkey = queue number: 3-5 digits, unique per tenant
+        $this->updateableColumns['pkey'] = 'required|string|regex:/^\d{3,5}$/';
         $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
 
         $queue = new Queue;
 
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator = Validator::make($request->all(), $this->updateableColumns, [
+            'pkey.regex' => 'Queue number must be 3-5 digits.',
+        ]);
 
         $validator->after(function ($validator) use ($request, $queue, $clusterShortuid) {
 
-//Check if key exists within tenant (cluster); DB stores shortuid
-            if ($queue->where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
-                    $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
-                    return;
-            }                 
+// Check unique per tenant (cluster); DB stores shortuid
+            if ($queue->where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'That queue number is already in use in this tenant.');
+                return;
+            }
         });
 
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
         }
     
-// Move post variables to the model 
-        move_request_to_model($request,$queue,$this->updateableColumns);
+// Move post variables to the model
+        move_request_to_model($request, $queue, $this->updateableColumns);
         $queue->cluster = $clusterShortuid;
 
         $queue->id = generate_ksuid();
@@ -119,15 +121,17 @@ class QueueController extends Controller
  */
     public function update(Request $request, Queue $queue) {
 
-// Validate
-        $validator = Validator::make($request->all(), $this->updateableColumns);
+// Validate — pkey when present must be 2-5 digits (updateableColumns); uniqueness in after()
+        $validator = Validator::make($request->all(), $this->updateableColumns, [
+            'pkey.regex' => 'Queue number must be 3-5 digits.',
+        ]);
 
         $validator->after(function ($validator) use ($request, $queue) {
             $pkeySubmitted = $request->input('pkey');
             if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $queue->getAttribute('pkey')) {
                 $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $queue->cluster;
                 if ($clusterShortuid !== null && Queue::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $queue->id)->exists()) {
-                    $validator->errors()->add('pkey', 'That queue name is already in use in this tenant.');
+                    $validator->errors()->add('pkey', 'That queue number is already in use in this tenant.');
                 }
             }
         });
@@ -136,13 +140,12 @@ class QueueController extends Controller
             return response()->json($validator->errors(),422);
         }
 
-// Move post variables to the model   
-        move_request_to_model($request,$queue,$this->updateableColumns);
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+// Move post variables to the model
+        move_request_to_model($request, $queue, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $queue->cluster = $clusterShortuid;
         }
-
 
 // store the model if it has changed — update by id only (tenant-safe)
         try {

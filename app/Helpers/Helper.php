@@ -29,9 +29,11 @@ if (!function_exists('move_request_to_model')) {
      *
      * */
     function move_request_to_model($request, $model, $updateableColumns) {
-        // Use all() so JSON request body is read (post() is empty for application/json)
-        foreach ($request->all() as $key => $value) {
-            if (array_key_exists($key, $updateableColumns)) {
+        // Iterate over updateable keys and pull from request via input() so JSON body
+        // is included (e.g. PUT with application/json); all fields treated the same.
+        foreach (array_keys($updateableColumns) as $key) {
+            if ($request->has($key)) {
+                $value = $request->input($key);
                 $model->$key = is_string($value) ? trim($value) : $value;
             }
         }
