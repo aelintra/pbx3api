@@ -4,6 +4,8 @@ Two related tasks to bring the API in line with the actual database and with a s
 
 **Approach:** Proceed with **Trunks as the prototype**. The same process (audit → your input on updateability → fix controller → harmonise validation) will then apply to other resources. Your input is required for the audit (e.g. which columns are updateable).
 
+**Pause after each audit:** For every resource (Trunk, Queue, Agent, Extension, Route, etc.), **create the audit document first, then pause and await your input** before implementing any API or SPA changes. Do not proceed to fix the controller, model, or frontend until you have confirmed or adjusted the “Your input needed” decisions in that audit. This applies even when suggested roles seem unambiguous — always pause after the audit.
+
 **SPA + API together:** When converting each table, you **must** update **both** the API (model, controller, validation) **and** the SPA (create and detail views for that resource) so they follow the agreed schema. Do not leave the frontend out of scope — add or remove fields, make pkey editable when the audit says updateable, and align readonly/updateable with the schema.
 
 **Audit rule (applied by default):** Columns whose names start with **`z_`** are **never updateable** but **are displayable**.
@@ -27,9 +29,9 @@ For each table the API touches:
 
 1. List **actual columns** from the CREATE TABLE in the relevant SQL file.
 2. Apply **rules:** e.g. columns starting with `z_` are never updateable but are displayable; identity columns (`id`, `shortuid`) are not updateable.
-3. **Your input:** Decide which columns are updateable vs display-only (and any other special cases).
-4. Compare with **model**, **controller** `updateableColumns`, and any **Form Request**; remove references to columns that don’t exist in the DB.
-5. **Update the SPA:** Adjust the resource’s create and detail views (e.g. TrunkCreateView, TrunkDetailView) to match: add any new updateable fields, remove or make readonly any that are display-only, and make pkey (or other identifiers) editable only when the audit marks them updateable.
+3. Add a **“Your input needed”** section (e.g. pkey updateable?, cluster, display-only columns, etc.).
+4. **Pause and await your input.** Do not implement controller, model, or SPA changes until you have confirmed or adjusted the audit decisions.
+5. After your input: compare with **model**, **controller** `updateableColumns`, and any **Form Request**; remove references to columns that don’t exist in the DB; fix controller and model; then **update the SPA** create and detail views to match.
 
 **Trunk prototype:** See **`TRUNK_AUDIT_PROTOTYPE.md`** for the full trunk column list, suggested roles, and a short “Your input needed” section (pkey, cluster, callback, closeroute, openroute, privileged, technology). Once you’ve decided, we lock Trunk’s updateable set and fix the controller + drop TrunkRequest.
 
@@ -54,7 +56,7 @@ Once you’ve confirmed updateable columns in `TRUNK_AUDIT_PROTOTYPE.md`:
 ### 1.3 Audit and fix other resources
 
 - **Extension (ipphone):** tenant schema. Check ipphone columns vs Extension model and ExtensionRequest / updateableColumns. **Then update ExtensionCreateView and ExtensionDetailView** to match (all updateable fields present; display-only not editable).
-- **Queue, Agent, Route, Ivr, InboundRoute, CustomApp, Tenant, HelpCore, Device, etc.:** same process — schema file → list columns → compare model + controller + any Form Request → remove or adjust references to dropped columns → **then update the corresponding SPA create and detail views** so the UI follows the schema.
+- **Queue, Agent, Route, Ivr, InboundRoute, CustomApp, Tenant, HelpCore, Device, etc.:** same process — schema file → create audit doc with “Your input needed” → **pause and await your input** → then fix model + controller + Form Request and update the corresponding SPA create and detail views.
 - **Instance tables:** device, tt_help_core, globals — same idea; SPA panels for those resources must be updated in the same pass.
 
 ### 1.4 Document request-only fields

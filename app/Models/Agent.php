@@ -15,37 +15,42 @@ class Agent extends Model
     public $timestamps = false;
 
     protected $attributes = [
-
-    'conf' => null,
-    'cluster' => 'default',
-    'name' => null,
-    'num' => null,
-    'passwd' => null,
-    'queue1' => 'None',
-    'queue2' => 'None',
-    'queue3' => 'None',
-    'queue4' => 'None',
-    'queue5' => 'None',
-    'queue6' => 'None'
-
+        'cluster' => 'default',
+        'queue1' => 'None',
+        'queue2' => 'None',
+        'queue3' => 'None',
+        'queue4' => 'None',
+        'queue5' => 'None',
+        'queue6' => 'None',
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-
-    'conf',
-    'name',
-    'num',
-	'z_created',
-	'z_updated',
-	'z_updater'
+    /**
+     * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql agent.
+     * Excludes id, shortuid (set on create), z_* (system-only).
+     */
+    protected $fillable = [
+        'pkey',
+        'cluster',
+        'conf',
+        'extlen',
+        'name',
+        'cname',
+        'description',
+        'num',
+        'passwd',
+        'queue1',
+        'queue2',
+        'queue3',
+        'queue4',
+        'queue5',
+        'queue6',
     ];
 
-    // hidden columns (mostly no longer used)
+    /** conf, num: internal; name: deprecated (use cname). */
     protected $hidden = [
-    'conf',
-    'num'
-
+        'conf',
+        'num',
+        'name',
     ];
 
 	/**

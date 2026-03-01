@@ -1,6 +1,6 @@
 # Introduction
 
-**For AI/agent context and recent session summary** (schema yardstick, API conventions, what's done/left), see **pbx3spa/workingdocs/README.md** (then SESSION_HANDOFF.md and PROJECT_PLAN.md). **Workspace:** pbx3-master is a holding folder, not a git repo; the repos are pbx3, pbx3api, pbx3cagi, pbx3spa—commit inside the relevant repo.
+**For AI/agent context and recent session summary** (schema yardstick, API conventions, what's done/left), see **pbx3spa/workingdocs/README.md** (then SESSION_HANDOFF.md and PROJECT_PLAN.md). **Workspace:** pbx3-master is a holding folder, not a git repo; the repos are pbx3, pbx3api, pbx3cagi, pbx3spa—commit inside the relevant repo. **Recent:** Queue audit done (model $fillable, pkey 3–5 digits “Queue Dial”, cname/outcome updateable); **move_request_to_model** (Helper.php) now uses `$request->input($key)` for each updateable column so JSON PUT body is applied for all fields; **PLAN_MODELS_AND_VALIDATION_HARMONISATION.md** requires updating SPA with API when converting each table.
 
 ## Background
 pbx3api is a fairly vanilla OAS JSON API. It allows you to programmatically do anything you can do manually at the pbx3 browser. <br/>

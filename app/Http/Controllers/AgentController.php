@@ -12,14 +12,14 @@ class AgentController extends Controller
 {
     //
 
-    // agent table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Model guarded: conf, num.
+    // agent table (sqlite_create_tenant.sql). pkey = agent number 1000–9999, unique per tenant. Exclude id, shortuid, z_*, name (deprecated).
     private $updateableColumns = [
+        'pkey' => 'nullable|integer|min:1000|max:9999',
         'cluster' => 'exists:cluster,pkey',
         'cname' => 'string|nullable',
         'description' => 'string|nullable',
         'extlen' => 'integer|nullable',
-        'name' => 'string|nullable',
-        'passwd' => 'string|nullable',
+        'passwd' => 'nullable|integer|min:1001|max:9999',
         'queue1' => 'exists:queue,pkey|nullable',
         'queue2' => 'exists:queue,pkey|nullable',
         'queue3' => 'exists:queue,pkey|nullable',
@@ -67,41 +67,37 @@ class AgentController extends Controller
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
 
-// validate 
-        $this->updateableColumns['pkey'] = 'required|integer|min:1000|max:9999';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
-        $this->updateableColumns['name'] = 'required|alpha_dash';
-        $this->updateableColumns['passwd'] = 'required|integer|min:1001|max:9999';
+        $createRules = array_merge($this->updateableColumns, [
+            'pkey' => 'required|integer|min:1000|max:9999',
+            'cluster' => 'required|exists:cluster,pkey',
+            'passwd' => 'required|integer|min:1001|max:9999',
+        ]);
 
         $agent = new Agent;
 
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator = Validator::make($request->all(), $createRules);
 
         $validator->after(function ($validator) use ($request, $agent, $clusterShortuid) {
-
-//Check if key exists within tenant (cluster); DB stores shortuid
-            if ($agent->where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
+            if (Agent::where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'That agent number is already in use in this tenant.');
                 return;
-            }                 
+            }
         });
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
-    
-// Move post variables to the model 
-        move_request_to_model($request,$agent,$this->updateableColumns);
+
+        move_request_to_model($request, $agent, $this->updateableColumns);
         $agent->cluster = $clusterShortuid;
 
         $agent->id = generate_ksuid();
         $agent->shortuid = generate_shortuid();
 
-// create the model         
         try {
             $agent->save();
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()],409);
+            return Response::json(['Error' => $e->getMessage()], 409);
         }
 
         return $agent;
@@ -114,22 +110,28 @@ class AgentController extends Controller
  */
     public function update(Request $request, Agent $agent) {
 
-// Validate   
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator = Validator::make($request->all(), $this->updateableColumns);
+
+        $validator->after(function ($validator) use ($request, $agent) {
+            $pkeySubmitted = $request->input('pkey');
+            if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $agent->getAttribute('pkey')) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $agent->cluster;
+                if ($clusterShortuid !== null && Agent::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $agent->id)->exists()) {
+                    $validator->errors()->add('pkey', 'That agent number is already in use in this tenant.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
 
-// Move post variables to the model   
-        move_request_to_model($request,$agent,$this->updateableColumns);
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        move_request_to_model($request, $agent, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $agent->cluster = $clusterShortuid;
         }
 
-
-// store the model if it has changed — update by id only (tenant-safe)
         try {
             if ($agent->isDirty()) {
                 $id = $agent->id;
@@ -140,13 +142,11 @@ class AgentController extends Controller
                 Agent::where('id', $id)->update($dirty);
                 $agent->syncOriginal();
             }
-
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()],409);
+            return Response::json(['Error' => $e->getMessage()], 409);
         }
 
         return response()->json($agent, 200);
-        
     } 
 
 
