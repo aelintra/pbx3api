@@ -68,13 +68,16 @@ class RouteController extends Controller
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
 
-// validate 
-        $this->updateableColumns['pkey'] = 'required';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
+        $this->normalizePathInputs($request);
+
+        $createRules = array_merge($this->updateableColumns, [
+            'pkey' => 'required',
+            'cluster' => 'required|exists:cluster,pkey',
+        ]);
 
         $route = new Route;
 
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator = Validator::make($request->all(), $createRules);
 
         $validator->after(function ($validator) use ($request, $route, $clusterShortuid) {
 
@@ -86,11 +89,10 @@ class RouteController extends Controller
         });
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
-    
-// Move post variables to the model 
-        move_request_to_model($request,$route,$this->updateableColumns);
+
+        move_request_to_model($request, $route, $this->updateableColumns);
         $route->cluster = $clusterShortuid;
 
         $route->id = generate_ksuid();
@@ -113,16 +115,16 @@ class RouteController extends Controller
  */
     public function update(Request $request, Route $route) {
 
-// Validate   
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $this->normalizePathInputs($request);
+
+        $validator = Validator::make($request->all(), $this->updateableColumns);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
 
-// Move post variables to the model   
-        move_request_to_model($request,$route,$this->updateableColumns);
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        move_request_to_model($request, $route, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $route->cluster = $clusterShortuid;
         }
@@ -158,6 +160,26 @@ class RouteController extends Controller
         $route->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Normalize path1-path4 only when the client explicitly sends the key.
+     * Empty string or 'None' becomes null so "no trunk" passes validation (nullable).
+     * If the key is absent from the request, we do not add it — partial updates
+     * (e.g. only sending "active") do not clear path1-path4; other API users
+     * do not need to resend path values unless they intend to change them.
+     */
+    private function normalizePathInputs(Request $request): void
+    {
+        foreach (['path1', 'path2', 'path3', 'path4'] as $key) {
+            if (! $request->has($key)) {
+                continue;
+            }
+            $v = $request->input($key);
+            if ($v === null || $v === '' || (is_string($v) && strtolower(trim($v)) === 'none')) {
+                $request->merge([$key => null]);
+            }
+        }
     }
 
 }
