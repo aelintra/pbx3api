@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Validator;
 class IvrController extends Controller
 {
     //
-	// ivrmenu table (full_schema.sql). Exclude id, pkey, shortuid, z_*. pkey set on create only.
+	// ivrmenu table (sqlite_create_tenant.sql). pkey = IVR number 3-5 digits, unique per cluster. Exclude id, shortuid, z_*, name (deprecated).
     	private $updateableColumns = [
+            'pkey' => 'nullable|string|regex:/^\d{3,5}$/',
             'active' => 'in:YES,NO',
             'alert0' => 'string|nullable',
             'alert1' => 'string|nullable',
@@ -30,7 +31,6 @@ class IvrController extends Controller
             'description' => 'string|nullable',
             'greetnum' => 'string|nullable',
             'listenforext' => 'in:YES,NO',
-            'name' => 'string|nullable',
             'option0' => 'string|nullable',
             'option1' => 'string|nullable',
             'option2' => 'string|nullable',
@@ -98,26 +98,28 @@ class IvrController extends Controller
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
 
-// validation 
-  		$this->updateableColumns['pkey'] = 'required|digits_between:3,5';
-		$this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
+        $createRules = array_merge($this->updateableColumns, [
+            'pkey' => 'required|string|regex:/^\d{3,5}$/',
+            'cluster' => 'required|exists:cluster,pkey',
+        ]);
 
-    	$validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator = Validator::make($request->all(), $createRules, [
+            'pkey.regex' => 'IVR number must be 3-5 digits.',
+        ]);
 
         $validator->after(function ($validator) use ($request, $clusterShortuid) {
-            // Check if key exists within tenant (cluster); DB stores shortuid
             if (Ivr::where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
+                $validator->errors()->add('pkey', 'That IVR number is already in use in this tenant.');
             }
         });
 
         if ($validator->fails()) {
-    		return response()->json($validator->errors(),422);
-    	}
+            return response()->json($validator->errors(), 422);
+        }
 
-    	$ivr = new Ivr;  	
+        $ivr = new Ivr;
 
-    	move_request_to_model($request,$ivr,$this->updateableColumns);
+        move_request_to_model($request, $ivr, $this->updateableColumns);
         $ivr->cluster = $clusterShortuid; 
         $this->check_options($request, $ivr);
 
@@ -146,22 +148,26 @@ class IvrController extends Controller
  */
     public function update(Request $request, Ivr $ivr) {
 
-// Validate   
+        $validator = Validator::make($request->all(), $this->updateableColumns, [
+            'pkey.regex' => 'IVR number must be 3-5 digits.',
+        ]);
 
-    	$validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator->after(function ($validator) use ($request, $ivr) {
+            $pkeySubmitted = $request->input('pkey');
+            if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $ivr->getAttribute('pkey')) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $ivr->cluster;
+                if ($clusterShortuid !== null && Ivr::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $ivr->id)->exists()) {
+                    $validator->errors()->add('pkey', 'That IVR number is already in use in this tenant.');
+                }
+            }
+        });
 
-    	$validator->after(function ($validator) use ($request) {
-	
-		});
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
 
-		if ($validator->fails()) {
-    		return response()->json($validator->errors(),422);
-    	}
-
-// Move post variables to the model   
-
-		move_request_to_model($request,$ivr,$this->updateableColumns);
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        move_request_to_model($request, $ivr, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $ivr->cluster = $clusterShortuid;
         }
