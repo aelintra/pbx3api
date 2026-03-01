@@ -36,7 +36,15 @@
 
 ---
 
-## Gaps and mismatches
+## Decisions applied
+
+1. **Model:** Replaced **$guarded** with **$fillable** (pkey, active, alternate, auth, cluster, cname, description, dialplan, path1–path4, route, strategy). **$hidden** = `route` (deprecated column). alternate and auth are updateable.
+2. **Controller:** **pkey** added to updateableColumns (nullable|string for update). **route** column removed from updateableColumns (deprecated). Create duplicate error uses **pkey** key. **update()** has `validator->after()` for pkey uniqueness when pkey is present and changed. save() already uses local createRules and normalizePathInputs.
+3. **SPA:** Create uses **description** (not desc); schema defaults include description, cname. Detail has editable **pkey**, **cname**, **description**; save body includes pkey, cname, description; route name editable unless schema read_only.
+
+---
+
+## Gaps and mismatches (resolved)
 
 1. **Route model uses $guarded (not $fillable)**  
    Per pattern, **MUST** use **$fillable** (whitelist). Replace `$guarded` with a `$fillable` list. Currently guarded: alternate, auth, z_*; hidden: alternate, auth. Controller nevertheless has alternate and auth in updateableColumns, so model blocks mass assignment for those.
@@ -72,7 +80,4 @@
 7. **dialplan** – Any format constraint (e.g. Asterisk pattern _XXXXXX) to enforce in validation or leave as string nullable?
 8. Any column you want **removed** from updateableColumns or **added**.
 
-Once you’ve decided, we’ll:
-1. Replace **Route model** `$guarded` with **$fillable**; set **$hidden** per your choices.
-2. Fix **RouteController::save()** to use local create rules (no mutation of updateableColumns); add pkey-uniqueness in update when pkey is present and changed.
-3. Align **RouteCreateView** and **RouteDetailView** with schema (description vs desc; all updateable fields present; pkey editable only if you confirm).
+**Implemented** per decisions above. Path1–4 normalization (None → null, only when key sent) was done earlier; full audit (model, controller, SPA) is now complete.

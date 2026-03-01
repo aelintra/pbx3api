@@ -79,13 +79,10 @@ class RouteController extends Controller
 
         $validator = Validator::make($request->all(), $createRules);
 
-        $validator->after(function ($validator) use ($request, $route, $clusterShortuid) {
-
-//Check if key exists within tenant (cluster); DB stores shortuid
-            if ($route->where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
-                    $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
-                    return;
-            }                 
+        $validator->after(function ($validator) use ($request, $clusterShortuid) {
+            if (Route::where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'That route name is already in use in this tenant.');
+            }
         });
 
         if ($validator->fails()) {
@@ -118,6 +115,16 @@ class RouteController extends Controller
         $this->normalizePathInputs($request);
 
         $validator = Validator::make($request->all(), $this->updateableColumns);
+
+        $validator->after(function ($validator) use ($request, $route) {
+            $pkeySubmitted = $request->input('pkey');
+            if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $route->getAttribute('pkey')) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $route->cluster;
+                if ($clusterShortuid !== null && Route::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $route->id)->exists()) {
+                    $validator->errors()->add('pkey', 'That route name is already in use in this tenant.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);

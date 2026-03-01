@@ -15,35 +15,41 @@ class Route extends Model
     public $incrementing = false;
     public $timestamps = false;
 
-    // Defaults for route table (full_schema.sql has description, not desc)
     protected $attributes = [
-    'active' => 'YES',
-    'alternate' => null,
-    'auth' => 'NO',
-    'cluster' => 'default',
-    'dialplan' => null,
-    'path1' => null,
-    'path2' => null,
-    'path3' => null,
-    'path4' => null,
-    'strategy' => 'hunt'
+        'active' => 'YES',
+        'auth' => 'NO',
+        'cluster' => 'default',
+        'path1' => null,
+        'path2' => null,
+        'path3' => null,
+        'path4' => null,
+        'strategy' => 'hunt',
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-
-    'alternate',
-    'auth',
-	'z_created',
-	'z_updated',
-	'z_updater'
+    /**
+     * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql route.
+     * Excludes id, shortuid (set on create), z_* (system-only).
+     */
+    protected $fillable = [
+        'pkey',
+        'active',
+        'alternate',
+        'auth',
+        'cluster',
+        'cname',
+        'description',
+        'dialplan',
+        'path1',
+        'path2',
+        'path3',
+        'path4',
+        'route',
+        'strategy',
     ];
 
-    // hidden columns (mostly no longer used)
+    /** route column: deprecated (schema: same as pkey, not used). */
     protected $hidden = [
-    'alternate',
-    'auth'
-
+        'route',
     ];
 
 	/**
