@@ -42,7 +42,7 @@
 | register    | ✓     | Updateable    | yes                       | |
 | swoclip     | ✓     | Updateable    | yes                       | |
 | tag         | ✓     | Updateable    | yes                       | |
-| technology  | ✓     | Updateable | no                        | SIP/IAX2; set from carrier on create. Read-only? |
+| technology  | ✓     | Updateable | yes                       | SIP or IAX2; user supplies via dropdown on create and update. No Carrier table. |
 | transform   | ✓     | Updateable    | yes                       | |
 | transport   | ✓     | Updateable    | yes                       | |
 | trunkname   | ✓     | Updateable    | yes                       | Should default to pkey if not given or empty|
@@ -51,7 +51,7 @@
 | z_updated   | ✓     | Display only  | no                        | z_* never updateable (rule). |
 | z_updater   | ✓     | Display only  | no                        | z_* never updateable (rule). |
 
-**Not in DB (remove from any validation):** `carrier`, `sipiaxpeer`, `sipiaxuser` — used only on **create** (request-only; template copied then omitted before insert).
+**Technology:** User supplies **technology** (SIP or IAX2) via the SPA dropdown on create and update. The API accepts `technology` and stores it in the `technology` column. There is no Carrier table; the API does not query or use `carrier`, `sipiaxpeer`, or `sipiaxuser`.
 
 ---
 
@@ -61,6 +61,7 @@
 - **Trunk model** — Removed `callback`, `closeroute`, `openroute`, `privileged`, `technology` from `$guarded` and `$hidden` so they are updateable and returned in API responses.
 - **TrunkController::update()** — Now uses `Request` + single `Validator` only (TrunkRequest no longer used). Pkey uniqueness checked in `validator->after()` when client sends a different pkey.
 - **TrunkRequest** — No longer used for update; file remains for reference.
+- **TrunkController::save()** — Technology from user only: create uses local `$createRules` (does not mutate `$updateableColumns`), requires `technology` (SIP or IAX2), sets `$trunk->technology` from request. No Carrier table; no `carrier`/`sipiaxpeer`/`sipiaxuser`; duplicate error key is `pkey`.
 
 ---
 
@@ -71,7 +72,7 @@ Original questions (now resolved from your Suggested role):
 1. **pkey** – Updateable (allow rename) or identity (never change)?
 2. **cluster** – Keep in updateableColumns but document “not changeable in UI for now” / force default, or remove from updateable and set only server-side?
 3. **callback, closeroute, openroute, privileged** – Add to updateableColumns, or leave as display-only / system-managed?
-4. **technology** – Confirm read-only (set from carrier on create only)?
+4. **technology** – User-supplied (SIP or IAX2) on create and update; no carrier/Carrier table.
 
 And confirm or correct:
 - Any column you want **removed** from updateableColumns (e.g. cluster if we never let the client change it).

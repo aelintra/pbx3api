@@ -93,21 +93,22 @@ class TrunkController extends Controller
 			return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
 		}
 
-// validation (technology set by user on create; no Carrier table)
-  		$this->updateableColumns['pkey'] = 'required';
-		$this->updateableColumns['technology'] = 'required|in:SIP,IAX2';
-		$this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
-		$this->updateableColumns['username'] = 'required';
-		$this->updateableColumns['host'] = 'required';
+// validation (technology from user; SIP or IAX2; no Carrier table)
+		$createRules = array_merge($this->updateableColumns, [
+			'pkey' => 'required|string',
+			'technology' => 'required|in:SIP,IAX2',
+			'cluster' => 'required|exists:cluster,pkey',
+			'username' => 'required',
+			'host' => 'required',
+		]);
 
-    	$validator = Validator::make($request->all(),$this->updateableColumns);
+    	$validator = Validator::make($request->all(), $createRules);
 
         $validator->after(function ($validator) use ($request, $clusterShortuid) {
-//Check if key exists within tenant (cluster); DB stores shortuid
-            if (Trunk::where('pkey','=',$request->pkey)->where('cluster', $clusterShortuid)->exists()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
+            if (Trunk::where('pkey', '=', $request->input('pkey'))->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'Duplicate name in this tenant.');
                 return;
-            }                 
+            }
         });  
 
         if ($validator->fails()) {
@@ -116,31 +117,20 @@ class TrunkController extends Controller
 
     	$trunk = new Trunk;
 
-    	move_request_to_model($request,$trunk,$this->updateableColumns);
+    	move_request_to_model($request, $trunk, $createRules);
 		$trunk->cluster = $clusterShortuid;
+		$trunk->technology = $request->input('technology', 'SIP');
 
-// Populate id (ksuid) and shortuid via helpers; both in tenant schema (sqlite_create_tenant.sql) and persisted
+// Populate id (ksuid) and shortuid via helpers
     	$trunk->id = generate_ksuid();
     	$trunk->shortuid = generate_shortuid();
 
-//  peername = username unless overriden by caller
-    	if (empty($trunk->peername)) {
+		if (empty($trunk->peername)) {
     		$trunk->peername = $trunk->username;
     	}
-
-// trunkname = peername unless overridden by caller
     	if (empty($trunk->trunkname)) {
     		$trunk->trunkname = $trunk->peername;
     	}
-
-		// Technology set from request (dropdown: SIP | IAX2); default SIP if missing
-		$trunk->technology = $request->input('technology', 'SIP');
-
-		// Omit request-only attributes not in trunks table (no Carrier table)
-		$omitFromInsert = [ 'carrier', 'sipiaxpeer', 'sipiaxuser' ];
-		foreach ($omitFromInsert as $key) {
-			$trunk->offsetUnset($key);
-		}
 
 // create the model
     	try {

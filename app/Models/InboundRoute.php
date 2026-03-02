@@ -14,107 +14,64 @@ class InboundRoute extends Model
     public $incrementing = false;
     public $timestamps = false;
 
-    // Defaults for inroutes table; only columns that exist in schema (full_schema.sql)
+    // Defaults for inroutes table (schema: sqlite_create_tenant.sql)
     protected $attributes = [
-    'active' 		=> 'YES',
-	'callprogress'  => 'NO',
-	'closeroute' 	=> 'operator',
-	'cluster' 		=> 'default',
-	'moh' 			=> 'NO',
-	'openroute' 	=> 'operator',
-	'swoclip' 		=> 'YES'
+        'active'       => 'YES',
+        'callprogress' => 'YES',
+        'closeroute'   => 'None',
+        'cluster'      => 'default',
+        'moh'          => 'NO',
+        'openroute'    => 'None',
+        'swoclip'      => 'YES',
     ];
 
-    // Columns not mass-assigned from request (schema: full_schema.sql inroutes)
-    protected $guarded = [
-    'callback',
-	'channel',
-	'closecallback',
-	'closecustom',
-	'closedisa',
-	'closeext',
-	'closegreet',
-	'closeivr',
-	'closequeue',
-	'closeroute',
-	'closesibling',
-	'closespeed',
-	'custom',
-	'desc',
-	'didnumber',
-	'ext',
-	'forceivr',
-	'macaddr',
-	'method',
-	'openfirewall',
-	'opengreet',
-	'openroute',
-	'opensibling',
-	'pat',
-	'postdial',
-	'predial',
-	'privileged',
-	'provision',
-	'queue',
-	'remotenum',
-	'service',
-	'speed',
-	'technology',
-	'transformclip',
-	'trunk',
-	'zapcaruser',
-	'z_created',
-	'z_updated',
-	'z_updater'
+    // Whitelist: only these columns may be mass-assigned (schema: inroutes)
+    protected $fillable = [
+        'pkey',
+        'active',
+        'alertinfo',
+        'callback',
+        'callerid',
+        'callprogress',
+        'closeroute',
+        'cluster',
+        'cname',
+        'description',
+        'devicerec',
+        'disa',
+        'disapass',
+        'host',
+        'iaxreg',
+        'inprefix',
+        'match',
+        'moh',
+        'openroute',
+        'password',
+        'peername',
+        'pjsipreg',
+        'privileged',
+        'register',
+        'swoclip',
+        'tag',
+        'technology',
+        'transform',
+        'transport',
+        'trunkname',
+        'username',
     ];
 
-    // Hidden from JSON (schema: full_schema.sql inroutes)
+    // Hidden from JSON (sensitive, legacy, or display-only; not editable via API)
     protected $hidden = [
-    'callback',
-    'callerid',
-    'callprogress',
-	'channel',
-	'closecallback',
-	'closecustom',
-	'closedisa',
-	'closeext',
-	'closegreet',
-	'closeivr',
-	'closequeue',
-	'closesibling',
-	'closespeed',
-	'custom',
-	'didnumber',
-	'disa',
-	'desc',
-	'ext',
-	'forceivr',
-	'host',
-	'macaddr',
-	'match',
-	'method',
-	'openfirewall',
-	'opengreet',
-	'opensibling',
-	'password',
-	'peername',
-	'pat',
-	'postdial',
-	'predial',
-	'privileged',
-	'provision',
-	'register',
-	'remotenum',
-	'queue',
-	'service',
-	'sipiaxpeer',
-	'sipiaxuser',
-	'speed',
-	'transform',
-	'transformclip',
-	'trunk',
-	'username',
-	'zapcaruser'
+        'callprogress',
+        'host',
+        'iaxreg',
+        'password',
+        'peername',
+        'pjsipreg',
+        'register',
+        'transport',
+        'trunkname',
+        'username',
     ];
 
 	/**
@@ -128,7 +85,7 @@ class InboundRoute extends Model
 		if ($model) {
 			return $model;
 		}
-		
+
 		// Fallback to pkey for backward compatibility (though pkey is tenant-scoped and may be ambiguous)
 		return static::where('pkey', $value)->first();
 	}

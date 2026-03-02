@@ -12,34 +12,32 @@ class InboundRouteController extends Controller
     /** Asterisk dialplan extension format: literal digits, pattern _[XZN.!]+, or special s|i|t */
     private const PKEY_EXTENSION_REGEX = '/^(\d+|_[XZN.!]+|[sit])$/';
 
-    // inroutes table (full_schema.sql). Exclude id, pkey, shortuid, z_*. 'carrier' is request-only → technology.
+    /** Technology / DDI type: DiD, CLiD, Class (dropdown). */
+    private const TECHNOLOGY_VALUES = 'DiD,CLiD,Class';
+
+    // inroutes table. Exclude id, shortuid, z_*. Not updateable: host, iaxreg, password, peername, pjsipreg, register, trunkname, username.
     private $updateableColumns = [
-		'active' => 'in:YES,NO',
-		'alertinfo' => 'string|nullable',
-		'callback' => 'string|nullable',
-		'callerid' => 'string|nullable',
-		'callprogress' => 'in:YES,NO',
-		'closeroute' => 'string|nullable',
-		'cluster' => 'exists:cluster,pkey',
-		'cname' => 'string|nullable',
-		'description' => 'string|nullable',
-		'devicerec' => 'string|nullable',
-		'disa' => 'in:DISA,CALLBACK|nullable',
-		'disapass' => 'string|nullable',
-		'host' => 'string|nullable',
-		'iaxreg' => 'string|nullable',
-		'inprefix' => 'string|nullable',
-		'match' => 'string|nullable',
-		'moh' => 'in:YES,NO',
-		'openroute' => 'string|nullable',
-		'password' => 'string|nullable',
-		'peername' => 'string|nullable',
-		'pjsipreg' => 'string|nullable',
-		'register' => 'string|nullable',
-		'swoclip' => 'in:YES,NO',
-		'tag' => 'string|nullable',
-		'trunkname' => 'string|nullable',
-		'username' => 'string|nullable',
+        'pkey' => ['regex:' . self::PKEY_EXTENSION_REGEX],
+        'active' => 'in:YES,NO',
+        'alertinfo' => 'string|nullable',
+        'callback' => 'string|nullable',
+        'callerid' => 'string|nullable',
+        'closeroute' => 'string|nullable',
+        'cluster' => 'exists:cluster,pkey',
+        'cname' => 'string|nullable',
+        'description' => 'string|nullable',
+        'devicerec' => 'string|nullable',
+        'disa' => 'in:DISA,CALLBACK|nullable',
+        'disapass' => 'string|nullable',
+        'inprefix' => 'string|nullable',
+        'match' => 'string|nullable',
+        'moh' => 'in:YES,NO',
+        'openroute' => 'string|nullable',
+        'privileged' => 'string|nullable',
+        'swoclip' => 'in:YES,NO',
+        'tag' => 'string|nullable',
+        'technology' => 'in:' . self::TECHNOLOGY_VALUES,
+        'transform' => 'string|nullable',
     ];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -83,12 +81,11 @@ class InboundRouteController extends Controller
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
 
-// validate (carrier is request-only, stored as technology in DB; pkey must be valid Asterisk extension)
+// validate (pkey + technology from dropdown; technology is DB column)
         $rules = array_merge($this->updateableColumns, [
             'pkey' => ['required', 'regex:' . self::PKEY_EXTENSION_REGEX],
-            'carrier' => 'required|in:DiD,CLID',
+            'technology' => 'required|in:' . self::TECHNOLOGY_VALUES,
             'cluster' => 'required|exists:cluster,pkey',
-            'trunkname' => 'nullable|alpha_num',
         ]);
 
         $inboundroute = new InboundRoute;
@@ -103,8 +100,8 @@ class InboundRouteController extends Controller
 
         $validator->after(function ($validator) use ($request, $inboundroute, $clusterShortuid) {
             // Check if key exists within tenant (cluster); DB stores shortuid
-            if ($inboundroute->where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey . " in this tenant.");
+            if ($inboundroute->where('pkey', '=', $request->input('pkey'))->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'Duplicate number in this tenant.');
             }
             // Reject single "0" — not a valid DiD/CLiD
             $pkey = trim((string) $request->input('pkey', ''));
@@ -122,13 +119,20 @@ class InboundRouteController extends Controller
         // Set pkey from request (may be "0" — valid DiD/CLiD; don't use empty() here)
         $inboundroute->pkey = trim((string) $request->input('pkey', ''));
 
+        if ($request->has('openroute') && (trim((string) $request->input('openroute', '')) === '' || $request->input('openroute') === null)) {
+            $inboundroute->openroute = 'None';
+        }
+        if ($request->has('closeroute') && (trim((string) $request->input('closeroute', '')) === '' || $request->input('closeroute') === null)) {
+            $inboundroute->closeroute = 'None';
+        }
+
         if (empty($inboundroute->trunkname)) {
             $inboundroute->trunkname = $inboundroute->pkey;
         }
 
         $inboundroute->id = generate_ksuid();
         $inboundroute->shortuid = generate_shortuid();
-        $inboundroute->technology = $request->input('carrier', 'DiD');
+        $inboundroute->technology = $request->input('technology', 'DiD');
 
         try {
             $inboundroute->save();
@@ -150,17 +154,46 @@ class InboundRouteController extends Controller
 
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
+        $validator->after(function ($validator) use ($request, $inboundroute) {
+            $newPkey = $request->has('pkey') ? trim((string) $request->input('pkey', '')) : null;
+            if ($newPkey !== null && $newPkey !== $inboundroute->pkey) {
+                $clusterShortuid = $inboundroute->cluster;
+                if (cluster_identifier_to_shortuid($request->input('cluster')) !== null) {
+                    $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+                }
+                if (InboundRoute::where('pkey', $newPkey)->where('cluster', $clusterShortuid)->where('id', '!=', $inboundroute->id)->exists()) {
+                    $validator->errors()->add('pkey', 'Duplicate number in this tenant.');
+                }
+            }
+            if ($request->has('pkey')) {
+                $pkey = trim((string) $request->input('pkey', ''));
+                if ($pkey === '0') {
+                    $validator->errors()->add('pkey', 'Number cannot be a single 0.');
+                }
+            }
+        });
+
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
         }
 
         move_request_to_model($request, $inboundroute, $this->updateableColumns);
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $inboundroute->cluster = $clusterShortuid;
         }
-        if ($request->has('carrier')) {
-            $inboundroute->technology = $request->input('carrier');
+        if ($request->has('technology')) {
+            $inboundroute->technology = $request->input('technology');
+        }
+
+        if ($request->has('openroute') && (trim((string) $request->input('openroute', '')) === '' || $request->input('openroute') === null)) {
+            $inboundroute->openroute = 'None';
+        }
+        if ($request->has('closeroute') && (trim((string) $request->input('closeroute', '')) === '' || $request->input('closeroute') === null)) {
+            $inboundroute->closeroute = 'None';
+        }
+        if ($request->has('pkey')) {
+            $inboundroute->pkey = trim((string) $request->input('pkey', ''));
         }
 
         // store the model if it has changed — update by id only (tenant-safe)
