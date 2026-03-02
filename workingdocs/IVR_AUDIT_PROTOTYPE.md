@@ -73,7 +73,7 @@
 2. **cluster** – Keep in updateableColumns; document "not changeable in UI" if needed?
 3. **name** – Remove from updateableColumns and treat as display-only/deprecated (hide in model), or keep updateable for legacy?
 4. **timeout** – Schema DEFAULT '30'; confirm validation (string nullable or specific allowed values)?
-5. **greetnum** – Confirm allowed values (e.g. 'None' or greeting identifiers); null/empty → 'None'?
+5. **greetnum** – Confirm allowed values (e.g. 'None' or greeting identifiers); **4 digits** when present; null/empty → 'None'?
 6. **option0–option11** – Confirm validation (string nullable; destination names); normalise empty to 'None' or allow null?
 7. Any column you want **removed** from updateableColumns or **added**.
 

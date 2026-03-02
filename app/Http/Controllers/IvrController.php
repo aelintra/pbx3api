@@ -29,7 +29,7 @@ class IvrController extends Controller
             'cluster' => 'exists:cluster,pkey',
             'cname' => 'string|nullable',
             'description' => 'string|nullable',
-            'greetnum' => 'string|nullable',
+            'greetnum' => 'nullable|string|regex:/^\d{4}$/',
             'listenforext' => 'in:YES,NO',
             'option0' => 'string|nullable',
             'option1' => 'string|nullable',
@@ -105,6 +105,7 @@ class IvrController extends Controller
 
         $validator = Validator::make($request->all(), $createRules, [
             'pkey.regex' => 'IVR number must be 3-5 digits.',
+            'greetnum.regex' => 'Greeting number must be 4 digits.',
         ]);
 
         $validator->after(function ($validator) use ($request, $clusterShortuid) {
@@ -150,6 +151,7 @@ class IvrController extends Controller
 
         $validator = Validator::make($request->all(), $this->updateableColumns, [
             'pkey.regex' => 'IVR number must be 3-5 digits.',
+            'greetnum.regex' => 'Greeting number must be 4 digits.',
         ]);
 
         $validator->after(function ($validator) use ($request, $ivr) {
