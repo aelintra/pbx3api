@@ -12,22 +12,18 @@ use Illuminate\Support\Facades\Validator;
  */
 class DeviceController extends Controller
 {
-    /** Updateable columns and validation rules (keys only for schema; full rules for save/update). */
+    /** Updateable columns and validation rules. device never accepted; deprecated (imageurl, noproxy, tftpname, zapdevfixed) excluded. */
     private $updateableColumns = [
         'blfkeyname' => 'string|nullable',
         'blfkeys' => 'integer|nullable',
         'desc' => 'string|nullable',
         'fkeys' => 'integer|nullable',
-        'imageurl' => 'string|nullable',
         'legacy' => 'string|nullable',
-        'noproxy' => 'string|nullable',
         'owner' => 'string|nullable',
         'pkeys' => 'integer|nullable',
         'provision' => 'string|nullable',
         'sipiaxfriend' => 'string|nullable',
-        'technology' => 'string|nullable',
-        'tftpname' => 'string|nullable',
-        'zapdevfixed' => 'string|nullable',
+        'technology' => 'nullable|string|in:SIP,Descriptor,BLF Template',
     ];
 
     public function getUpdateableColumns(): array

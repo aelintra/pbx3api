@@ -21,9 +21,34 @@ class Device extends Model
 
     public $timestamps = false;
 
-    protected $guarded = [
-        'z_created',
-        'z_updated',
-        'z_updater',
+    /** Real device columns (z_* are system-managed, not mass-assigned). */
+    protected $fillable = [
+        'pkey',
+        'blfkeyname',
+        'blfkeys',
+        'desc',
+        'device',
+        'fkeys',
+        'imageurl',
+        'legacy',
+        'noproxy',
+        'owner',
+        'pkeys',
+        'provision',
+        'sipiaxfriend',
+        'technology',
+        'tftpname',
+        'zapdevfixed',
+    ];
+
+    /** Omit from JSON: device (never from client), deprecated, and updateable-but-hidden. */
+    protected $hidden = [
+        'device',
+        'fkeys',
+        'imageurl',
+        'noproxy',
+        'sipiaxfriend',
+        'tftpname',
+        'zapdevfixed',
     ];
 }

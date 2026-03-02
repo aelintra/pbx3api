@@ -86,6 +86,7 @@
 5. **callerid / cellphone** – Keep as nullable; fix type in ExtensionRequest to `string|nullable` to match schema TEXT?
 6. Any column you want **removed** from updateableColumns (e.g. cluster if client never changes it).
 7. Any column you want **added** to updateableColumns that is in schema but not currently listed.
+8. **sipiaxfriend** – This is a **Device** column (provisioning template), not ipphone; ExtensionController copies `Device.sipiaxfriend` → `extension.pjsipuser` when creating/provisioning from a device. Decide: (a) remove `sipiaxfriend` from Extension model $hidden (it's not an ipphone column); (b) whether Device SPA should expose/edit `sipiaxfriend` (see DEVICE_AUDIT_PROTOTYPE.md).
 
 Once you’ve marked these, we’ll:
 1. Set `updateableColumns` in ExtensionController to the agreed set (with validation rules).

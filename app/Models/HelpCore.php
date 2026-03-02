@@ -21,9 +21,17 @@ class HelpCore extends Model
 
     public $timestamps = false;
 
-    protected $guarded = [
-        'z_created',
-        'z_updated',
-        'z_updater',
+    /** Real columns (z_* are system-managed, not mass-assigned). name is deprecated (use cname); excluded from fillable. */
+    protected $fillable = [
+        'pkey',
+        'displayname',
+        'htext',
+        'cname',
+    ];
+
+    /** name: deprecated per schema. cname: hidden from API response. */
+    protected $hidden = [
+        'name',
+        'cname',
     ];
 }

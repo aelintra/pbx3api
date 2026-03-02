@@ -13,7 +13,6 @@ class TenantController extends Controller
 	// cluster table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Display id/pkey in UI.
 	private $updateableColumns = [
 			'abstimeout' => 'integer',
-			'acl' => 'boolean',
 			'active' => 'in:YES,NO',
 			'allow_hash_xfer' => 'in:enabled,disabled',
 			'blind_busy' => 'string|nullable',
@@ -33,12 +32,10 @@ class TenantController extends Controller
 			'dynamicfeatures' => 'string|nullable',
 			'emailalert' => 'string|nullable',
 			'emergency' => 'string|nullable',
-			'extblklist' => 'string|nullable',
 			'ext_lim' => 'integer|nullable',
 			'ext_len' => 'integer|nullable',
 			'fqdn' => 'string|nullable',
 			'fqdninspect' => 'boolean',
-			'include' => 'string|nullable',
 			'int_ring_delay' => 'integer',
 			'ivr_key_wait' => 'integer',
 			'ivr_digit_wait' => 'integer',
@@ -50,7 +47,6 @@ class TenantController extends Controller
 			'ldapuser' => 'string|nullable',
 			'ldappass' => 'nullable|string',
 			'ldaptls' => 'in:on,off',
-			'leasedhdtime' => 'integer|nullable',
 			'localarea' => 'numeric|nullable',
 			'localdplan' => ['regex:/^_X+$/', 'nullable'],
 			'lterm' => 'integer|nullable',
@@ -59,16 +55,11 @@ class TenantController extends Controller
 			'maxout' => 'integer|nullable',
 			'mixmonitor' => 'string|nullable',
 			'monitor_out' => 'string|nullable',
-			'monitor_stage' => 'string|nullable',
-			'number_range_regex' => 'string|nullable',
 			'operator' => 'integer',
-			'padminpass' => 'integer|nullable',
-			'pickupgroup' => 'string|nullable',
 			'play_beep' => 'integer|nullable',
 			'play_busy' => 'integer|nullable',
 			'play_congested' => 'integer|nullable',
 			'play_transfer' => 'integer|nullable',
-			'puserpass' => 'integer|nullable',
 			'rec_age' => 'integer',
 			'rec_final_dest' => 'string|nullable',
 			'rec_file_dlim' => 'string|nullable',
@@ -77,7 +68,6 @@ class TenantController extends Controller
 			'rec_mount' => 'string|nullable',
 			'recmaxage' => 'string|nullable',
 			'recmaxsize' => 'string|nullable',
-			'recused' => 'string|nullable',
 			'ringdelay' => 'integer',
 			'spy_pass' => 'string|nullable',
 			'sysop' => 'integer|nullable',
@@ -87,7 +77,6 @@ class TenantController extends Controller
 			'vmail_age' => 'integer',
 			'voice_instr' => 'integer|nullable',
 			'voip_max' => 'integer',
-			'vxt' => 'integer|nullable',
 	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -124,10 +113,12 @@ class TenantController extends Controller
  */
     public function save (Request $request) {
 
-    	$this->updateableColumns['pkey'] = 'required';
-    	$this->updateableColumns['description'] = 'string|required';
+        $createRules = array_merge($this->updateableColumns, [
+            'pkey' => 'required|string',
+            'description' => 'string|required',
+        ]);
 
-    	$validator = Validator::make($request->all(),$this->updateableColumns); 
+    	$validator = Validator::make($request->all(), $createRules); 
 
     	if ($validator->fails()) {
     		return response()->json($validator->errors(),422);
@@ -142,8 +133,7 @@ class TenantController extends Controller
 		$tenant->shortuid = generate_shortuid();
 
 // Move post variables to the model 
-
-    	move_request_to_model($request,$tenant,$this->updateableColumns); 
+    	move_request_to_model($request, $tenant, $createRules); 
 
 // store the new model
     	try {

@@ -55,7 +55,7 @@ Once you’ve confirmed updateable columns in `TRUNK_AUDIT_PROTOTYPE.md`:
 
 ### 1.3 Audit and fix other resources
 
-- **Extension (ipphone):** tenant schema. Check ipphone columns vs Extension model and ExtensionRequest / updateableColumns. **Then update ExtensionCreateView and ExtensionDetailView** to match (all updateable fields present; display-only not editable).
+- **Extension (ipphone):** tenant schema. Check ipphone columns vs Extension model and ExtensionRequest / updateableColumns. **Then update ExtensionCreateView and ExtensionDetailView** to match (all updateable fields present; display-only not editable). **Decision needed:** `sipiaxfriend` lives on the **Device** table and is copied to extension `pjsipuser` when creating/provisioning from a device template; decide whether to expose/edit `sipiaxfriend` in the Device SPA and any Extension-side handling (see DEVICE_AUDIT_PROTOTYPE.md and ExtensionController device lookups).
 - **Queue, Agent, Route, Ivr, InboundRoute, CustomApp, Tenant, HelpCore, Device, etc.:** same process — schema file → create audit doc with “Your input needed” → **pause and await your input** → then fix model + controller + Form Request and update the corresponding SPA create and detail views.
 - **Instance tables:** device, tt_help_core, globals — same idea; SPA panels for those resources must be updated in the same pass.
 
