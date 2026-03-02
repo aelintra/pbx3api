@@ -6,34 +6,47 @@ use Illuminate\Database\Eloquent\Model;
 
 class CustomApp extends Model
 {
-    //
     protected $table = 'appl';
-    protected $primaryKey = 'pkey';
+    protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;
 
-    // appl table (full_schema.sql has description, not desc)
     protected $attributes = [
-    'cluster' => 'default',
-    'description' => null,
-    'extcode' => null,
-    'name' => null,
-    'span' => 'Neither',
-    'striptags' => 'NO'
+        'active' => 'YES',
+        'cluster' => 'default',
+        'span' => 'Neither',
+        'striptags' => 'NO',
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-    'name',
-	'z_created',
-	'z_updated',
-	'z_updater'
+    /** Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql appl. id/shortuid set on create in controller. */
+    protected $fillable = [
+        'pkey',
+        'active',
+        'cluster',
+        'description',
+        'directdial',
+        'extcode',
+        'name',
+        'cname',
+        'span',
+        'striptags',
     ];
 
-    // hidden columns (mostly no longer used)
+    /** name is deprecated (schema: use cname instead); hidden from JSON. */
     protected $hidden = [
-    'name'
-
+        'name',
     ];
+
+    /**
+     * Resolve route model binding by shortuid (globally unique) then pkey for backward compatibility.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $model = static::where('shortuid', $value)->first();
+        if ($model) {
+            return $model;
+        }
+        return static::where('pkey', $value)->first();
+    }
 }

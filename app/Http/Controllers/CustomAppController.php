@@ -13,7 +13,7 @@ class CustomAppController extends Controller
     //
 
     private $updateableColumns = [
-
+        'pkey' => 'string|nullable',
         'active' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
         'cname' => 'string|nullable',
@@ -21,7 +21,7 @@ class CustomAppController extends Controller
         'directdial' => 'integer|nullable',
         'extcode' => 'string|nullable',
         'span' => 'in:Internal,External,Both,Neither',
-        'striptags' => 'in:YES,NO'
+        'striptags' => 'in:YES,NO',
     ];
 
     /** Return column names that are updateable (for schema metadata). */
@@ -57,45 +57,39 @@ class CustomAppController extends Controller
  * @return New Did
  */
     public function save(Request $request) {
-
-// validate 
-        $this->updateableColumns['pkey'] = 'required';
-        $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
-
-        $customapp = new CustomApp;
-
-        $validator = Validator::make($request->all(),$this->updateableColumns);
-
-        $validator->after(function ($validator) use ($request,$customapp) {
-
-//Check if key exists
-            if ($customapp->where('pkey','=',$request->pkey)->count()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
-                return;
-            }                 
-        });
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
-        }
-
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
-    
-// Move post variables to the model
-        move_request_to_model($request, $customapp, $this->updateableColumns);
-        $customapp->cluster = $clusterShortuid;
 
-        // Set id (KSUID) and shortuid like other tenant resources (appl table has id PRIMARY KEY)
+        $createRules = array_merge($this->updateableColumns, [
+            'pkey' => 'required|string',
+            'cluster' => 'required|exists:cluster,pkey',
+        ]);
+
+        $customapp = new CustomApp;
+        $validator = Validator::make($request->all(), $createRules);
+
+        $validator->after(function ($validator) use ($request, $customapp, $clusterShortuid) {
+            if (CustomApp::where('pkey', $request->input('pkey'))->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'Duplicate app name in this tenant.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        move_request_to_model($request, $customapp, $createRules);
+        $customapp->cluster = $clusterShortuid;
+        $customapp->pkey = trim((string) $request->input('pkey', ''));
         $customapp->id = generate_ksuid();
         $customapp->shortuid = generate_shortuid();
 
         try {
             $customapp->save();
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()],409);
+            return Response::json(['Error' => $e->getMessage()], 409);
         }
 
         return $customapp;
@@ -109,28 +103,39 @@ class CustomAppController extends Controller
     public function update(Request $request, CustomApp $customapp) {
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
+        $validator->after(function ($validator) use ($request, $customapp) {
+            $newPkey = $request->has('pkey') ? trim((string) $request->input('pkey', '')) : null;
+            if ($newPkey !== null && $newPkey !== $customapp->pkey) {
+                $clusterShortuid = $customapp->cluster;
+                if (cluster_identifier_to_shortuid($request->input('cluster')) !== null) {
+                    $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+                }
+                if (CustomApp::where('pkey', $newPkey)->where('cluster', $clusterShortuid)->where('id', '!=', $customapp->id)->exists()) {
+                    $validator->errors()->add('pkey', 'Duplicate app name in this tenant.');
+                }
+            }
+        });
+
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
         move_request_to_model($request, $customapp, $this->updateableColumns);
-        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $customapp->cluster = $clusterShortuid;
+        }
+        if ($request->has('pkey')) {
+            $customapp->pkey = trim((string) $request->input('pkey', ''));
         }
 
         try {
             if ($customapp->isDirty()) {
-                $dirty = $customapp->getDirty();
                 $id = $customapp->id;
-                $pkey = $customapp->pkey;
-                if ($id !== null && $id !== '') {
-                    CustomApp::where('id', $id)->update($dirty);
-                } elseif ($pkey !== null && $pkey !== '') {
-                    CustomApp::where('pkey', $pkey)->update($dirty);
-                } else {
-                    return Response::json(['Error' => 'Custom app id and pkey are missing'], 409);
+                if ($id === null || $id === '') {
+                    return Response::json(['Error' => 'Custom app id is missing'], 409);
                 }
+                CustomApp::where('id', $id)->update($customapp->getDirty());
                 $customapp->syncOriginal();
             }
         } catch (\Exception $e) {
