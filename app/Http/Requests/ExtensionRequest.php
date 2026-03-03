@@ -5,6 +5,9 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * @deprecated Extension update now uses Request + Validator in ExtensionController (see PLAN_MODELS_AND_VALIDATION_HARMONISATION.md Task 2). This class is no longer used by any route; kept for reference only.
+ */
 class ExtensionRequest extends FormRequest
 {
     public function authorize()

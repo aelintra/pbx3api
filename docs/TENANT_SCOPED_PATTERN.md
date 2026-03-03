@@ -77,37 +77,33 @@ if ($model->isDirty()) {
 }
 ```
 
-## Form Request (pkey uniqueness)
+## Update validation (controller Validator + after())
 
-When validating `pkey` (e.g. in a Form Request):
+Update actions use **Request + Validator** in the controller; Form Requests are not used for update. **TrunkController** and **ExtensionController** both use `Validator::make($request->all(), $rules)` with an `$validator->after(...)` for pkey uniqueness.
 
-1. **Update, pkey unchanged** — skip unique check (only `required`). Avoids 422 when only other fields (e.g. Active) change.
-2. **Update, pkey changed, or Create** — resolve client’s cluster (pkey) to shortuid with `cluster_identifier_to_shortuid($this->input('cluster'))`, then `Rule::unique('table', 'pkey')->where('cluster', $clusterShortuid)`; on update add `->ignore($model->getKey(), 'id')`. The DB stores shortuid, so the unique check must use shortuid.
+**Pkey rules:**
 
-Example (pattern used in ExtensionRequest, TrunkRequest):
+1. **Update, pkey unchanged** — no unique check in `after()` (only `required` in rules). Avoids 422 when only other fields (e.g. Active) change.
+2. **Update, pkey changed** — in `after()`, resolve client’s cluster with `cluster_identifier_to_shortuid($request->input('cluster'))`, then if another row exists with same pkey in that cluster (excluding current model id), add error: `$validator->errors()->add('pkey', '...')`. The DB stores cluster shortuid, so the existence check must use shortuid.
+
+Example (pattern used in TrunkController, ExtensionController):
 
 ```php
-$resource = $this->route('resource'); // e.g. extension, trunk
-$pkeySubmitted = $this->input('pkey');
-$pkeyUnchanged = $resource instanceof \App\Models\Resource
-    && (string) $pkeySubmitted === (string) $resource->getAttribute('pkey');
-
-if ($pkeyUnchanged) {
-    $pkeyRule = 'required';
-} else {
-    // DB stores cluster shortuid; unique check must use shortuid
-    $clusterShortuid = cluster_identifier_to_shortuid($this->input('cluster'));
-    $pkeyRule = Rule::unique('table', 'pkey')->where('cluster', $clusterShortuid ?? $this->input('cluster'));
-    if ($resource instanceof \App\Models\Resource) {
-        $pkeyRule->ignore($resource->getKey(), 'id');
+$validator->after(function ($validator) use ($request, $model) {
+    $pkeySubmitted = $request->input('pkey');
+    if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $model->getAttribute('pkey')) {
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+        $cluster = $clusterShortuid ?? $request->input('cluster');
+        if ($cluster !== null && Model::where('pkey', $pkeySubmitted)->where('cluster', $cluster)->where('id', '!=', $model->id)->exists()) {
+            $validator->errors()->add('pkey', 'That name is already in use in this tenant.');
+        }
     }
-}
-return [ 'pkey' => ['required', $pkeyRule], ... ];
+});
 ```
 
 ## Reference implementations
 
 - **Model:** `App\Models\Extension`, `Queue`, `Agent`, `Route`, `Trunk`, `Ivr`, `InboundRoute`
 - **Controller create:** `TrunkController::save()`, `IvrController::save()`, `InboundRouteController::save()`, `TenantController::save()`, `CustomAppController::save()`
-- **Controller update:** `ExtensionController::update()`, `QueueController::update()`, etc.
-- **Form Request:** `ExtensionRequest`, `TrunkRequest`
+- **Controller update:** `ExtensionController::update()`, `TrunkController::update()`, `QueueController::update()`, etc. — all use Request + Validator with `updateableColumns` and optional `after()` for pkey uniqueness.
+- **Form Request:** Not used for update. `ExtensionRequest` and `TrunkRequest` are deprecated (logic moved into controller).

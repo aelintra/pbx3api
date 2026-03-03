@@ -27,9 +27,9 @@ Use for resources that belong to a tenant: **Extensions, Queues, Agents, Routes,
 ## Uniqueness (pkey)
 
 - **pkey** is unique *per cluster*; same pkey in different clusters is allowed.
-- **Form Request pkey rule:** If update and pkey unchanged → only `'required'`. Else → `Rule::unique('table','pkey')->where('cluster', $cluster)` and on update `->ignore($model->getKey(), 'id')`.
+- **Update validation:** Done in the controller with `Validator::make($request->all(), $this->updateableColumns)` and optional `$validator->after()` for pkey uniqueness when pkey is present and changed. No Form Request for update.
 
 ## Reference
 
 - Doc: `docs/TENANT_SCOPED_PATTERN.md`
-- Implementations: ExtensionController, ExtensionRequest, TrunkRequest; QueueController, AgentController, RouteController, TrunkController, IvrController, InboundRouteController (update by id).
+- Implementations: ExtensionController, TrunkController (Request + Validator; ExtensionRequest, TrunkRequest deprecated); QueueController, AgentController, RouteController, IvrController, InboundRouteController (update by id).

@@ -12,14 +12,13 @@ use App\Models\IpPhoneCosOpen;
 use App\Models\IpPhoneCosClosed;
 use App\Models\Cos;
 use App\CustomClasses\Ami;
-use App\Http\Requests\ExtensionRequest;
-
 class ExtensionController extends Controller
 {
 
-	// ipphone table (full_schema.sql). Exclude id, pkey, shortuid, z_*. Model guarded: abstimeout, basemacaddr, devicemodel, passwd, etc.
+	// ipphone table (full_schema.sql). Exclude id, shortuid, z_*. Model guarded: abstimeout, basemacaddr, devicemodel, passwd, etc.
 	private $updateableColumns = [
 		'active' => 'in:YES,NO',
+		'pkey' => 'string|nullable',
 		'callbackto' => 'in:desk,cell',
 		'callerid' => 'string|nullable',
 		'callmax' => 'integer|nullable',
@@ -607,11 +606,36 @@ class ExtensionController extends Controller
     }  
 
     /**
-     * @param  ExtensionRequest $request
+     * Update extension. Uses Request + Validator only (no Form Request). Pkey uniqueness enforced in after() when pkey is changed.
+     *
+     * @param  Request $request
      * @param  Extension $extension
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(ExtensionRequest $request, Extension $extension) {
+    public function update(Request $request, Extension $extension) {
+        // Validation: merge updateableColumns with required pkey/cluster and rules that match former ExtensionRequest
+        $rules = array_merge($this->updateableColumns, [
+            'pkey' => 'required',
+            'cluster' => 'required|exists:cluster,pkey',
+            'macaddr' => ['nullable', 'regex:/^(?:[0-9a-fA-F]{12}|([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2})$/'],
+            'technology' => 'nullable|in:SIP,IAX2,DiD,CLiD,Class',
+        ]);
+        $validator = Validator::make($request->all(), $rules);
+        $validator->after(function ($validator) use ($request, $extension) {
+            $pkeySubmitted = $request->input('pkey');
+            $currentPkey = (string) $extension->getAttribute('pkey');
+            if ($pkeySubmitted !== null && (string) $pkeySubmitted !== $currentPkey) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+                $cluster = $clusterShortuid ?? $request->input('cluster');
+                if ($cluster !== null && Extension::where('pkey', $pkeySubmitted)->where('cluster', $cluster)->where('id', '!=', $extension->id)->exists()) {
+                    $validator->errors()->add('pkey', 'The pkey has already been taken in this cluster.');
+                }
+            }
+        });
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
         $originalMac = $extension->getOriginal('macaddr');
         $originalMac = $originalMac !== null && $originalMac !== '' ? preg_replace('/[^0-9a-fA-F]/', '', $originalMac) : null;
 

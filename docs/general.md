@@ -337,7 +337,6 @@ Create a new inboundroute
 **Body:**
 ```
 'pkey' => 'required'
-'carrier' => 'required|in:DiD,CLID'
 'cluster' => 'required|exists:cluster'
 'trunkname' => 'required'
 ```
@@ -349,7 +348,6 @@ update an inboundroute
 ```
 'active' => 'in:YES,NO', 
 'alertinfo' => 'string',
-'carrier' => 'in:DiD,CLID',
 'closeroute' => 'string',
 'cluster' => 'exists:cluster,pkey',
 'description' => 'alpha_num',
@@ -731,8 +729,8 @@ Create a new trunk
 **Body:**
 ```
 'pkey' => 'required'
-'carrier' => 'required|in:GeneralSIP,GeneralIAX2'
-'cluster' => 'required|exists:cluster,' . $request->cluster
+'technology' => 'required|in:SIP,IAX2'
+'cluster' => 'required|exists:cluster,pkey'
 'username' => 'required'
 'host' => 'required'
 ```
@@ -757,8 +755,6 @@ update a trunk
 'password' => 'alpha_num|nullable',
 'peername' => 'string',
 'register' => 'string|nullable',
-'sipiaxpeer' => 'string',
-'sipiaxuser' => 'string',
 'swoclip' => 'in:YES,NO',
 'tag' => 'alpha_num|nullable',
 'transform' => [
