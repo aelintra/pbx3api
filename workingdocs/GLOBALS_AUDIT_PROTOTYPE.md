@@ -54,7 +54,7 @@ Schema column names are **lowercase**. The table has 39 data columns plus pkey a
 | sysop           | ✓     | Updateable       | yes                  | —                           | INTEGER DEFAULT 100. |
 | syspass         | ✓     | Updateable       | yes                  | —                           | INTEGER DEFAULT 4444. |
 | tlsport         | ✓     | Updateable       | yes                  | —                           | INTEGER DEFAULT 5061. |
-| userotp         | ✓     | Updateable       | yes                  | —                           | |
+| userotp         | ✓     | Deprecated/hidden | no                   | hidden                      | Deprecated; not shown in UI or accepted on update. |
 | vcl             | ✓     | hidden       | yes                  | —                           | DEFAULT '1'. |
 | voipmax         | ✓     | Updateable       | yes                  | —                           | INTEGER DEFAULT 30. |
 | z_created       | ✓     | Display only     | no                   | guarded                     | z_* never updateable. |
@@ -96,6 +96,7 @@ Schema column names are **lowercase**. The table has 39 data columns plus pkey a
 1. **pkey** – Identity-only; in **$hidden** (not returned in JSON).
 2. **Display-only** (edomain, localip, sipdriver) – Removed from updateableColumns; shown as **read-only** fields in SPA.
 3. **Hidden** (fqdninspect, fqdnprov, mycommit, staticipv4, vcl) – Removed fqdninspect, fqdnprov from updateableColumns (not updateable). mycommit, staticipv4, vcl kept in updateableColumns (API accepts) but in model **$hidden** (omitted from response). SPA: removed all five from form (not returned by API).
-4. **Model** – Replaced $guarded/$hidden with **$fillable** (all 39 schema columns, lowercase); **$hidden** = ['pkey', 'fqdninspect', 'fqdnprov', 'mycommit', 'staticipv4', 'vcl']; removed all non-schema UPPERCASE names.
-5. **Controller** – Removed from updateableColumns: edomain, fqdninspect, fqdnprov, localip, sipdriver.
-6. **SPA** – edomain, localip, sipdriver as FormReadonly; removed fqdninspect, fqdnprov, mycommit, staticipv4, vcl from form; added **System** section (z_created, z_updated, z_updater). Removed display-only and hidden fields from save body.
+4. **Model** – Replaced $guarded/$hidden with **$fillable** (all 39 schema columns, lowercase); **$hidden** = ['pkey', 'fqdninspect', 'fqdnprov', 'mycommit', 'staticipv4', 'userotp', 'vcl']; removed all non-schema UPPERCASE names.
+5. **Controller** – Removed from updateableColumns: edomain, fqdninspect, fqdnprov, localip, sipdriver. **userotp** removed (deprecated).
+6. **SPA** – edomain, localip, sipdriver as FormReadonly; removed fqdninspect, fqdnprov, mycommit, staticipv4, userotp (deprecated), vcl from form; added **System** section (z_created, z_updated, z_updater). Removed display-only and hidden fields from save body.
+7. **userotp** – Deprecated: in model **$hidden**; removed from controller updateableColumns and from SPA form/save.

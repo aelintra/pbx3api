@@ -35,7 +35,7 @@ class SysglobalController extends Controller
         'maxin' => 'integer|nullable',
         'maxout' => 'integer|nullable',
         'mycommit' => 'string|nullable',
-        'natdefault' => 'string|nullable',
+        'natdefault' => 'nullable|string|in:local,remote',
         'natparams' => 'string|nullable',
         'operator' => 'integer|nullable',
         'pwdlen' => 'integer|nullable',
@@ -52,7 +52,6 @@ class SysglobalController extends Controller
         'sysop' => 'integer|nullable',
         'syspass' => 'integer|nullable',
         'tlsport' => 'integer|nullable',
-        'userotp' => 'string|nullable',
         'vcl' => 'string|nullable',
         'voipmax' => 'integer|nullable',
     ];
