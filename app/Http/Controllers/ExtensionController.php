@@ -302,6 +302,9 @@ class ExtensionController extends Controller
             ], 409);
         }
 
+        // SIP password: auto-generate 12 chars (passwd not fillable; set via direct update)
+        Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+
         if ($extension->provision !== null && $extension->provision !== '') {
             $this->adjustAstProvSettings($extension);
             Extension::where('id', $extension->id)->update(['provision' => $extension->provision]);
@@ -338,7 +341,8 @@ class ExtensionController extends Controller
     	} else {
     		$extension->tenant_pkey = $cluster;
     	}
-    	return $extension;
+    	// Include passwd only for single-extension (detail/edit); not in index/list
+    	return $extension->makeVisible('passwd');
     }
 
 /**
@@ -417,6 +421,7 @@ class ExtensionController extends Controller
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
     	}
+    	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
     	return $extension;
 	}
 
@@ -463,6 +468,7 @@ class ExtensionController extends Controller
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
     	}
+    	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
 
 // create default Clsss of service contraints
 
@@ -515,6 +521,7 @@ class ExtensionController extends Controller
 	} catch (\Exception $e) {
 		return Response::json(['Error' => $e->getMessage()],409);
 	}
+	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
 
 // create default Class of service contraints
 
@@ -596,6 +603,7 @@ class ExtensionController extends Controller
         } catch (\Exception $e) {
    			return Response::json(['Error' => $e->getMessage()],409);
     	}
+    	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
 
 // create default Clsss of service contraints
 
