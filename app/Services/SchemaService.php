@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Models\Agent;
+use App\Models\Conference;
 use App\Models\CustomApp;
 use App\Models\Device;
 use App\Models\Extension;
@@ -41,6 +43,7 @@ class SchemaService
     protected static array $resourceMapping = [
         'extensions' => [ExtensionController::class, Extension::class],
         'queues'     => [QueueController::class, Queue::class],
+        'conferences' => [ConferenceController::class, Conference::class],
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
         'devices'    => [DeviceController::class, Device::class],

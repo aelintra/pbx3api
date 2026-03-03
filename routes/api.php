@@ -12,6 +12,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CosCloseController;
 use App\Http\Controllers\CosOpenController;
 use App\Http\Controllers\ClassOfServiceController;
+use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\DeviceController;
@@ -274,6 +275,15 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('queues', [QueueController::class, 'save']);
         Route::put('queues/{queue}', [QueueController::class, 'update']);
         Route::delete('queues/{queue}', [QueueController::class, 'delete']);
+
+    /**
+     * Conferences (meetme; tenant-scoped)
+     */
+        Route::get('conferences', [ConferenceController::class, 'index']);
+        Route::get('conferences/{conference}', [ConferenceController::class, 'show']);
+        Route::post('conferences', [ConferenceController::class, 'save']);
+        Route::put('conferences/{conference}', [ConferenceController::class, 'update']);
+        Route::delete('conferences/{conference}', [ConferenceController::class, 'delete']);
 
     /**
      * Snapshots
