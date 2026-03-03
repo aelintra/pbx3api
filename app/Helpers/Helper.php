@@ -143,28 +143,34 @@ if (!function_exists('pbx3_request_syscmd')) {
 
 if (!function_exists('valid_ip_or_domain')) {
     /**
-     * checks host for valid IP or valid domain name
+     * Checks host for valid IP, valid domain name (DNS A record), or hostname format.
+     * Accepts hostnames that look valid (labels with alphanumeric/hyphen separated by dots)
+     * when DNS lookup fails (e.g. private DNS, or host only resolvable from another network).
      *
-     * @param host reference
-     *
-     * @return boolean
-     *
-     * */
+     * @param string $host
+     * @return bool
+     */
     function valid_ip_or_domain($host) {
+        if (empty($host) || !is_string($host)) {
+            return false;
+        }
+        $host = trim($host);
 
         if (filter_var($host, FILTER_VALIDATE_IP)) {
-        	return true;
+            return true;
         }
 
-        if  (checkdnsrr($host, "A")   ) {
+        if (checkdnsrr($host, 'A')) {
+            return true;
+        }
 
-        	return true;
-        } 
+        // Accept hostname format when DNS fails (e.g. sip.example.pbx, internal hosts)
+        if (preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i', $host)) {
+            return true;
+        }
 
-		return false;
-
-	}
-
+        return false;
+    }
 }
 
 if (!function_exists('create_new_backup')) {
