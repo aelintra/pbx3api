@@ -18,19 +18,15 @@ class SysglobalController extends Controller
 {
     //
 
-    // globals table (full_schema.sql). Column names lowercase to match schema. Exclude pkey, z_*.
+    // globals table (sqlite_create_instance.sql). Exclude pkey, z_*, display-only (edomain, localip, sipdriver), and hidden-not-updateable (fqdninspect, fqdnprov).
     private $updateableColumns = [
         'abstimeout' => 'integer|nullable',
         'bindaddr' => 'string|nullable',
         'bindport' => 'string|nullable',
         'cosstart' => 'string|nullable',
-        'edomain' => 'string|nullable',
         'emergency' => 'string|nullable',
         'fqdn' => 'string|nullable',
-        'fqdninspect' => 'string|nullable',
-        'fqdnprov' => 'string|nullable',
         'language' => 'string|nullable',
-        'localip' => 'string|nullable',
         'loglevel' => 'integer|nullable',
         'logopts' => 'string|nullable',
         'logsipdispsize' => 'integer|nullable',
@@ -51,7 +47,6 @@ class SysglobalController extends Controller
         'sessiontimout' => 'integer|nullable',
         'sendedomain' => 'string|nullable',
         'sipflood' => 'string|nullable',
-        'sipdriver' => 'string|nullable',
         'sitename' => 'string|nullable',
         'staticipv4' => 'string|nullable',
         'sysop' => 'integer|nullable',

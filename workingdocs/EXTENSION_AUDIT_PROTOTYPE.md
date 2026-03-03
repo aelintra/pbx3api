@@ -93,3 +93,12 @@ Once you’ve marked these, we’ll:
 2. Align ExtensionRequest rules with that set (and fix callerid/cellphone to string).
 3. Clean Extension model: remove non-DB names from `$guarded` and `$hidden`.
 4. Optionally document or fix `location` on create (schema vs code).
+
+---
+
+## Decisions applied (first part — model and controller alignment)
+
+Extension Task 1 alignment is in place:
+- **Extension model:** Uses **$fillable** (whitelist per schema; id/shortuid set by controller on create); **$hidden** = ['passwd'] only (non-DB names such as sipiaxfriend removed from model); primaryKey = 'id'; resolveRouteBinding. Display-only/fixed columns (abstimeout, basemacaddr, devicemodel, stealtime, stolen, tls) excluded from $fillable.
+- **ExtensionController:** updateableColumns and create/update logic aligned with schema; MAC/device/provision handling in place.
+- **Remaining (Task 2 / follow-up):** ExtensionRequest still used for update; harmonisation plan calls for switching to Request + Validator in controller. **sipiaxfriend** decision (item 8 above) and any SPA tweaks remain open if needed.

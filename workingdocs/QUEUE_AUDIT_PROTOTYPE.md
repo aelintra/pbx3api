@@ -82,3 +82,12 @@ Once you’ve decided, we’ll:
 1. Fix **QueueController::save()** to set id and shortuid before save().
 2. Replace **Queue model** `$guarded` with **$fillable** and set `$hidden` per your choices.
 3. Optionally add pkey-uniqueness check in update() when pkey is present and changed.
+
+---
+
+## Decisions applied (implementation complete)
+
+Queue harmonisation is already in place:
+- **Queue model:** Uses **$fillable** (whitelist; excludes id, shortuid, z_*); **$hidden** = ['name']; primaryKey = 'id'; resolveRouteBinding (shortuid then id then pkey).
+- **QueueController:** save() sets id and shortuid before save(); update() uses Request + Validator with updateableColumns; pkey uniqueness checked in validator->after() when pkey is present and changed. No Form Request (Task 2 pattern).
+- **SPA:** Queue create/detail views aligned with schema.
