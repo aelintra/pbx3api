@@ -17,6 +17,8 @@ class GreetingRecordController extends Controller
      * - filename stores original uploaded name (display/reference).
      * - saved file is /usr/share/asterisk/sounds/{clusterShortuid}/usergreeting{pkey}.{type}
      */
+    private const GREETINGS_ROOT = '/usr/share/asterisk/sounds';
+
     private $updateableColumns = [
         // pkey is identity-only in this resource; not updateable (set on create only)
         'cluster' => 'exists:cluster,pkey',
@@ -28,6 +30,27 @@ class GreetingRecordController extends Controller
     public function getUpdateableColumns(): array
     {
         return array_keys($this->updateableColumns);
+    }
+
+    /**
+     * Ensure tenant sounds subdir exists (via syshelper; API cannot mkdir there directly).
+     * Creates directory and sets ownership so www-data can write.
+     */
+    private function ensureGreetingTenantDir(string $clusterDir): void
+    {
+        $fullPath = self::GREETINGS_ROOT . '/' . $clusterDir;
+        [$out, $err] = pbx3_request_syscmd('/bin/mkdir -p ' . escapeshellarg($fullPath));
+        if ($err !== '') {
+            throw new \RuntimeException('Unable to create tenant directory: ' . $err);
+        }
+        [$out, $err] = pbx3_request_syscmd('/bin/chown www-data:www-data ' . escapeshellarg($fullPath));
+        if ($err !== '') {
+            throw new \RuntimeException('Unable to set tenant directory ownership: ' . $err);
+        }
+        [$out, $err] = pbx3_request_syscmd('/bin/chmod 755 ' . escapeshellarg($fullPath));
+        if ($err !== '') {
+            throw new \RuntimeException('Unable to set tenant directory permissions: ' . $err);
+        }
     }
 
     public function index(Greeting $greeting)
@@ -117,8 +140,8 @@ class GreetingRecordController extends Controller
         $rel = "{$clusterDir}/{$saved}";
 
         try {
-            // Ensure tenant subdir exists on disk root
-            Storage::disk('greetings')->makeDirectory($clusterDir);
+            // Ensure tenant subdir exists (via syshelper; /usr/share/asterisk/sounds is privileged)
+            $this->ensureGreetingTenantDir($clusterDir);
 
             // Write file to disk (storage/app/greetings... not used here; we write directly to disk root)
             Storage::disk('greetings')->putFileAs($clusterDir, $file, $saved);
@@ -194,7 +217,7 @@ class GreetingRecordController extends Controller
             $rel = "{$clusterDir}/{$saved}";
 
             try {
-                Storage::disk('greetings')->makeDirectory($clusterDir);
+                $this->ensureGreetingTenantDir($clusterDir);
                 Storage::disk('greetings')->putFileAs($clusterDir, $file, $saved);
                 @shell_exec("/bin/chown asterisk:asterisk " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
                 @shell_exec("/bin/chmod 664 " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
@@ -269,7 +292,7 @@ class GreetingRecordController extends Controller
         $rel = "{$clusterDir}/{$saved}";
 
         try {
-            Storage::disk('greetings')->makeDirectory($clusterDir);
+            $this->ensureGreetingTenantDir($clusterDir);
             Storage::disk('greetings')->putFileAs($clusterDir, $file, $saved);
             @shell_exec("/bin/chown asterisk:asterisk " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
             @shell_exec("/bin/chmod 664 " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
