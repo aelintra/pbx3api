@@ -1,5 +1,7 @@
 # Greetings (greeting) audit – sarkgreeting panel port
 
+**Status: Done.** API (GreetingRecordController, greetingrecords routes, syscmd tenant dir) and SPA (Greetings list/create/detail) are implemented and committed.
+
 **Purpose:** Define the Greeting model, controller, and validation for the sarkgreeting panel port. Greetings are **tenant-scoped** (table `greeting` in tenant SQL). Metadata lives in the **greeting** table; the actual **audio** is stored as files under the sounds directory, **per tenant**. The user uploads any `.wav`/`.mp3`; we store the **original upload name** in the `filename` column, but we save the file on disk as **`usergreeting{pkey}.{wav|mp3}`** under the tenant’s sounds folder. Same pattern as Queue, Agent, IVR, Conference: id/shortuid set on create, pkey unique per cluster, route binding by shortuid.
 
 **Schema source:** `pbx3/pbx3-1/opt/pbx3/db/db_sql/sqlite_create_tenant.sql` (table `greeting`).
