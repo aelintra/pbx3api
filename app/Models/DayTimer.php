@@ -6,36 +6,69 @@ use Illuminate\Database\Eloquent\Model;
 
 class DayTimer extends Model
 {
-    //
     protected $table = 'dateseg';
-//    protected $primaryKey = 'ipphone_pkey';
-//    protected $keyType = 'string';
-//    public $incrementing = false;
+    protected $primaryKey = 'id';
+    protected $keyType = 'string';
+    public $incrementing = false;
     public $timestamps = false;
 
-    // dateseg table (full_schema.sql has description, not desc)
     protected $attributes = [
-        'id' => null,
-        'pkey' => null,
+        'active' => 'YES',
         'cluster' => 'default',
         'datemonth' => '*',
         'dayofweek' => '*',
+        'description' => '*NEW RULE*',
         'month' => '*',
         'state' => 'IDLE',
-        'timespan' => '*'
+        'timespan' => '*',
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-
-	'z_created',
-	'z_updated',
-	'z_updater'
+    /**
+     * Mass-assignable. pkey is system-generated integer; id, shortuid, state, z_* are not fillable.
+     */
+    protected $fillable = [
+        'active',
+        'cluster',
+        'cname',
+        'datemonth',
+        'dayofweek',
+        'description',
+        'month',
+        'timespan',
     ];
 
-    // hidden columns (mostly no longer used)
-    protected $hidden = [
-//    'pkey',
+    protected $guarded = ['z_created', 'z_updated', 'z_updater'];
+    protected $hidden = [];
 
-    ];
+    /**
+     * Resolve route model binding by shortuid (preferred), then id, then pkey.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $value = (string) $value;
+
+        $model = static::where('shortuid', $value)->first();
+        if ($model) {
+            return $model;
+        }
+
+        $model = static::whereRaw('LOWER(shortuid) = ?', [strtolower($value)])->first();
+        if ($model) {
+            return $model;
+        }
+
+        $model = static::where('id', $value)->first();
+        if ($model) {
+            return $model;
+        }
+
+        if (is_numeric($value)) {
+            return static::where('pkey', (int) $value)->first();
+        }
+
+        return null;
+    }
 }

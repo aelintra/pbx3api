@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\ClassOfServiceController;
 use App\Http\Controllers\ConferenceController;
+use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
@@ -20,6 +21,7 @@ use App\Models\Agent;
 use App\Models\ClassOfService;
 use App\Models\Conference;
 use App\Models\CustomApp;
+use App\Models\DayTimer;
 use App\Models\Device;
 use App\Models\Extension;
 use App\Models\Greeting;
@@ -49,6 +51,7 @@ class SchemaService
         'queues'     => [QueueController::class, Queue::class],
         'conferences' => [ConferenceController::class, Conference::class],
         'cosrules' => [ClassOfServiceController::class, ClassOfService::class],
+        'daytimers' => [DayTimerController::class, DayTimer::class],
         'greetingrecords' => [GreetingRecordController::class, Greeting::class],
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
