@@ -9,6 +9,7 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AsteriskFileController;
 use App\Http\Controllers\AstAmiController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\CosCloseController;
 use App\Http\Controllers\CosOpenController;
 use App\Http\Controllers\ClassOfServiceController;
@@ -315,6 +316,16 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('routes', [RouteController::class, 'save']);
         Route::put('routes/{route}', [RouteController::class, 'update']);
         Route::delete('routes/{route}', [RouteController::class, 'delete']);
+
+    /**
+     * Certificates (active source, Let's Encrypt status/renew, custom cert install/remove)
+     */
+        Route::get('certificates/active', [CertificateController::class, 'active']);
+        Route::get('certificates/letsencrypt', [CertificateController::class, 'letsencrypt']);
+        Route::post('certificates/letsencrypt/renew', [CertificateController::class, 'renew']);
+        Route::get('certificates/custom', [CertificateController::class, 'customIndex']);
+        Route::post('certificates/custom', [CertificateController::class, 'customStore']);
+        Route::delete('certificates/custom', [CertificateController::class, 'customDestroy']);
 
     /**
      * System Commands
