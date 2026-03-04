@@ -11,6 +11,7 @@ use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\GreetingRecordController;
 use App\Http\Controllers\HelpCoreController;
+use App\Http\Controllers\HolidayTimerController;
 use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
 use App\Http\Controllers\QueueController;
@@ -25,6 +26,7 @@ use App\Models\DayTimer;
 use App\Models\Device;
 use App\Models\Extension;
 use App\Models\Greeting;
+use App\Models\HolidayTimer;
 use App\Models\InboundRoute;
 use App\Models\Ivr;
 use App\Models\Queue;
@@ -52,6 +54,7 @@ class SchemaService
         'conferences' => [ConferenceController::class, Conference::class],
         'cosrules' => [ClassOfServiceController::class, ClassOfService::class],
         'daytimers' => [DayTimerController::class, DayTimer::class],
+        'holidaytimers' => [HolidayTimerController::class, HolidayTimer::class],
         'greetingrecords' => [GreetingRecordController::class, Greeting::class],
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
