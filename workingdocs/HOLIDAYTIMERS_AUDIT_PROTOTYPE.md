@@ -93,8 +93,8 @@
 
 - **List:** HolidayTimersListView – columns: **Start** (stime as formatted date-time), **End** (etime), **Cluster** (tenant pkey), **Description**, **Route**, **State** (computed: IDLE or *INUSE*), Edit, Delete. Sort by stime. Filter, Create.
 - **Create:** HolidayTimerCreateView – **description** and **cluster** (tenant) only (matching original showNew); or include start/end date-time if product decision is to require them on create. useSchema('holidaytimers'), applySchemaDefaults.
-- **Detail:** HolidayTimerDetailView – **description**, **cluster**, **route** (select – options from GET /routes, see below), **start** (date + time → stime epoch), **end** (date + time → etime epoch). id/shortuid/pkey read-only; state computed and read-only. useSchema for isReadOnly. Validate end > start; optional overlap warning or API validation.
-- **Route select:** Same as original – **route** is a **dropdown**, not free text. Options from **GET /routes** (route pkeys). SPA loads routes and builds options (filter by cluster if desired; include "None" or empty for no override). Same pattern as InboundRouteCreateView/InboundRouteDetailView.
+- **Detail:** HolidayTimerDetailView – **description**, **cluster**, **route** (select – options from GET /destinations, see below), **Start date**, **Start time**, **End date**, **End time** (four separate inputs → stime/etime epoch). id/shortuid/pkey read-only; state computed and read-only. useSchema for isReadOnly. Validate end ≥ start; API enforces overlap in same cluster (422).
+- **Route select:** **Route** is a **dropdown** of **internal destinations** (not outbound routes/trunks). Options from **GET /destinations?cluster={tenantPkey}**: Queues, Extensions, IVRs, CustomApps (grouped), plus "None" and "Operator". Same pattern as InboundRouteDetailView openroute/closeroute. Stored value is destination pkey (queue name, extension, IVR name, or custom app pkey).
 - **Router:** holidaytimers, holidaytimers/new, holidaytimers/:shortuid. **Nav:** “Holiday timers” or “Holidays”.
 
 ### 3.3 Validation (stime, etime, overlap)
@@ -110,7 +110,7 @@
 
 2. **Overlap:** Enforce “no overlap in same cluster” in API (422) or only in SPA/warning?
 
-3. **Route field:** **Decision:** Route is a **select** (same as original). Options from **GET /routes** (route pkeys). SPA: load routes, build dropdown; include "None" or empty for no override.
+3. **Route field:** **Decision applied:** Route is a **select** of **internal destinations** from **GET /destinations?cluster=** (Queues, Extensions, IVRs, CustomApps grouped; "None", "Operator"). Not GET /routes (outbound trunks).
 
 4. **List columns:** Confirm or adjust: Start, End, Cluster, Description, Route, State, Edit, Delete.
 
@@ -120,4 +120,8 @@
 
 ## 5. Decisions applied
 
-_(To be filled after your review.)_
+- **Create:** Description + cluster only; stime/etime default to start of today on create (API).
+- **Overlap:** API enforces no overlap in same cluster (422).
+- **Route:** Internal destinations from GET /destinations (grouped: Queues, Extensions, IVRs, CustomApps); "None" and "Operator". Not outbound routes.
+- **Detail date/time:** Separate inputs – Start date, Start time, End date, End time (better UX than single datetime-local).
+- **Nav label:** "Holiday timers".
