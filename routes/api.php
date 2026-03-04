@@ -21,6 +21,7 @@ use App\Http\Controllers\HelpCoreController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\FirewallController;
 use App\Http\Controllers\GreetingController;
+use App\Http\Controllers\GreetingRecordController;
 use App\Http\Controllers\HolidayTimerController;
 use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
@@ -230,6 +231,17 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::get('greetings/{greeting}', [GreetingController::class, 'download']);
         Route::post('greetings', [GreetingController::class, 'save']);
         Route::delete('greetings/{greeting}', [GreetingController::class, 'delete']);
+
+    /**
+     * Greeting records (DB-backed greetings; tenant-scoped)
+     */
+        Route::get('greetingrecords', [GreetingRecordController::class, 'index']);
+        Route::get('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'show']);
+        Route::get('greetingrecords/{greetingrecord}/download', [GreetingRecordController::class, 'download']);
+        Route::post('greetingrecords', [GreetingRecordController::class, 'save']);
+        Route::put('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'update']);
+        Route::post('greetingrecords/{greetingrecord}/replace', [GreetingRecordController::class, 'replace']);
+        Route::delete('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'delete']);
 
     /**
      * Holiday Timers

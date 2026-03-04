@@ -69,6 +69,13 @@ return [
             'throw' => false,
         ],
 
+        'greetings' => [
+            'driver' => 'local',
+            // Root is the base sounds directory; tenant greetings live under {cluster_shortuid}/
+            'root' => '/usr/share/asterisk/sounds',
+            'throw' => false,
+        ],
+
     ],
 
     /*
