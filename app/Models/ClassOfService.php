@@ -6,36 +6,62 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClassOfService extends Model
 {
-    //
     protected $table = 'cos';
-    protected $primaryKey = 'pkey';
+    protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;
 
     protected $attributes = [
-
-        'active' => 'NO',
+        'active' => 'YES',
+        'cluster' => 'default',
         'defaultclosed' => 'NO',
         'defaultopen' => 'NO',
-        'description' => null,
-        'dialplan' => null,
-        'orideclosed'=> 'NO',
-        'orideopen' => 'NO'
-
+        'orideclosed' => 'NO',
+        'orideopen' => 'NO',
     ];
 
-    // none user updateable columns
-    protected $guarded = [
-
-	'z_created',
-	'z_updated',
-	'z_updater'
+    /**
+     * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql cos.
+     * pkey set on create only (identity-only). defaultopen, defaultclosed, orideopen, orideclosed are system/display-only.
+     */
+    protected $fillable = [
+        'pkey',
+        'active',
+        'cluster',
+        'cname',
+        'description',
+        'dialplan',
     ];
 
-    // hidden columns (mostly no longer used)
-    protected $hidden = [
+    protected $guarded = ['z_created', 'z_updated', 'z_updater'];
+    protected $hidden = [];
 
+    /**
+     * Resolve route model binding by shortuid (globally unique) instead of pkey (tenant-scoped).
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $value = (string) $value;
 
-    ];
+        $model = static::where('shortuid', $value)->first();
+        if ($model) {
+            return $model;
+        }
+
+        $model = static::whereRaw('LOWER(shortuid) = ?', [strtolower($value)])->first();
+        if ($model) {
+            return $model;
+        }
+
+        $model = static::where('id', $value)->first();
+        if ($model) {
+            return $model;
+        }
+
+        return static::where('pkey', $value)->first();
+    }
 }

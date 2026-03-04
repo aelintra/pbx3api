@@ -6,130 +6,119 @@ use App\Models\ClassOfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class ClassOfServiceController extends Controller
 {
-    //
-
+    // cos table (sqlite_create_tenant.sql). pkey = identity-only (not updateable). orideopen/orideclosed/system defaults not updateable.
     private $updateableColumns = [
-
         'active' => 'in:YES,NO',
-        'defaultclosed' => 'in:YES,NO',
-        'defaultopen' => 'in:YES,NO',
+        'cluster' => 'exists:cluster,pkey',
+        'cname' => 'string|nullable',
         'description' => 'string|nullable',
-        'dialplan' => 'string|nullable',
-        'orideclosed'=> 'in:YES,NO',
-        'orideopen' => 'in:YES,NO'
+        'dialplan' => 'required|string',
     ];
 
-/**
- *
- * @return ClassOfService
- */
-    public function index (ClassOfService $classofservice) {
-
-    	return ClassOfService::orderBy('pkey','asc')->get();
+    /** Return column names that are updateable (for schema metadata). */
+    public function getUpdateableColumns(): array
+    {
+        return array_keys($this->updateableColumns);
     }
 
-/**
- * Return named ClassOfService model instance
- * 
- * @param  ClassOfService
- * @return ClassOfService object
- */
-    public function show (ClassOfService $classofservice) {
-
-    	return response()->json($classofservice, 200);
+    public function index(ClassOfService $classofservice)
+    {
+        return ClassOfService::orderBy('pkey', 'asc')->get();
     }
 
-/**
- * Create a new ClassOfService instance
- * 
- * @param  Request
- * @return New ClassOfService
- */
-    public function save(Request $request) {
+    public function show(ClassOfService $classofservice)
+    {
+        return response()->json($classofservice, 200);
+    }
 
-// validate 
-        $this->updateableColumns['pkey'] = 'required|alpha_dash';
-        $this->updateableColumns['dialplan'] = 'required';
+    public function save(Request $request)
+    {
+        $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
+
+        $rules = array_merge($this->updateableColumns, [
+            'pkey' => 'required|alpha_dash',
+            'cluster' => 'required|exists:cluster,pkey',
+        ]);
 
         $classofservice = new ClassOfService;
+        $validator = Validator::make($request->all(), $rules);
 
-        $validator = Validator::make($request->all(),$this->updateableColumns);
-
-        $validator->after(function ($validator) use ($request,$classofservice) {
-
-//Check if key exists
-            if ($classofservice->where('pkey','=',$request->pkey)->count()) {
-                $validator->errors()->add('save', "Duplicate Key - " . $request->pkey);
-                return;
-            }                 
+        $validator->after(function ($validator) use ($request, $clusterShortuid) {
+            $pkey = $request->input('pkey');
+            if ($pkey !== null && ClassOfService::where('pkey', $pkey)->where('cluster', $clusterShortuid)->exists()) {
+                $validator->errors()->add('pkey', 'That CoS key is already in use in this tenant.');
+            }
         });
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
-    
-// Move post variables to the model 
-        move_request_to_model($request,$classofservice,$this->updateableColumns);
 
+        move_request_to_model($request, $classofservice, array_merge($this->updateableColumns, ['pkey' => 'required|alpha_dash']));
+        $classofservice->cluster = $clusterShortuid;
         $classofservice->id = generate_ksuid();
         $classofservice->shortuid = generate_shortuid();
 
-// create the model         
         try {
             $classofservice->save();
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()],409);
+            return Response::json(['Error' => $e->getMessage()], 409);
         }
 
         return $classofservice;
     }
 
-/**
- * @param  Request
- * @param  ClassOfService
- * @return json response
- */
-    public function update(Request $request, ClassOfService $classofservice) {
+    public function update(Request $request, ClassOfService $classofservice)
+    {
+        $validator = Validator::make($request->all(), $this->updateableColumns);
 
-// Validate   
-        $validator = Validator::make($request->all(),$this->updateableColumns);
+        $validator->after(function ($validator) use ($request, $classofservice) {
+            if ($request->has('cluster')) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+                if ($clusterShortuid !== null && $clusterShortuid !== $classofservice->cluster) {
+                    if (ClassOfService::where('pkey', $classofservice->pkey)->where('cluster', $clusterShortuid)->where('id', '!=', $classofservice->id)->exists()) {
+                        $validator->errors()->add('cluster', 'That tenant already has a CoS rule with this key.');
+                    }
+                }
+            }
+        });
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
 
-// Move post variables to the model   
-        move_request_to_model($request,$classofservice,$this->updateableColumns);
+        move_request_to_model($request, $classofservice, $this->updateableColumns);
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+        if ($clusterShortuid !== null) {
+            $classofservice->cluster = $clusterShortuid;
+        }
 
-
-// store the model if it has changed
         try {
             if ($classofservice->isDirty()) {
-                $classofservice->update();
+                $id = $classofservice->id;
+                if ($id === null || $id === '') {
+                    return Response::json(['Error' => 'Class of Service id is missing'], 409);
+                }
+                $dirty = $classofservice->getDirty();
+                ClassOfService::where('id', $id)->update($dirty);
+                $classofservice->syncOriginal();
             }
-
         } catch (\Exception $e) {
-            return Response::json(['Error' => $e->getMessage()],409);
+            return Response::json(['Error' => $e->getMessage()], 409);
         }
 
         return response()->json($classofservice, 200);
-        
-    } 
-
-
-/**
- * Delete  Agent instance
- * @param  Agent
- * @return 204
- */
-    public function delete(ClassOfService $classofservice) {
-        $classofservice->delete();
-
-        return response()->json(null, 204);
     }
 
+    public function delete(ClassOfService $classofservice)
+    {
+        $classofservice->delete();
+        return response()->json(null, 204);
+    }
 }

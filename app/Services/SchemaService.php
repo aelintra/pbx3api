@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\ClassOfServiceController;
 use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DeviceController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Models\Agent;
+use App\Models\ClassOfService;
 use App\Models\Conference;
 use App\Models\CustomApp;
 use App\Models\Device;
@@ -46,6 +48,7 @@ class SchemaService
         'extensions' => [ExtensionController::class, Extension::class],
         'queues'     => [QueueController::class, Queue::class],
         'conferences' => [ConferenceController::class, Conference::class],
+        'cosrules' => [ClassOfServiceController::class, ClassOfService::class],
         'greetingrecords' => [GreetingRecordController::class, Greeting::class],
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
