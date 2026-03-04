@@ -1,5 +1,7 @@
 # Conference (meetme) audit – sarkconference panel port
 
+**Status: Done.** API (Conference model, ConferenceController, conferences routes) and SPA (Conferences list/create/detail) are implemented.
+
 **Purpose:** Define the Conference (meetme) model, controller, and validation for the sarkconference panel port. Conferences are **tenant-scoped** (table `meetme` in tenant SQL). API resource name: **conferences**; table: **meetme**. Same pattern as Queue, Agent, IVR, etc.: id/shortuid set on create, pkey unique per cluster, route binding by shortuid.
 
 **Schema source:** `pbx3/pbx3-1/opt/pbx3/db/db_sql/sqlite_create_tenant.sql` (table `meetme`).
