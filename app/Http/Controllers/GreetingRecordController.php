@@ -40,15 +40,15 @@ class GreetingRecordController extends Controller
     {
         $fullPath = self::GREETINGS_ROOT . '/' . $clusterDir;
         [$out, $err] = pbx3_request_syscmd('/bin/mkdir -p ' . escapeshellarg($fullPath));
-        if ($err !== '') {
+        if ($err !== null) {
             throw new \RuntimeException('Unable to create tenant directory: ' . $err);
         }
         [$out, $err] = pbx3_request_syscmd('/bin/chown www-data:www-data ' . escapeshellarg($fullPath));
-        if ($err !== '') {
+        if ($err !== null) {
             throw new \RuntimeException('Unable to set tenant directory ownership: ' . $err);
         }
         [$out, $err] = pbx3_request_syscmd('/bin/chmod 755 ' . escapeshellarg($fullPath));
-        if ($err !== '') {
+        if ($err !== null) {
             throw new \RuntimeException('Unable to set tenant directory permissions: ' . $err);
         }
     }
