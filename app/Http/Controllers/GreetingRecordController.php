@@ -74,7 +74,7 @@ class GreetingRecordController extends Controller
         $rules = array_merge($this->updateableColumns, [
             'pkey' => 'required|integer|min:1',
             'cluster' => 'required|exists:cluster,pkey',
-            'greeting' => 'required|file|mimes:wav,mpeg', // mpeg covers mp3 (matches existing GreetingController)
+            'greeting' => 'required|file|mimes:wav,mp3',
         ]);
 
         $greeting = new Greeting;
@@ -149,7 +149,7 @@ class GreetingRecordController extends Controller
     {
         $rules = array_merge($this->updateableColumns, [
             'cluster' => 'exists:cluster,pkey',
-            'greeting' => 'file|mimes:wav,mpeg', // optional replacement (PUT multipart is supported, but SPA uses POST /replace)
+            'greeting' => 'file|mimes:wav,mp3',
         ]);
 
         $validator = Validator::make($request->all(), $rules);
@@ -228,7 +228,7 @@ class GreetingRecordController extends Controller
     {
         $rules = array_merge($this->updateableColumns, [
             'cluster' => 'exists:cluster,pkey',
-            'greeting' => 'required|file|mimes:wav,mpeg',
+            'greeting' => 'required|file|mimes:wav,mp3',
         ]);
 
         $validator = Validator::make($request->all(), $rules);
