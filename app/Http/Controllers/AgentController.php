@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -41,6 +42,16 @@ class AgentController extends Controller
     public function index (Agent $agent) {
 
     	return Agent::orderBy('pkey','asc')->get();
+    }
+
+    /** Export agents list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $agents = Agent::orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($agents);
+        return Pdf::loadView('exports.agents-pdf', ['agents' => $agents])
+            ->setPaper('a4', 'landscape')
+            ->download('agents.pdf');
     }
 
 /**

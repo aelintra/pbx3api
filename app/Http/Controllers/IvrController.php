@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ivr;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -72,6 +73,16 @@ class IvrController extends Controller
     public function index ()
     {
         return Ivr::orderBy('pkey', 'asc')->get();
+    }
+
+    /** Export IVRs list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $ivrs = Ivr::orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($ivrs);
+        return Pdf::loadView('exports.ivrs-pdf', ['ivrs' => $ivrs])
+            ->setPaper('a4', 'landscape')
+            ->download('ivrs.pdf');
     }
 
 /**

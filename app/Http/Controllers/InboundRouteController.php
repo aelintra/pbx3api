@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InboundRoute;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -55,6 +56,16 @@ class InboundRouteController extends Controller
     public function index () {
 
     	return InboundRoute::orderBy('pkey','asc')->get();
+    }
+
+    /** Export inbound routes list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $inboundroutes = InboundRoute::orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($inboundroutes);
+        return Pdf::loadView('exports.inboundroutes-pdf', ['inboundroutes' => $inboundroutes])
+            ->setPaper('a4', 'landscape')
+            ->download('inbound-routes.pdf');
     }
 
 /**

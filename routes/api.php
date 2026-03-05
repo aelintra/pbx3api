@@ -92,7 +92,8 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
  * Agents
  */
-    Route::get('agents', [AgentController::class, 'index']);
+        Route::get('agents', [AgentController::class, 'index']);
+        Route::get('agents/export/pdf', [AgentController::class, 'exportPdf']);
         Route::get('agents/{agent}', [AgentController::class, 'show']);
         Route::post('agents', [AgentController::class, 'save']);
         Route::put('agents/{agent}', [AgentController::class, 'update']);
@@ -258,6 +259,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Inbound Routes
      */
         Route::get('inboundroutes', [InboundRouteController::class, 'index']);
+        Route::get('inboundroutes/export/pdf', [InboundRouteController::class, 'exportPdf']);
         Route::get('inboundroutes/{inboundroute}', [InboundRouteController::class, 'show']);
         Route::post('inboundroutes', [InboundRouteController::class, 'save']);
         Route::put('inboundroutes/{inboundroute}', [InboundRouteController::class, 'update']);
@@ -267,6 +269,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * IVR menus
      */
         Route::get('ivrs', [IvrController::class, 'index']);
+        Route::get('ivrs/export/pdf', [IvrController::class, 'exportPdf']);
         Route::get('ivrs/{ivr}', [IvrController::class, 'show']);
         Route::post('ivrs', [IvrController::class, 'save']);
         Route::put('ivrs/{ivr}', [IvrController::class, 'update']);
@@ -285,6 +288,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Queues
      */
         Route::get('queues', [QueueController::class, 'index']);
+        Route::get('queues/export/pdf', [QueueController::class, 'exportPdf']);
         Route::get('queues/{queue}', [QueueController::class, 'show']);
         Route::post('queues', [QueueController::class, 'save']);
         Route::put('queues/{queue}', [QueueController::class, 'update']);
@@ -294,6 +298,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Conferences (meetme; tenant-scoped)
      */
         Route::get('conferences', [ConferenceController::class, 'index']);
+        Route::get('conferences/export/pdf', [ConferenceController::class, 'exportPdf']);
         Route::get('conferences/{conference}', [ConferenceController::class, 'show']);
         Route::post('conferences', [ConferenceController::class, 'save']);
         Route::put('conferences/{conference}', [ConferenceController::class, 'update']);
@@ -313,6 +318,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Routes
      */
         Route::get('routes', [RouteController::class, 'index']);
+        Route::get('routes/export/pdf', [RouteController::class, 'exportPdf']);
         Route::get('routes/{route}', [RouteController::class, 'show']);
         Route::post('routes', [RouteController::class, 'save']);
         Route::put('routes/{route}', [RouteController::class, 'update']);
@@ -357,6 +363,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      *  Tenants
      */
         Route::get('tenants', [TenantController::class, 'index']);
+        Route::get('tenants/export/pdf', [TenantController::class, 'exportPdf']);
         Route::get('tenants/{tenant}', [TenantController::class, 'show']);
         Route::post('tenants', [TenantController::class, 'save']);
         Route::put('tenants/{tenant}', [TenantController::class, 'update']);
@@ -366,6 +373,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Trunks
      */
         Route::get('trunks', [TrunkController::class, 'index']);
+        Route::get('trunks/export/pdf', [TrunkController::class, 'exportPdf']);
         Route::get('trunks/{trunk}', [TrunkController::class, 'show']);
         Route::post('trunks', [TrunkController::class, 'save']);
         Route::put('trunks/{trunk}', [TrunkController::class, 'update']);

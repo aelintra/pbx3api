@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Conference;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -30,6 +31,16 @@ class ConferenceController extends Controller
     public function index(Conference $conference)
     {
         return Conference::orderBy('pkey', 'asc')->get();
+    }
+
+    /** Export conferences list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $conferences = Conference::orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($conferences);
+        return Pdf::loadView('exports.conferences-pdf', ['conferences' => $conferences])
+            ->setPaper('a4', 'landscape')
+            ->download('conferences.pdf');
     }
 
     public function show(Conference $conference)

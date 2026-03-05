@@ -80,6 +80,40 @@ if (!function_exists('cluster_identifier_to_shortuid')) {
     }
 }
 
+/**
+ * Attach tenant_pkey (cluster display name) to each item in a collection that has a cluster property.
+ * Used for PDF/CSV exports so views can show tenant pkey instead of cluster id/shortuid.
+ *
+ * @param \Illuminate\Support\Collection $collection
+ * @return \Illuminate\Support\Collection
+ */
+if (!function_exists('attach_tenant_pkey_to_collection')) {
+    function attach_tenant_pkey_to_collection($collection) {
+        $map = [];
+        try {
+            $rows = DB::table('cluster')->get(['id', 'shortuid', 'pkey']);
+            foreach ($rows as $row) {
+                if (isset($row->id)) {
+                    $map[(string) $row->id] = $row->pkey ?? $row->id;
+                }
+                if (isset($row->shortuid)) {
+                    $map[(string) $row->shortuid] = $row->pkey ?? $row->shortuid;
+                }
+                if (isset($row->pkey)) {
+                    $map[(string) $row->pkey] = $row->pkey;
+                }
+            }
+        } catch (\Throwable $e) {
+            // cluster table may not exist in some contexts
+        }
+        foreach ($collection as $item) {
+            $c = $item->cluster ?? null;
+            $item->tenant_pkey = ($c !== null && $c !== '') ? ($map[(string) $c] ?? $c) : $c;
+        }
+        return $collection;
+    }
+}
+
 if (!function_exists('set_commit_dirty')) {
     /**
      * Mark instance as having uncommitted DB changes (Save was done; Commit not yet run).

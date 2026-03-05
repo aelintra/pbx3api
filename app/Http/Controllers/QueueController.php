@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Queue;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -48,6 +49,16 @@ class QueueController extends Controller
     public function index (Queue $queue) {
 
     	return Queue::orderBy('pkey','asc')->get();
+    }
+
+    /** Export queues list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $queues = Queue::orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($queues);
+        return Pdf::loadView('exports.queues-pdf', ['queues' => $queues])
+            ->setPaper('a4', 'landscape')
+            ->download('queues.pdf');
     }
 
 /**

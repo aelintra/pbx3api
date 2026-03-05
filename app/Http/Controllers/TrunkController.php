@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Trunk;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
@@ -63,6 +64,18 @@ class TrunkController extends Controller
     	return Trunk::where('technology', '=', 'SIP')
     		->orWhere ('technology', '=', 'IAX2' )
     		->orderBy('pkey','asc')->get();
+    }
+
+    /** Export trunks list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $trunks = Trunk::where('technology', '=', 'SIP')
+            ->orWhere('technology', '=', 'IAX2')
+            ->orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($trunks);
+        return Pdf::loadView('exports.trunks-pdf', ['trunks' => $trunks])
+            ->setPaper('a4', 'landscape')
+            ->download('trunks.pdf');
     }
 
 /**

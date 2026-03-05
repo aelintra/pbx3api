@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Tenant;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
@@ -94,6 +95,15 @@ class TenantController extends Controller
     public function index () {
 
     	return Tenant::orderBy('pkey','asc')->get();
+    }
+
+    /** Export tenants list as PDF. Same dataset as index. */
+    public function exportPdf()
+    {
+        $tenants = Tenant::orderBy('pkey', 'asc')->get();
+        return Pdf::loadView('exports.tenants-pdf', ['tenants' => $tenants])
+            ->setPaper('a4', 'landscape')
+            ->download('tenants.pdf');
     }
 
 /**

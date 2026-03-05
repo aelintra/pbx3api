@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Route;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -42,6 +43,16 @@ class RouteController extends Controller
     public function index (Route $route) {
 
     	return Route::orderBy('pkey','asc')->get();
+    }
+
+    /** Export routes list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $routes = Route::orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($routes);
+        return Pdf::loadView('exports.routes-pdf', ['routes' => $routes])
+            ->setPaper('a4', 'landscape')
+            ->download('routes.pdf');
     }
 
 /**
