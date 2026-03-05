@@ -81,6 +81,44 @@ class CertificateController extends Controller
     }
 
     /**
+     * POST /certificates/letsencrypt/setup — first-time Let's Encrypt: obtain cert for fqdn, write le-domain, apply.
+     * Body: { "fqdn": "host.example.com", "email": "admin@example.com" }. PBX3_SYSCMD_TIMEOUT >= 90 recommended.
+     */
+    public function setup(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fqdn' => 'required|string|max:253',
+            'email' => 'required|email',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+        $fqdn = trim($request->input('fqdn'));
+        $email = $request->input('email');
+        if ($fqdn === '') {
+            return response()->json(['message' => 'FQDN is required.'], 422);
+        }
+
+        [$domain, $domainErr] = $this->readLeDomain();
+        if ($domainErr === null && $domain !== null && $domain !== '') {
+            $fullchain = self::LE_LIVE_BASE . '/' . trim($domain) . '/fullchain.pem';
+            [$exists] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullchain) . ' && echo yes || echo no');
+            if (trim($exists ?? '') === 'yes') {
+                return response()->json([
+                    'message' => 'Let\'s Encrypt is already configured. Use Renew now to refresh the certificate.',
+                ], 409);
+            }
+        }
+
+        $cmd = '/opt/pbx3/scripts/le-first-cert.sh ' . escapeshellarg($fqdn) . ' ' . escapeshellarg($email) . ' 2>&1';
+        [$out, $err] = pbx3_request_syscmd($cmd);
+        if ($err !== null) {
+            return response()->json(['message' => 'Setup failed', 'detail' => $err], 502);
+        }
+        return response()->json(['message' => 'Let\'s Encrypt certificate obtained.', 'output' => trim($out ?? '')], 200);
+    }
+
+    /**
      * POST /certificates/letsencrypt/renew — trigger renewal then deploy hook (reload nginx + Asterisk).
      */
     public function renew(Request $request)
@@ -100,9 +138,9 @@ class CertificateController extends Controller
             ], 503);
         }
 
-        // Run certbot renew (or lego); 60s timeout. Deploy hook will reload nginx + Asterisk.
+        // Open port 80, run certbot renew, close port 80 (PBX3_SYSCMD_TIMEOUT >= 90 recommended).
         [$out, $err] = pbx3_request_syscmd(
-            'certbot renew --quiet --deploy-hook "/opt/pbx3/scripts/apply-active-cert.sh" 2>&1'
+            '/opt/pbx3/scripts/le-renew-with-80.sh 2>&1'
         );
         if ($err !== null) {
             return response()->json(['message' => 'Renewal failed', 'detail' => $err], 502);

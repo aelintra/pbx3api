@@ -322,6 +322,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      */
         Route::get('certificates/active', [CertificateController::class, 'active']);
         Route::get('certificates/letsencrypt', [CertificateController::class, 'letsencrypt']);
+        Route::post('certificates/letsencrypt/setup', [CertificateController::class, 'setup']);
         Route::post('certificates/letsencrypt/renew', [CertificateController::class, 'renew']);
         Route::get('certificates/custom', [CertificateController::class, 'customIndex']);
         Route::post('certificates/custom', [CertificateController::class, 'customStore']);
