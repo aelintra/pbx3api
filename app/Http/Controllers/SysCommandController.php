@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
-//use App\SysCommand;
-//use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 //use Illuminate\Support\Facades\Response;
 //use Illuminate\Support\Facades\Validator;
 
@@ -117,6 +116,38 @@ class SysCommandController extends Controller
         return response()->json(['message' => 'PBX stopped'], 200);
     }
 
+    /**
+     * PUT syscommands/hostname — set system hostname (via syshelper).
+     * Body: { "hostname": "newname" }. Hostname: alphanumeric and hyphens only, 1–253 chars.
+     */
+    public function sethostname(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'hostname' => 'required|string|max:253|regex:/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$|^[a-zA-Z0-9]$/',
+        ], [
+            'hostname.regex' => 'Hostname must be alphanumeric with optional hyphens or dots (e.g. pbx1 or node1.example).',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        $hostname = trim($request->input('hostname'));
+        if ($hostname === '') {
+            return response()->json(['hostname' => ['Hostname is required.']], 422);
+        }
+        [$_, $err] = pbx3_request_syscmd('/usr/bin/hostnamectl set-hostname ' . escapeshellarg($hostname) . ' 2>&1');
+        if ($err !== null) {
+            Log::warning('syscommands/sethostname hostnamectl failed', ['error' => $err]);
+            return response()->json(['message' => 'Failed to set hostname', 'detail' => $err], 502);
+        }
+        $sedSafe = preg_replace('/[^a-zA-Z0-9.-]/', '', $hostname);
+        $hostsCmd = 'grep -q "^127\\.0\\.1\\.1" /etc/hosts && sed -i "s/^127\\.0\\.1\\.1.*/127.0.1.1 ' . addslashes($sedSafe) . '/" /etc/hosts || echo "127.0.1.1 ' . addslashes($sedSafe) . '" >> /etc/hosts';
+        [$_, $errHosts] = pbx3_request_syscmd($hostsCmd . ' 2>&1');
+        if ($errHosts !== null) {
+            Log::warning('syscommands/sethostname /etc/hosts update failed', ['error' => $errHosts]);
+        }
+        return response()->json(['hostname' => $hostname], 200);
+    }
+
     public function pbxrunstate () {
 
         if  (`/bin/ps -e | /bin/grep asterisk | /bin/grep -v grep`) {
@@ -205,11 +236,205 @@ class SysCommandController extends Controller
             'timer_state' => $clusteroclo,
         ];
 
+        $dns = [];
+        [$resolvOut] = pbx3_request_syscmd('cat /etc/resolv.dnsmasq 2>/dev/null');
+        if ($resolvOut !== null && $resolvOut !== '') {
+            foreach (explode("\n", $resolvOut) as $line) {
+                $line = trim($line);
+                if (preg_match('/^nameserver\s+(\S+)/', $line, $m)) {
+                    $dns[] = trim($m[1]);
+                }
+            }
+        }
+
+        $smtp = null;
+        [$smtpOut] = pbx3_request_syscmd('test -f /etc/ssmtp/ssmtp.conf && cat /etc/ssmtp/ssmtp.conf 2>/dev/null');
+        if ($smtpOut !== null && $smtpOut !== '') {
+            $smtp = ['mailhub' => '', 'auth_user' => '', 'auth_pass' => '', 'use_tls' => 'NO', 'use_starttls' => 'NO'];
+            foreach (explode("\n", $smtpOut) as $line) {
+                if (preg_match('/^mailhub=\s*(.*)$/', trim($line), $m)) {
+                    $smtp['mailhub'] = trim($m[1]);
+                } elseif (preg_match('/^AuthUser=\s*(.*)$/', trim($line), $m)) {
+                    $smtp['auth_user'] = trim($m[1]);
+                } elseif (preg_match('/^AuthPass=\s*(.*)$/', trim($line), $m)) {
+                    $smtp['auth_pass'] = trim($m[1]);
+                } elseif (preg_match('/^UseTLS=\s*(.*)$/', trim($line), $m)) {
+                    $smtp['use_tls'] = strtoupper(trim($m[1]));
+                } elseif (preg_match('/^UseSTARTTLS=\s*(.*)$/', trim($line), $m)) {
+                    $smtp['use_starttls'] = strtoupper(trim($m[1]));
+                }
+            }
+        }
+
+        $timezone = null;
+        [$tzOut] = pbx3_request_syscmd('cat /etc/timezone 2>/dev/null');
+        if ($tzOut !== null && trim($tzOut) !== '') {
+            $timezone = trim($tzOut);
+        }
+
+        $icmp = false;
+        [$pingOut] = pbx3_request_syscmd("grep -q '^Ping/ACCEPT' /etc/shorewall/rules 2>/dev/null && echo YES || echo NO");
+        if ($pingOut !== null && trim($pingOut) === 'YES') {
+            $icmp = true;
+        }
+
         return response()->json([
             'system' => $system,
             'network' => $network,
             'resource' => $resource,
+            'dns' => $dns,
+            'smtp' => $smtp,
+            'timezone' => $timezone,
+            'icmp' => $icmp,
         ], 200);
+    }
+
+    /**
+     * PUT syscommands/dns — set DNS nameservers in /etc/resolv.dnsmasq (via syshelper).
+     * Body: { "nameservers": ["8.8.8.8", "8.8.4.4", ...] }. One per line in file; dnsmasq restarted.
+     */
+    public function setdns(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nameservers' => 'required|array',
+            'nameservers.*' => 'nullable|string|max:253',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        $nameservers = array_values(array_filter(array_map('trim', $request->input('nameservers', []))));
+        foreach ($nameservers as $ns) {
+            if ($ns === '') {
+                continue;
+            }
+            $isIp = filter_var($ns, FILTER_VALIDATE_IP) !== false;
+            $isHostname = preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $ns);
+            if (!$isIp && !$isHostname) {
+                return response()->json(['nameservers' => ['Invalid nameserver: use IP address or hostname (e.g. 8.8.8.8 or ns.example.com).']], 422);
+            }
+        }
+        if (count($nameservers) === 0) {
+            return response()->json(['nameservers' => ['At least one nameserver is required.']], 422);
+        }
+        $parts = [];
+        foreach ($nameservers as $i => $ns) {
+            $esc = escapeshellarg($ns);
+            $parts[] = ($i === 0 ? "echo nameserver $esc > /etc/resolv.dnsmasq" : "echo nameserver $esc >> /etc/resolv.dnsmasq");
+        }
+        [$_, $err] = pbx3_request_syscmd(implode(' && ', $parts) . ' 2>&1');
+        if ($err !== null) {
+            Log::warning('syscommands/setdns write failed', ['error' => $err]);
+            return response()->json(['message' => 'Failed to write DNS config', 'detail' => $err], 502);
+        }
+        pbx3_request_syscmd('/bin/systemctl restart dnsmasq 2>&1');
+        return response()->json(['nameservers' => $nameservers], 200);
+    }
+
+    /**
+     * PUT syscommands/smtp — write /etc/ssmtp/ssmtp.conf (via syshelper).
+     * Body: { mailhub, auth_user?, auth_pass?, use_tls ("YES"/"NO"), use_starttls ("YES"/"NO") }.
+     * Only applied if /etc/ssmtp/ssmtp.conf exists on the system.
+     */
+    public function setsmtp(Request $request)
+    {
+        [$exists] = pbx3_request_syscmd('test -f /etc/ssmtp/ssmtp.conf && echo yes 2>/dev/null');
+        if ($exists === null || trim($exists) !== 'yes') {
+            return response()->json(['message' => 'SMTP config not present (no /etc/ssmtp/ssmtp.conf)'], 404);
+        }
+        $validator = Validator::make($request->all(), [
+            'mailhub' => 'required|string|max:253',
+            'auth_user' => 'nullable|string|max:253',
+            'auth_pass' => 'nullable|string|max:255',
+            'use_tls' => 'nullable|string|in:YES,NO',
+            'use_starttls' => 'nullable|string|in:YES,NO',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        $mailhub = trim($request->input('mailhub'));
+        $authUser = trim($request->input('auth_user', ''));
+        $authPass = trim($request->input('auth_pass', ''));
+        $useTls = strtoupper($request->input('use_tls', 'NO')) === 'YES' ? 'YES' : 'NO';
+        $useStarttls = strtoupper($request->input('use_starttls', 'NO')) === 'YES' ? 'YES' : 'NO';
+        [$hostnameOut] = pbx3_request_syscmd('hostname 2>/dev/null');
+        $hostname = ($hostnameOut !== null && trim($hostnameOut) !== '') ? trim($hostnameOut) : 'localhost';
+        $lines = ["hostname={$hostname}", 'FromLineOverride=YES', "mailhub={$mailhub}"];
+        if ($authUser !== '') {
+            $lines[] = "AuthUser={$authUser}";
+            if ($authPass !== '') {
+                $lines[] = "AuthPass={$authPass}";
+            }
+        }
+        $lines[] = "UseTLS={$useTls}";
+        $lines[] = "UseSTARTTLS={$useStarttls}";
+        $content = implode("\n", $lines);
+        $tmp = tempnam('/tmp', 'ssmtp.');
+        file_put_contents($tmp, $content);
+        [$_, $err] = pbx3_request_syscmd('/bin/mv ' . escapeshellarg($tmp) . ' /etc/ssmtp/ssmtp.conf && chmod 664 /etc/ssmtp/ssmtp.conf 2>&1');
+        if (file_exists($tmp)) {
+            @unlink($tmp);
+        }
+        if ($err !== null) {
+            Log::warning('syscommands/setsmtp failed', ['error' => $err]);
+            return response()->json(['message' => 'Failed to write SMTP config', 'detail' => $err], 502);
+        }
+        return response()->json(['mailhub' => $mailhub], 200);
+    }
+
+    /**
+     * PUT syscommands/timezone — set system timezone (via syshelper).
+     * Body: { "timezone": "Europe/London" }. Must be a valid PHP timezone identifier.
+     */
+    public function settimezone(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'timezone' => 'required|string|max:64',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        $tz = trim($request->input('timezone'));
+        $valid = \DateTimeZone::listIdentifiers();
+        if (!in_array($tz, $valid, true)) {
+            return response()->json(['timezone' => ['Invalid timezone identifier.']], 422);
+        }
+        $esc = escapeshellarg($tz);
+        [$_, $err] = pbx3_request_syscmd('rm -f /etc/localtime && ln -sf /usr/share/zoneinfo/' . $esc . ' /etc/localtime && echo ' . $esc . ' > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata 2>&1');
+        if ($err !== null) {
+            Log::warning('syscommands/settimezone failed', ['error' => $err]);
+            return response()->json(['message' => 'Failed to set timezone', 'detail' => $err], 502);
+        }
+        return response()->json(['timezone' => $tz], 200);
+    }
+
+    /**
+     * PUT syscommands/icmp — allow or reject ping (ICMP) in Shorewall (via syshelper).
+     * Body: { "allow": true|false }. Restarts shorewall after change.
+     */
+    public function seticmp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'allow' => 'required|boolean',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        $allow = $request->boolean('allow');
+        $sed = $allow
+            ? "sed -i 's|^Ping/REJECT|Ping/ACCEPT|' /etc/shorewall/rules"
+            : "sed -i 's|^Ping/ACCEPT|Ping/REJECT|' /etc/shorewall/rules";
+        [$_, $err] = pbx3_request_syscmd($sed . ' 2>&1');
+        if ($err !== null) {
+            Log::warning('syscommands/seticmp sed failed', ['error' => $err]);
+            return response()->json(['message' => 'Failed to update firewall rule', 'detail' => $err], 502);
+        }
+        [$rc, $err2] = pbx3_request_syscmd('/sbin/shorewall check 2>&1');
+        if ($err2 !== null || ($rc !== null && stripos($rc, 'error') !== false)) {
+            Log::warning('syscommands/seticmp shorewall check failed', ['error' => $err2, 'output' => $rc]);
+        } else {
+            pbx3_request_syscmd('/sbin/shorewall restart 2>&1');
+        }
+        return response()->json(['allow' => $allow], 200);
     }
 
     private function safeShell($cmd)

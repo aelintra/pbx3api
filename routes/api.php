@@ -339,6 +339,11 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::get('syscommands/pbxrunstate', [SysCommandController::class, 'pbxrunstate']);
         Route::get('syscommands/start', [SysCommandController::class, 'start']);
         Route::get('syscommands/stop', [SysCommandController::class, 'stop']);
+        Route::put('syscommands/hostname', [SysCommandController::class, 'sethostname']);
+        Route::put('syscommands/dns', [SysCommandController::class, 'setdns']);
+        Route::put('syscommands/smtp', [SysCommandController::class, 'setsmtp']);
+        Route::put('syscommands/timezone', [SysCommandController::class, 'settimezone']);
+        Route::put('syscommands/icmp', [SysCommandController::class, 'seticmp']);
 
     /**
      * System Globals

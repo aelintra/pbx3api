@@ -75,8 +75,7 @@ Already returned by **GET syscommands/sysnotes** as `network`: `{ hostname, loca
 
 **Editable (from globals via PUT sysglobals):**
 
-- Bind Address (bindaddr)
-- Bind Port (bindport)
+- Bind Port (bindport) — original panel exposes this; bindaddr is not exposed in sail65
 - Static IPv4 (staticipv4) – for VoIP; when set, used as “local” IP for SIP/Asterisk
 - TLS port (tlsport)
 - NAT default (natdefault) – local | remote
@@ -87,9 +86,9 @@ Already returned by **GET syscommands/sysnotes** as `network`: `{ hostname, loca
 
 **Not in this panel:** fqdn, fqdninspect, fqdnprov, sendedomain, edomain, localip (moving or remain in System Globals).
 
-**Sections:**
+**Sections:** (Original sail65 sarknetwork exposes bindport but **not** bindaddr — no displayInputFor('bindaddr') in view.php; bindaddr is loaded from globals but not shown/edited. IP Settings panel matches: no Bind Address field.)
 
-1. **Binding** – bindaddr, bindport, tlsport, staticipv4
+1. **Binding** – bindport, tlsport, staticipv4 (no bindaddr; not in original panel)
 2. **NAT** – natdefault, natparams
 3. **Site** – sitename
 4. **System (read-only)** – hostname, local_ip, public_ip, mac (from sysnotes)
