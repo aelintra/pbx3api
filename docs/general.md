@@ -174,6 +174,8 @@ Extensions have some extra functions to deal with multiple extension types and r
 
 ####GET /extensions/{extension?}
 Return a list or instance of an extension
+####GET /extensions/export/pdf
+Export extensions list as PDF (same dataset as list; returns application/pdf download).
 ####GET /extensions/{extension}/runtime
 Returns runtime information about  the extension from the PBX (i.e. CFIM, CFBS, ringdelay)
 ####POST /extensions/mailbox

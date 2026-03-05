@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Extension;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -101,6 +102,19 @@ class ExtensionController extends Controller
     			: $cluster;
     	}
     	return $extensions;
+    }
+
+/**
+ * Export extensions list as PDF. Same dataset as index() (all extensions, tenant_pkey resolved).
+ *
+ * @return \Illuminate\Http\Response PDF download
+ */
+    public function exportPdf()
+    {
+    	$extensions = $this->index();
+    	return Pdf::loadView('exports.extensions-pdf', ['extensions' => $extensions])
+    		->setPaper('a4', 'landscape')
+    		->download('extensions.pdf');
     }
 
 /**

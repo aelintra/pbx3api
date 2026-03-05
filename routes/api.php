@@ -201,6 +201,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      */
         Route::get('extensions', [ExtensionController::class, 'index']);
         Route::get('extensions/live', [ExtensionController::class, 'indexLive']);
+        Route::get('extensions/export/pdf', [ExtensionController::class, 'exportPdf']);
         Route::get('extensions/{extension}', [ExtensionController::class, 'show']);
         Route::get('extensions/{extension}/runtime', [ExtensionController::class, 'showruntime']);
         Route::post('extensions', [ExtensionController::class, 'save']);
