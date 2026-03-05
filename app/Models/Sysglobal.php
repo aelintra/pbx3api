@@ -62,13 +62,12 @@ class Sysglobal extends Model
         'voipmax',
     ];
 
-    /** pkey: identity. fqdninspect, fqdnprov, mycommit, staticipv4, userotp (deprecated), vcl: hidden from API response. */
+    /** pkey: identity. fqdninspect, fqdnprov, mycommit, userotp (deprecated), vcl: hidden from API response. staticipv4 exposed for IP Settings panel. */
     protected $hidden = [
         'pkey',
         'fqdninspect',
         'fqdnprov',
         'mycommit',
-        'staticipv4',
         'userotp',
         'vcl',
     ];
