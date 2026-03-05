@@ -342,6 +342,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::put('syscommands/hostname', [SysCommandController::class, 'sethostname']);
         Route::put('syscommands/dns', [SysCommandController::class, 'setdns']);
         Route::put('syscommands/smtp', [SysCommandController::class, 'setsmtp']);
+        Route::get('syscommands/timezones', [SysCommandController::class, 'timezones']);
         Route::put('syscommands/timezone', [SysCommandController::class, 'settimezone']);
         Route::put('syscommands/icmp', [SysCommandController::class, 'seticmp']);
 

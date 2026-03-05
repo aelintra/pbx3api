@@ -382,6 +382,14 @@ class SysCommandController extends Controller
     }
 
     /**
+     * GET syscommands/timezones — list valid timezone identifiers for dropdown (DateTimeZone::listIdentifiers).
+     */
+    public function timezones()
+    {
+        return response()->json(\DateTimeZone::listIdentifiers(), 200);
+    }
+
+    /**
      * PUT syscommands/timezone — set system timezone (via syshelper).
      * Body: { "timezone": "Europe/London" }. Must be a valid PHP timezone identifier.
      */
