@@ -606,30 +606,60 @@ if (!function_exists('pbx_is_running')) {
     }
 }
 
+if (!function_exists('idpwgen_run')) {
+    /**
+     * Run idpwgen binary and return validated output.
+     * @param string $path    path to idpwgen binary
+     * @param int    $length
+     * @param string $charset
+     * @return string
+     * @throws \RuntimeException on failure
+     */
+    function idpwgen_run($path, $length, $charset) {
+        if (!is_executable($path)) {
+            throw new \RuntimeException('idpwgen not executable: ' . $path);
+        }
+        $cmd = $path . ' -length ' . (int) $length . ' -charset ' . escapeshellarg($charset);
+        $desc = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+        $proc = @proc_open($cmd, $desc, $pipes, null, null, ['bypass_shell' => true]);
+        if (!is_resource($proc)) {
+            throw new \RuntimeException('idpwgen proc_open failed');
+        }
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $code = proc_close($proc);
+        if ($code !== 0) {
+            Log::warning('idpwgen failed', ['exit_code' => $code, 'stderr' => trim($stderr)]);
+            throw new \RuntimeException('idpwgen failed (exit ' . $code . ')');
+        }
+        $out = trim($stdout);
+        if (strlen($out) !== $length) {
+            throw new \RuntimeException('idpwgen wrong length: got ' . strlen($out) . ', expected ' . $length);
+        }
+        $charsetArr = array_flip(str_split($charset));
+        for ($i = 0; $i < strlen($out); $i++) {
+            if (!isset($charsetArr[$out[$i]])) {
+                throw new \RuntimeException('idpwgen invalid character in output');
+            }
+        }
+        return $out;
+    }
+}
+
 if (!function_exists('ret_password')) {
-    function ret_password ($length = 12) {
-    /*
-     * generate a phone password
-     */ 
-        $password = "";
-        $possible = "2346789bcdfghjkmnpqrtvwxyzBCDFGHJKLMNPQRTVWXYZ";
+    /**
+     * Generate a phone password using idpwgen (12 chars, digits + mixed case, no ambiguous).
+     */
+    function ret_password($length = 12) {
+        $path = env('IDPWGEN_PATH', '/opt/pbx3/golang/idpwgen');
+        $possible = '2346789bcdfghjkmnpqrtvwxyzBCDFGHJKLMNPQRTVWXYZ';
         $maxlength = strlen($possible);
         if ($length > $maxlength) {
-          $length = $maxlength;
+            $length = $maxlength;
         }
-        $i = 0; 
-        while ($i < $length) { 
-          $char = substr($possible, mt_rand(0, $maxlength-1), 1);       
-          // have we already used this character in $password?
-          if (!strstr($password, $char)) { 
-            // no, so it's OK to add it onto the end of whatever we've already got...
-            $password .= $char;
-            // ... and increase the counter by one
-            $i++;
-          }
-    
-        }
-        return $password;
+        return idpwgen_run($path, $length, $possible);
     }
 }
 
@@ -643,20 +673,17 @@ if (!function_exists('generate_ksuid')) {
 
 if (!function_exists('generate_shortuid')) {
     /**
-     * @param int    $length
-     * @param string $charset  Default: no vowels/similar chars (0/O, 1/I/l), low chance of rude words
+     * Generate a shortuid using idpwgen (same as pbx3 HelperClass::generate()).
+     * Default: 6 chars, charset 0123456789bcdfghjkmnpqrstvwxyz (no vowels/similar chars).
      *
+     * @param int    $length  default 6
+     * @param string $charset default shortuid charset
      * @return string
      */
-    function generate_shortuid($length = 8, $charset = '')
+    function generate_shortuid($length = 6, $charset = '')
     {
-        $charset = $charset ?: '123456789bcdfghjkmnpqrstvwxyz';
-        $charset_size = strlen($charset);
-        $uid = '';
-        while ($length-- > 0) {
-            $uid .= $charset[random_int(0, $charset_size - 1)];
-        }
-
-        return $uid;
+        $path = env('IDPWGEN_PATH', '/opt/pbx3/golang/idpwgen');
+        $charset = $charset ?: '0123456789bcdfghjkmnpqrstvwxyz';
+        return idpwgen_run($path, $length, $charset);
     }
 }
