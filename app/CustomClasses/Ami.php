@@ -342,6 +342,67 @@ class Ami
     }
 
     /**
+     * PJSIPShowEndpoint for live IP/latency parsing — SARK/sail65 compatible read pattern.
+     *
+     * Accumulates lines until the first line containing "ListItems" (same termination as legacy
+     * AsteriskManager::_sendCommand(..., 'ListItems')), then drains the rest of this action until
+     * EventList: Complete / EndpointDetailComplete without appending, so the AMI socket is ready
+     * for the next command and we avoid holding a huge response string.
+     *
+     * If "ListItems" never appears, falls back to reading until Complete (same end state as
+     * amiQueryUntilComplete).
+     *
+     * @param string $query e.g. "Action: PJSIPShowEndpoint\r\nEndpoint: {id}"
+     * @return string Prefix of the AMI response (through first ListItems line, or full if no ListItems)
+     */
+    public function amiPjsipShowEndpointForLive($query)
+    {
+        $this->_checkSocket();
+        if (substr($query, -4) !== "\r\n\r\n") {
+            $query .= "\r\n\r\n";
+        }
+        if (!fwrite($this->_socket, $query)) {
+            Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
+        }
+        $response = '';
+        $sawListItems = false;
+        $maxOuter = 5000;
+        $outer = 0;
+        while (($line = fgets($this->_socket)) !== false && ++$outer <= $maxOuter) {
+            $response .= $line;
+            if (strstr($line, 'ListItems') !== false) {
+                $sawListItems = true;
+                $maxDrain = 800;
+                $drain = 0;
+                while (++$drain <= $maxDrain) {
+                    $line2 = fgets($this->_socket);
+                    if ($line2 === false) {
+                        break;
+                    }
+                    if (preg_match('/^EventList:\s*Complete/i', trim($line2)) ||
+                        preg_match('/^Event:\s*EndpointDetailComplete/i', trim($line2))) {
+                        fgets($this->_socket);
+                        break;
+                    }
+                }
+                break;
+            }
+            if (preg_match('/^EventList:\s*Complete/i', trim($line)) ||
+                preg_match('/^Event:\s*EndpointDetailComplete/i', trim($line))) {
+                $nextLine = fgets($this->_socket);
+                if ($nextLine !== false) {
+                    $response .= $nextLine;
+                }
+                break;
+            }
+        }
+        if ($response === '') {
+            Response::make(['message' => "Asterisk manager did not respond"], 503)->send();
+        }
+        return $response;
+    }
+
+    /**
      * Send an AMI command and read until EventList: Complete (for multi-event responses like PJSIPShowEndpoint).
      * Reads all events including ContactDetail which contains IP and latency info.
      *

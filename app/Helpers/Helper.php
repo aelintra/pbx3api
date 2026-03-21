@@ -531,7 +531,7 @@ if (!function_exists('pjsip_endpoint_live')) {
     function pjsip_endpoint_live($amiHandle, $pkey) {
         $out = ['ip' => null, 'latency' => null];
         try {
-            $response = $amiHandle->amiQueryUntilComplete("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
+            $response = $amiHandle->amiPjsipShowEndpointForLive("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
         } catch (\Throwable $e) {
             Log::warning('PJSIPShowEndpoint failed', ['pkey' => $pkey, 'error' => $e->getMessage()]);
             $out['ip'] = 'Unknown';

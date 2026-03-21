@@ -118,8 +118,9 @@ class ExtensionController extends Controller
     }
 
 /**
- * Return live PJSIP data (IP, latency) for all active SIP extensions.
- * Keyed by pkey for merging with list view. Requires Asterisk running.
+ * Return live PJSIP data (IP, latency) for SIP extensions that are not inactive (SARK: skip active == NO).
+ * Keyed by pkey for merging with list view. Inactive rows use Unknown in the UI (no key here).
+ * Requires Asterisk running.
  *
  * @return object keyed by extension pkey, values { ip, latency }
  */
@@ -129,6 +130,9 @@ class ExtensionController extends Controller
             return Response::json(['message' => 'PBX not running'], 503);
         }
         $extensions = Extension::where('technology', 'SIP')
+            ->where(function ($q) {
+                $q->whereNull('active')->orWhere('active', '<>', 'NO');
+            })
             ->orderBy('pkey')
             ->limit(200)
             ->get(['pkey', 'shortuid']);
