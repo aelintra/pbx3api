@@ -2,6 +2,8 @@
 
 **AI: read this first.**
 
+**Product / SPA state:** The handoff for “what’s done, what’s next” for the admin UI lives in **pbx3spa/workingdocs/SESSION_HANDOFF.md** (start with **Quick start (next agent)**). This **pbx3api** folder is mainly **model/controller audits** and validation plans.
+
 ## Read order by task
 
 | Task | Read (in order) |
