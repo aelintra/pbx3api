@@ -5,8 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * globals table: single-row system settings (instance-scoped).
- * Schema: pbx3/db/db_sql/sqlite_create_instance.sql (lowercase column names).
+ * Instance `globals` table: single-row system settings for this PBX (sqlite_create_instance.sql).
+ * Column names are lowercase in the API.
+ *
+ * Many limits and telephony options are duplicated per tenant on `cluster` (Tenant model / GET tenants).
+ * Instance columns such as bindaddr, bindport, nat*, logging, and global maxin/maxout/voipmax are
+ * system-wide; per-tenant abstimeout, syspass (TEXT on cluster; INTEGER here), LDAP, play_*, etc. are
+ * edited on each tenant, not on this row.
  */
 class Sysglobal extends Model
 {

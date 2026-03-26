@@ -18,7 +18,8 @@ class SysglobalController extends Controller
 {
     //
 
-    // globals table (sqlite_create_instance.sql). Exclude pkey, z_*, display-only (edomain, localip, sipdriver), and hidden-not-updateable (fqdninspect, fqdnprov).
+    // Instance globals (sqlite_create_instance.sql). Per-tenant overrides live on `cluster` via TenantController.
+    // Exclude pkey, z_*, display-only (edomain, localip, sipdriver), hidden-not-updateable (fqdninspect, fqdnprov).
     private $updateableColumns = [
         'abstimeout' => 'integer|nullable',
         'bindaddr' => 'string|nullable',
