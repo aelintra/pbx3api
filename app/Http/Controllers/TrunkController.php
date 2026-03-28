@@ -35,7 +35,6 @@ class TrunkController extends Controller
 			'openroute' => 'string|nullable',
 			'password' => 'string|nullable',
 			'peername' => 'string|nullable',
-			'pjsipreg' => 'string|nullable',
 			'privileged' => 'string|nullable',
 			'register' => 'string|nullable',
 			'swoclip' => 'in:YES,NO',
@@ -106,6 +105,8 @@ class TrunkController extends Controller
 			return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
 		}
 
+		$this->normalizeTrunkPjsipregOnWrite($request, null);
+
 // validation (technology from user; SIP or IAX2; no Carrier table)
 		$createRules = array_merge($this->updateableColumns, [
 			'pkey' => 'required|string',
@@ -113,6 +114,8 @@ class TrunkController extends Controller
 			'cluster' => 'required|exists:cluster,pkey',
 			'username' => 'required',
 			'host' => 'required',
+			// Create-only: not in updateableColumns so PUT cannot change it (see normalizeTrunkPjsipregOnWrite).
+			'pjsipreg' => 'nullable|in:SND,RCV',
 		]);
 
     	$validator = Validator::make($request->all(), $createRules);
@@ -122,6 +125,7 @@ class TrunkController extends Controller
                 $validator->errors()->add('pkey', 'Duplicate name in this tenant.');
                 return;
             }
+			$this->validateTrunkCreatePjsipregAndHost($validator, $request);
         });  
 
         if ($validator->fails()) {
@@ -169,6 +173,11 @@ class TrunkController extends Controller
 		// First cut: trunk tenant is not changeable; force default (TRUNK_ROUTE_MULTITENANCY). When layered permissions are added, users with the right role may be allowed to modify trunk tenant (later phase).
 		$request->merge(['cluster' => 'default']);
 
+		// SIP registration mode (pjsipreg) is create-only; strip so PUT cannot change it (IAX2 still clears via normalize).
+		$request->request->remove('pjsipreg');
+
+		$this->normalizeTrunkPjsipregOnWrite($request, $trunk);
+
 // Validate (Request + Validator only; no Form Request)
     	$validator = Validator::make($request->all(), $this->updateableColumns);
 
@@ -177,6 +186,7 @@ class TrunkController extends Controller
 			if ($host && strcasecmp($host, 'dynamic') !== 0 && ! valid_ip_or_domain($host)) {
 				$validator->errors()->add('host', "Host must be valid IP, valid domain name, or 'dynamic': " . $host);
 			}
+			$this->validateTrunkUpdatePjsipreg($validator, $request, $trunk);
 			// pkey uniqueness when client sends a different pkey
 			$pkeySubmitted = $request->input('pkey');
 			if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $trunk->getAttribute('pkey')) {
@@ -224,8 +234,113 @@ class TrunkController extends Controller
  * @return NULL
  */
     public function delete(Trunk $trunk) {
+        $pkey = (string) $trunk->getAttribute('pkey');
         $trunk->delete();
+        pbx3_delete_trunk_asterisk_instances($pkey);
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }
+
+	/**
+	 * Normalize pjsipreg for writes: IAX2 clears it; SIP accepts SND, RCV, NONE/empty → null (trusted).
+	 * RCV forces host=dynamic. Values uppercased for PBX generator (HelperClass switch).
+	 */
+	private function normalizeTrunkPjsipregOnWrite(Request $request, ?Trunk $existing): void
+	{
+		$technology = $request->input('technology');
+		if ($technology === null || $technology === '') {
+			$technology = $existing?->technology;
+		}
+		if ($technology === 'IAX2') {
+			$request->merge(['pjsipreg' => null]);
+
+			return;
+		}
+		if ($technology !== 'SIP') {
+			return;
+		}
+		// Update: do not overwrite pjsipreg when the client omits it (partial PUT).
+		if ($existing !== null && ! $request->has('pjsipreg')) {
+			return;
+		}
+		$raw = $request->input('pjsipreg');
+		if ($raw === null || $raw === '') {
+			$request->merge(['pjsipreg' => null]);
+		} else {
+			$up = strtoupper(trim((string) $raw));
+			if ($up === 'NONE' || $up === 'NULL') {
+				$request->merge(['pjsipreg' => null]);
+			} elseif (in_array($up, ['SND', 'RCV'], true)) {
+				$request->merge(['pjsipreg' => $up]);
+			} else {
+				$request->merge(['pjsipreg' => $up]);
+			}
+		}
+		if ($request->input('pjsipreg') === 'RCV') {
+			$request->merge(['host' => 'dynamic']);
+		}
+	}
+
+	private function validateTrunkCreatePjsipregAndHost(\Illuminate\Validation\Validator $validator, Request $request): void
+	{
+		if ($request->input('technology') !== 'SIP') {
+			return;
+		}
+		$mode = $request->input('pjsipreg');
+		$password = $request->input('password');
+		$hasPassword = $password !== null && $password !== '' && trim((string) $password) !== '';
+
+		if ($mode === 'SND' || $mode === 'RCV') {
+			if (! $hasPassword) {
+				$validator->errors()->add('password', 'Password is required for SIP registration (send or accept).');
+			}
+		}
+
+		$host = $request->input('host');
+		if ($mode === 'SND') {
+			if ($host && strcasecmp((string) $host, 'dynamic') === 0) {
+				$validator->errors()->add('host', 'Use “Trusted peer” or “Accept registration” instead of send-registration with host “dynamic”.');
+			} elseif ($host && strcasecmp((string) $host, 'dynamic') !== 0 && ! valid_ip_or_domain((string) $host)) {
+				$validator->errors()->add('host', "Host must be a valid IP or domain for send-registration: {$host}");
+			}
+		} elseif ($mode === null || $mode === '') {
+			if ($host && strcasecmp((string) $host, 'dynamic') === 0) {
+				$validator->errors()->add('host', 'For host “dynamic”, set SIP registration to “Accept registration” (RCV).');
+			} elseif ($host && ! valid_ip_or_domain((string) $host)) {
+				$validator->errors()->add('host', "Host must be valid IP or domain: {$host}");
+			}
+		}
+	}
+
+	private function validateTrunkUpdatePjsipreg(\Illuminate\Validation\Validator $validator, Request $request, Trunk $trunk): void
+	{
+		$technology = $request->has('technology') ? $request->input('technology') : $trunk->technology;
+		if ($technology === 'IAX2') {
+			return;
+		}
+		if ($technology !== 'SIP') {
+			return;
+		}
+		// pjsipreg is not mutable on update (create-only).
+		$mode = $trunk->pjsipreg;
+		if ($mode !== 'SND' && $mode !== 'RCV') {
+			$mode = null;
+		}
+		$password = $request->input('password');
+		$passwordInRequest = $request->has('password');
+		$hasNewPassword = $passwordInRequest && $password !== null && trim((string) $password) !== '';
+
+		if (($mode === 'SND' || $mode === 'RCV') && $passwordInRequest && ! $hasNewPassword) {
+			$existing = $trunk->getAttribute('password');
+			if ($existing === null || $existing === '') {
+				$validator->errors()->add('password', 'Password is required for SIP registration (send or accept).');
+			}
+		}
+
+		$host = $request->has('host') ? $request->input('host') : $trunk->host;
+		if ($mode === 'SND' && $host && strcasecmp((string) $host, 'dynamic') === 0) {
+			$validator->errors()->add('host', 'Send-registration cannot use host “dynamic”.');
+		}
+	}
 }

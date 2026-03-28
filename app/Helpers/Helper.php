@@ -175,6 +175,118 @@ if (!function_exists('pbx3_request_syscmd')) {
     }
 }
 
+if (!function_exists('pbx3_ast_instance_safe_key')) {
+    /**
+     * Allow only safe filename stem characters for Asterisk instance paths (matches typical pkey/shortuid).
+     */
+    function pbx3_ast_instance_safe_key(?string $key): ?string
+    {
+        if ($key === null || $key === '') {
+            return null;
+        }
+        $key = trim($key);
+        if (strlen($key) > 128 || ! preg_match('/^[A-Za-z0-9._-]+$/', $key)) {
+            return null;
+        }
+
+        return $key;
+    }
+}
+
+if (!function_exists('pbx3_delete_asterisk_instance_files')) {
+    /**
+     * Remove per-object Asterisk snippet files under /opt/pbx3/etc/asterisk (via syshelper).
+     * Matches PBX3 HelperClass paths: trunks/, iax_trunks/, endpoints/, queues/, callparks/.
+     *
+     * @param  list<string>  $absolutePaths  Full paths to files
+     */
+    function pbx3_delete_asterisk_instance_files(array $absolutePaths): void
+    {
+        $paths = array_values(array_filter($absolutePaths, static fn ($p) => is_string($p) && $p !== ''));
+        if ($paths === []) {
+            return;
+        }
+        $base = rtrim(str_replace('\\', '/', (string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk')), '/');
+        $subs = ['/trunks/', '/iax_trunks/', '/endpoints/', '/queues/', '/callparks/'];
+        $safe = [];
+        foreach ($paths as $p) {
+            $norm = str_replace('\\', '/', $p);
+            if (str_contains($norm, '..')) {
+                Log::warning('pbx3_delete_asterisk_instance_files: rejected path', ['path' => $p]);
+
+                continue;
+            }
+            $ok = false;
+            foreach ($subs as $sub) {
+                $prefix = $base . $sub;
+                if (str_starts_with($norm, $prefix)) {
+                    $ok = true;
+                    break;
+                }
+            }
+            if (! $ok) {
+                Log::warning('pbx3_delete_asterisk_instance_files: rejected path', ['path' => $p]);
+
+                continue;
+            }
+            $safe[] = $p;
+        }
+        if ($safe === []) {
+            return;
+        }
+        $cmd = '/bin/rm -f ' . implode(' ', array_map('escapeshellarg', $safe));
+        [, $err] = pbx3_request_syscmd($cmd);
+        if ($err !== null) {
+            Log::warning('pbx3_delete_asterisk_instance_files: syshelper rm failed', ['error' => $err, 'paths' => $safe]);
+        }
+    }
+}
+
+if (!function_exists('pbx3_delete_trunk_asterisk_instances')) {
+    /**
+     * Remove PJSIP and IAX intermediate files for this pkey (both if present — cleans orphans).
+     */
+    function pbx3_delete_trunk_asterisk_instances(string $pkey): void
+    {
+        $k = pbx3_ast_instance_safe_key($pkey);
+        if ($k === null) {
+            return;
+        }
+        $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
+        pbx3_delete_asterisk_instance_files([
+            $root . '/trunks/' . $k . '_trunk.conf',
+            $root . '/iax_trunks/' . $k . '_trunk.conf',
+        ]);
+    }
+}
+
+if (!function_exists('pbx3_delete_extension_asterisk_instances')) {
+    function pbx3_delete_extension_asterisk_instances(string $shortuid): void
+    {
+        $k = pbx3_ast_instance_safe_key($shortuid);
+        if ($k === null) {
+            return;
+        }
+        $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
+        pbx3_delete_asterisk_instance_files([
+            $root . '/endpoints/' . $k . '_phone.conf',
+            $root . '/endpoints/' . $k . '_webrtc.conf',
+        ]);
+    }
+}
+
+if (!function_exists('pbx3_delete_queue_asterisk_instances')) {
+    function pbx3_delete_queue_asterisk_instances(string $pkey): void
+    {
+        $k = pbx3_ast_instance_safe_key($pkey);
+        if ($k === null) {
+            return;
+        }
+        $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
+        pbx3_delete_asterisk_instance_files([$root . '/queues/' . $k . '_queue.conf']);
+    }
+}
+
 if (!function_exists('valid_ip_or_domain')) {
     /**
      * Checks host for valid IP, valid domain name (DNS A record), or hostname format.

@@ -185,7 +185,10 @@ class QueueController extends Controller
  * @return 204
  */
     public function delete(Queue $queue) {
+        $pkey = (string) $queue->getAttribute('pkey');
         $queue->delete();
+        pbx3_delete_queue_asterisk_instances($pkey);
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

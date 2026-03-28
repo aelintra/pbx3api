@@ -798,7 +798,9 @@ class ExtensionController extends Controller
             // table may not exist
         }
 
+        $shortuid = (string) $extension->getAttribute('shortuid');
         $extension->delete();
+        pbx3_delete_extension_asterisk_instances($shortuid);
 
         set_commit_dirty();
 

@@ -32,7 +32,7 @@
 
 **Inline edit (update.php):** Edits `desc` or `route`; route change also sets routeclass via helper. DataTables editable columns were commented out in javascript.js so inline edit is effectively disabled in the current script.
 
-**Delete (delete.php):** Delete by id (from request); helper `delTuple('holiday', $id)`.
+**Delete (delete.php):** Delete by id (from request); removes the row from the `holiday` table (legacy PHP path; PBX3 API uses Laravel delete by `id` / route model).
 
 **Conclusion for port:** List columns: **Start** (stime), **End** (etime), **Cluster** (tenant), **Description**, **Route**, **State** (computed IDLE/*INUSE*), Edit, Delete. Create: description + cluster (start/end can default to same-day range or be required – see “Your input”). Detail/Edit: description, cluster, route, start date+time (→ stime), end date+time (→ etime). Validate end > start and no cluster overlap. **State** is display-only (computed).
 
