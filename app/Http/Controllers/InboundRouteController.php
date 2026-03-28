@@ -92,6 +92,8 @@ class InboundRouteController extends Controller
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
 
+        $this->normalizeInboundRouteRouteJsonScalars($request);
+
 // validate (pkey + technology from dropdown; technology is DB column)
         $rules = array_merge($this->updateableColumns, [
             'pkey' => ['required', 'regex:' . self::PKEY_EXTENSION_REGEX],
@@ -162,6 +164,8 @@ class InboundRouteController extends Controller
  * @return json response
  */
     public function update(Request $request, InboundRoute $inboundroute) {
+
+        $this->normalizeInboundRouteRouteJsonScalars($request);
 
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
@@ -237,5 +241,21 @@ class InboundRouteController extends Controller
         $inboundroute->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * JSON may decode numeric destination keys (e.g. extension 201) as int/float; string validation fails.
+     */
+    private function normalizeInboundRouteRouteJsonScalars(Request $request): void
+    {
+        foreach (['openroute', 'closeroute'] as $field) {
+            if (! $request->exists($field)) {
+                continue;
+            }
+            $v = $request->input($field);
+            if (is_int($v) || is_float($v)) {
+                $request->merge([$field => (string) $v]);
+            }
+        }
     }
 }
