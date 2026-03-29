@@ -81,3 +81,11 @@ And confirm or correct:
 Once you’ve marked these, we’ll:
 1. Set `updateableColumns` in TrunkController to exactly that set (with validation rules).
 2. Proceed to drop TrunkRequest and use Request + Validator only (Task 2 for Trunk).
+
+---
+
+## PJSIP endpoint naming (deferred)
+
+**Current behaviour:** GenClass uses trunk **`pkey`** as the Asterisk PJSIP section name (`$trunk` in templates). **`GET trunks/live`** and AMI **`PJSIPShowEndpoint`** use **`pkey`** to match that.
+
+**Future revisit:** Trunk **`pkey`** is often a carrier- or site-chosen label (e.g. `ael3`). When **merging or moving a tenant to another server**, those names **collide easily** with trunks already on the target. **`shortuid`** is immutable and should **transport with the row**, so naming PJSIP objects after **`shortuid`** (like extensions) would reduce merge friction — at the cost of less obvious names in `pjsip show endpoints` and a **generator + config migration**. No change decided yet; revisit when tenant migration / multi-system merge is in scope.
