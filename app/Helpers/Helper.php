@@ -643,7 +643,9 @@ if (!function_exists('pjsip_endpoint_live')) {
     function pjsip_endpoint_live($amiHandle, $pkey) {
         $out = ['ip' => null, 'latency' => null];
         try {
-            $response = $amiHandle->amiPjsipShowEndpointForLive("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
+            // Full response required: ContactDetail (URI, RoundtripUsec) follows ListItems in AMI stream.
+            // amiPjsipShowEndpointForLive stops at ListItems and discards later events — only some rows parsed OK.
+            $response = $amiHandle->amiQueryUntilComplete("Action: PJSIPShowEndpoint\r\nEndpoint: " . $pkey);
         } catch (\Throwable $e) {
             Log::warning('PJSIPShowEndpoint failed', ['pkey' => $pkey, 'error' => $e->getMessage()]);
             $out['ip'] = 'Unknown';
