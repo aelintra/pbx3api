@@ -373,6 +373,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Trunks
      */
         Route::get('trunks', [TrunkController::class, 'index']);
+        Route::get('trunks/live', [TrunkController::class, 'indexLive']);
         Route::get('trunks/export/pdf', [TrunkController::class, 'exportPdf']);
         Route::get('trunks/{trunk}', [TrunkController::class, 'show']);
         Route::post('trunks', [TrunkController::class, 'save']);

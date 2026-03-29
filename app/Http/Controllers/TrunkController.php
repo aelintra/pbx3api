@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Trunk;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -63,6 +64,42 @@ class TrunkController extends Controller
     	return Trunk::where('technology', '=', 'SIP')
     		->orWhere ('technology', '=', 'IAX2' )
     		->orderBy('pkey','asc')->get();
+    }
+
+/**
+ * Live PJSIP data (IP, latency) for SIP trunks that are not inactive. Keyed by trunk pkey for the list UI.
+ * IAX2 trunks and inactive SIP are omitted — SPA shows Unknown for those rows. Same AMI path as extensions/live.
+ *
+ * @return \Illuminate\Http\JsonResponse object keyed by pkey => { ip, latency }
+ */
+    public function indexLive()
+    {
+        set_time_limit(30);
+        if (!function_exists('pbx_is_running') || !pbx_is_running()) {
+            return Response::json(['message' => 'PBX not running'], 503);
+        }
+        $trunks = Trunk::where('technology', 'SIP')
+            ->where(function ($q) {
+                $q->whereNull('active')->orWhere('active', '<>', 'NO');
+            })
+            ->orderBy('pkey')
+            ->limit(200)
+            ->get(['pkey', 'shortuid']);
+        $live = [];
+        try {
+            $amiHandle = get_ami_handle();
+            foreach ($trunks as $tr) {
+                $endpointId = $tr->shortuid ?? $tr->pkey;
+                $live[$tr->pkey] = pjsip_endpoint_live($amiHandle, $endpointId);
+            }
+            $amiHandle->logout();
+        } catch (\Throwable $e) {
+            Log::warning('Trunks live data failed', ['error' => $e->getMessage()]);
+
+            return Response::json(['message' => 'Could not fetch live endpoint data'], 503);
+        }
+
+        return Response::json($live, 200);
     }
 
     /** Export trunks list as PDF. Same dataset as index with tenant_pkey resolved. */
