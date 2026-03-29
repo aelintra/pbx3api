@@ -682,9 +682,14 @@ if (!function_exists('pjsip_endpoint_live')) {
             $kv[$key] = $value;
         }
         
-        // Extract IP: URI first (sip:user@ip:port), then Match field
+        // Extract IP / host: URI may be sip:user@host, sip:host (trunks), or AMI form "endpoint/sip:host" (see PJSIP Contact line)
         if (!empty($kv['URI'])) {
-            if (preg_match('/^sip:.*@([^:]+)(?::|;|$)/', $kv['URI'], $m)) {
+            $uri = $kv['URI'];
+            $sipPos = stripos($uri, 'sip:');
+            $sipPart = $sipPos !== false ? substr($uri, $sipPos) : $uri;
+            if (preg_match('/^sip:[^@]+@([^:;]+)/', $sipPart, $m)) {
+                $out['ip'] = trim($m[1]);
+            } elseif (preg_match('/^sip:([^@;:]+)/', $sipPart, $m)) {
                 $out['ip'] = trim($m[1]);
             }
         }

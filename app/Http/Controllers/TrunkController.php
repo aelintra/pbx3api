@@ -69,6 +69,7 @@ class TrunkController extends Controller
 /**
  * Live PJSIP data (IP, latency) for SIP trunks that are not inactive. Keyed by trunk pkey for the list UI.
  * IAX2 trunks and inactive SIP are omitted — SPA shows Unknown for those rows. Same AMI path as extensions/live.
+ * **Endpoint name:** Asterisk trunk objects use **pkey** (see GenClass `$trunk` → pkey in pjsip templates), not shortuid — always pass **pkey** to PJSIPShowEndpoint.
  *
  * @return \Illuminate\Http\JsonResponse object keyed by pkey => { ip, latency }
  */
@@ -84,13 +85,12 @@ class TrunkController extends Controller
             })
             ->orderBy('pkey')
             ->limit(200)
-            ->get(['pkey', 'shortuid']);
+            ->get(['pkey']);
         $live = [];
         try {
             $amiHandle = get_ami_handle();
             foreach ($trunks as $tr) {
-                $endpointId = $tr->shortuid ?? $tr->pkey;
-                $live[$tr->pkey] = pjsip_endpoint_live($amiHandle, $endpointId);
+                $live[$tr->pkey] = pjsip_endpoint_live($amiHandle, (string) $tr->pkey);
             }
             $amiHandle->logout();
         } catch (\Throwable $e) {
