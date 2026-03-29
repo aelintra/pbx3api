@@ -35,7 +35,6 @@ class TrunkController extends Controller
 			'password' => 'string|nullable',
 			'peername' => 'string|nullable',
 			'privileged' => 'string|nullable',
-			'register' => 'string|nullable',
 			'swoclip' => 'in:YES,NO',
 			'tag' => 'string|nullable',
 			'technology' => 'in:SIP,IAX2|nullable',
