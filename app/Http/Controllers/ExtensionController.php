@@ -736,7 +736,40 @@ class ExtensionController extends Controller
         }
 
         return response()->json($extension->fresh(), 200);
-    } 
+    }
+
+/**
+ * Generate a new random SIP password for this extension. Old password stops working immediately.
+ * Marks config dirty for commit. Returns extension with passwd visible (same shape as show).
+ *
+ * @param  Extension  $extension  Route binding by shortuid / id / pkey
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function regenerateSipPassword(Extension $extension)
+    {
+        $id = $extension->id;
+        if ($id === null || $id === '') {
+            return response()->json(['Error' => 'Extension id is missing'], 409);
+        }
+        $newPass = ret_password(12);
+        Extension::where('id', $id)->update(['passwd' => $newPass]);
+        set_commit_dirty();
+
+        $extension = Extension::find($id);
+        if (!$extension) {
+            return response()->json(['Error' => 'Extension not found after update'], 409);
+        }
+
+        $cluster = $extension->cluster ?? null;
+        if ($cluster !== null && $cluster !== '') {
+            $row = DB::table('cluster')->where('pkey', $cluster)->orWhere('shortuid', $cluster)->orWhere('id', $cluster)->first(['pkey']);
+            $extension->tenant_pkey = $row ? $row->pkey : $cluster;
+        } else {
+            $extension->tenant_pkey = $cluster;
+        }
+
+        return response()->json($extension->makeVisible('passwd'), 200);
+    }
 
 /**
  * Return named extension runtime from the PBX

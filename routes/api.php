@@ -208,6 +208,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('extensions', [ExtensionController::class, 'save']);
         Route::put('extensions/{extension}', [ExtensionController::class, 'update']);
         Route::put('extensions/{extension}/runtime', [ExtensionController::class, 'updateruntime']);
+        Route::post('extensions/{extension}/regenerate-sip-password', [ExtensionController::class, 'regenerateSipPassword']);
         Route::delete('extensions/{extension}', [ExtensionController::class, 'delete']);
 
     /**
