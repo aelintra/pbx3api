@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Instance `globals` table: single-row system settings for this PBX (sqlite_create_instance.sql).
- * Column names are lowercase in the API.
+ * Column names are lowercase in the API. Primary key is `id` (KSUID); `pkey` is a fixed row marker (`global`).
  *
  * Many limits and telephony options are duplicated per tenant on `cluster` (Tenant model / GET tenants).
  * Instance columns such as bindaddr, bindport, nat*, logging, and global maxin/maxout/voipmax are
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 class Sysglobal extends Model
 {
     protected $table = 'globals';
-    protected $primaryKey = 'pkey';
+    protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
     public $timestamps = false;
@@ -25,10 +25,14 @@ class Sysglobal extends Model
      * Mass-assignable (whitelist). All schema columns except pkey and z_*.
      */
     protected $fillable = [
+        'id',
+        'shortuid',
+        'pkey',
         'abstimeout',
         'bindaddr',
         'bindport',
         'cosstart',
+        'domain',
         'edomain',
         'emergency',
         'fqdn',

@@ -25,6 +25,7 @@ class SysglobalController extends Controller
         'bindaddr' => 'string|nullable',
         'bindport' => 'string|nullable',
         'cosstart' => 'string|nullable',
+        'domain' => 'string|nullable',
         'emergency' => 'string|nullable',
         'fqdn' => 'string|nullable',
         'language' => 'string|nullable',

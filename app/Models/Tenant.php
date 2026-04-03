@@ -81,6 +81,7 @@ class Tenant extends Model
         'countrycode',
         'dynamicfeatures',
         'description',
+        'domain',
         'devicerec',
         'emailalert',
         'emergency',

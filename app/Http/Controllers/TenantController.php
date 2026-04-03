@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
@@ -30,6 +31,7 @@ class TenantController extends Controller
 			'countrycode' => 'integer',
 			'description' => 'string',
 			'devicerec' => 'string|nullable',
+			'domain' => 'string|nullable',
 			'dynamicfeatures' => 'string|nullable',
 			'emailalert' => 'string|nullable',
 			'emergency' => 'string|nullable',
@@ -145,7 +147,28 @@ class TenantController extends Controller
 		$tenant->shortuid = generate_shortuid();
 
 // Move post variables to the model 
-    	move_request_to_model($request, $tenant, $createRules); 
+    	move_request_to_model($request, $tenant, $createRules);
+
+        $instanceDomain = '';
+        try {
+            $grow = DB::table('globals')->first(['domain']);
+            if ($grow && isset($grow->domain)) {
+                $instanceDomain = trim((string) $grow->domain);
+            }
+        } catch (\Throwable $e) {
+            $instanceDomain = '';
+        }
+        if ($instanceDomain !== '') {
+            $autoHost = $tenant->shortuid.'.'.$instanceDomain;
+            $reqDomain = $request->input('domain');
+            $reqFqdn = $request->input('fqdn');
+            if ($reqDomain === null || $reqDomain === '') {
+                $tenant->domain = $autoHost;
+            }
+            if ($reqFqdn === null || $reqFqdn === '') {
+                $tenant->fqdn = $autoHost;
+            }
+        }
 
 // store the new model
     	try {
