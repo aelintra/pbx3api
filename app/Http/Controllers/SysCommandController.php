@@ -165,12 +165,13 @@ class SysCommandController extends Controller
     {
         $asterisk = env('PBX3_ASTERISK_EXEC', '/usr/sbin/asterisk');
 
-        // Instance id: globals.id (KSUID)
+        // Instance line on Home: globals.fqdn when set; else globals.id (KSUID). (pkey is fixed "global".)
         $instance = null;
         try {
             $g = DB::table('globals')->first();
             if ($g) {
-                $instance = $g->id ?? null;
+                $fqdn = isset($g->fqdn) ? trim((string) $g->fqdn) : '';
+                $instance = $fqdn !== '' ? $fqdn : ($g->id ?? null);
             }
         } catch (\Throwable $e) {
             // ignore
