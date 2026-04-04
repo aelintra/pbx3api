@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -180,6 +181,10 @@ class SysCommandController extends Controller
             'distro' => $this->safeShell("lsb_release -ds 2>/dev/null"),
             'asterisk_release' => $this->getAsteriskRelease($asterisk),
             'app_release' => trim(shell_exec("dpkg-query -W -f '\${Version}' pbx3 2>/dev/null") ?: '') ?: null,
+            /** Laravel framework version (API / pbx3api). */
+            'laravel_version' => Application::VERSION,
+            /** PHP runtime for the API. */
+            'php_version' => PHP_VERSION,
             'endpoints_defined' => null,
         ];
 
