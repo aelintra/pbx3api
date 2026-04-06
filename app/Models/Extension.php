@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
  * Extension (ipphone table). Table has both "desc" and "description".
  * "desc" is the SIP username; the Asterisk generator uses it to build Asterisk objects — do not remove.
  * TODO: Rename "desc" to something more appropriate (e.g. sip_username) in schema and Asterisk generator when feasible.
+ *
+ * Do not call ret_password() or generate_shortuid() (idpwgen) from __construct, mutators, or "retrieved"
+ * hooks: GET extensions / list would then run idpwgen once per row. Set passwd and shortuid only in
+ * ExtensionController (create, mailbox paths, regenerate-sip-password, etc.).
  */
 class Extension extends Model
 {
@@ -90,14 +94,6 @@ class Extension extends Model
         }
         return 'SIP';
     }
-
-	public function __construct(array $attributes = array())
-	{
-    parent::__construct($attributes);
-
-    $this->attributes['passwd'] = ret_password(12);
-
-	}
 
 	/**
 	 * Resolve route model binding by shortuid (globally unique) instead of pkey (tenant-scoped).
