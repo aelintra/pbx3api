@@ -474,22 +474,21 @@ if (!function_exists('create_new_snapshot')) {
 if (!function_exists('restore_from_backup')) {
 
 function restore_from_backup($request) {
-    
-/* 
- * Unzip the backup file
- */
-    if (!file_exists("/opt/pbx3/bkup/" . $request->backup)) {
-        Log::info("Requested restore set not found");
+    // Backup name comes from the route (PUT backups/{backup}), not the JSON body.
+    $backupZip = $request->route('backup') ?: $request->input('backup');
+    if ($backupZip === null || $backupZip === '' || str_contains((string) $backupZip, '..') || str_contains((string) $backupZip, '/')) {
+        Log::warning('restore_from_backup: missing or invalid backup name');
+        return 404;
+    }
+    $backupPath = '/opt/pbx3/bkup/' . $backupZip;
+    if (!is_file($backupPath)) {
+        Log::info("Requested restore set not found: {$backupPath}");
         return 404;
     }
 
-/* 
- * start restore
- */
-
-    $tempDname = "/tmp/bkup" . time();
-    shell_exec("/bin/mkdir $tempDname");
-    $unzipCmd = "/usr/bin/unzip /opt/pbx3/bkup/" . $request->backup . " -d $tempDname";
+    $tempDname = '/tmp/bkup' . time();
+    shell_exec('/bin/mkdir -p ' . escapeshellarg($tempDname));
+    $unzipCmd = '/usr/bin/unzip -q ' . escapeshellarg($backupPath) . ' -d ' . escapeshellarg($tempDname);
     shell_exec($unzipCmd);
     if (!file_exists($tempDname)) {
         Log::info("Restore unzip did not create a directory!");
@@ -499,7 +498,7 @@ function restore_from_backup($request) {
 /*
  * now we can begin the restore
  */     
-    if ( $request->restoredb === true) {
+    if ($request->boolean('restoredb')) {
         // Check for sqlite.db (new) or pbx3.db (old backups) for backward compatibility
         $dbSource = null;
         if (file_exists($tempDname . '/opt/pbx3/db/sqlite.db')) {
@@ -512,8 +511,9 @@ function restore_from_backup($request) {
             shell_exec("/bin/cp -f $dbSource /opt/pbx3/db/sqlite.db");
             Log::info("Setting DB ownership");
             shell_exec("/bin/chown www-data:www-data /opt/pbx3/db/sqlite.db");
-            Log::info("Running the reloader to sync versions");
-            shell_exec("/bin/sh /opt/pbx3/scripts/srkV4reloader.sh");      
+            shell_exec("/bin/chmod 664 /opt/pbx3/db/sqlite.db");
+            // Do not run reloader.sh / srkV4reloader here: they delete sqlite.db and rebuild from
+            // SQL templates (plus optional dump), which discards the restored backup contents.
             Log::info("Database restore complete");
             Log::info("Database RESTORED");
         }
@@ -526,7 +526,7 @@ function restore_from_backup($request) {
         Log::info("Database PRESERVED");  
     }
 
-    if ( $request->restoreasterisk === true ) {
+    if ($request->boolean('restoreasterisk')) {
         if (file_exists($tempDname . '/etc/asterisk')) {
             shell_exec("sudo /bin/rm -rf /etc/asterisk/*");
             shell_exec("/bin/cp -a  $tempDname/etc/asterisk/* /etc/asterisk");
@@ -543,7 +543,7 @@ function restore_from_backup($request) {
         Log::info("Asterisk Files PRESERVED");    
     }   
                         
-    if ( $request->restoreusergreets  === true) {
+    if ($request->boolean('restoreusergreeting') || $request->boolean('restoreusergreets')) {
         if (glob($tempDname . '/usr/share/asterisk/sounds/usergreeting*')) {
             shell_exec("/bin/rm -rf /usr/share/asterisk/sounds/usergreeting*");
             shell_exec("/bin/cp -a  $tempDname/usr/share/asterisk/sounds/usergreeting* /usr/share/asterisk/sounds");
@@ -561,7 +561,7 @@ function restore_from_backup($request) {
         Log::info("Greeting files PRESERVED");    
     }
         
-    if ( $request->restorevmail === true) {
+    if ($request->boolean('restorevmail')) {
         if (file_exists($tempDname . '/var/spool/asterisk/voicemail/default')) {
             shell_exec("/bin/rm -rf /var/spool/asterisk/voicemail/default");
             shell_exec("/bin/cp -a $tempDname/var/spool/asterisk/voicemail/default /var/spool/asterisk/voicemail");
@@ -578,7 +578,7 @@ function restore_from_backup($request) {
         Log::info("Voicemail files PRESERVED");   
     }
     
-    if ( $request->restoreldap === true) {
+    if ($request->boolean('restoreldap')) {
         if (file_exists($tempDname . '/tmp/pbx3.local.ldif')) {
             shell_exec("sudo /etc/init.d/slapd stop");
             shell_exec("sudo /bin/rm -rf /var/lib/ldap/*");
