@@ -24,8 +24,15 @@ Installer ownership model keeps code as `root:root` and grants write access only
 
 ## Certificate ownership
 
-TLS certificate acquisition/renewal is owned by `pbx3` (host layer), not `pbx3api`.
-The nginx site in this repo references certificate paths and can use snakeoil by default until Let's Encrypt certs are present.
+TLS certificate acquisition, renewal, and **active path selection** (commercial/custom vs Let’s Encrypt vs snakeoil) are owned by **`pbx3`**, not `pbx3api`.
+
+**Canonical documentation (three files in the pbx3 repo, `workingdocs/`):**
+
+1. **`pbx3/workingdocs/TLS_AND_CERTIFICATES.md`** — index + overview  
+2. **`pbx3/workingdocs/CERTIFICATES_PANEL_AND_API.md`** — panel + `/certificates/*` API  
+3. **`pbx3/workingdocs/LETSENCRYPT_PER_TENANT_FQDN.md`** — **Option A** (multi-SAN), **§12** phases  
+
+The nginx site in this repo references certificate paths only and typically uses snakeoil until a public cert is applied on the host.
 
 ## Development notes
 

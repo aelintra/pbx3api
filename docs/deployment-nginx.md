@@ -80,9 +80,11 @@ This removes the enabled symlink and reloads nginx.
 
 ## TLS certificate paths
 
-Default config uses snakeoil certificates so first boot can succeed. When `pbx3` provisions Let's Encrypt certificates, switch to:
+Default config uses snakeoil certificates so first boot can succeed. When `pbx3` applies a **Let's Encrypt** or **custom (commercial)** identity, nginx must use the same active `fullchain.pem` / `privkey.pem` paths — see **`pbx3/workingdocs/TLS_AND_CERTIFICATES.md`** and **`CERTIFICATES_PANEL_AND_API.md`** in the **pbx3** repository.
+
+Typical Let’s Encrypt layout (when LE is the active identity and no custom cert is present):
 
 - `/etc/letsencrypt/live/<fqdn>/fullchain.pem`
 - `/etc/letsencrypt/live/<fqdn>/privkey.pem`
 
-`pbx3api` does not run certbot and does not own ACME workflow.
+`pbx3api` does not run certbot and does not own the ACME workflow.

@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 /**
  * Certificates panel API: active source, Let's Encrypt status/renew, custom cert install/remove.
- * All privileged file access via syshelper. See CERTIFICATES_ADOPTION_PLAN.md.
+ * All privileged file access via syshelper. See pbx3/workingdocs/TLS_AND_CERTIFICATES.md and CERTIFICATES_PANEL_AND_API.md.
  */
 class CertificateController extends Controller
 {
