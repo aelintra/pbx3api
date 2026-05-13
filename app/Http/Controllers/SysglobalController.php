@@ -19,15 +19,15 @@ class SysglobalController extends Controller
     //
 
     // Instance globals (sqlite_create_instance.sql). Per-tenant overrides live on `cluster` via TenantController.
-    // Exclude pkey, z_*, display-only (edomain, localip, sipdriver), hidden-not-updateable (fqdninspect, fqdnprov).
+    // `domain` + `fqdn` are set at install (installer.sh); not API-mutable (Step 0.1 / Option A apex + node FQDN).
+    // `fqdninspect` is exposed for panels + future update-fqdn-inline (TEXT YES/NO in sqlite).
     private $updateableColumns = [
         'abstimeout' => 'integer|nullable',
         'bindaddr' => 'string|nullable',
         'bindport' => 'string|nullable',
         'cosstart' => 'string|nullable',
-        'domain' => 'string|nullable',
         'emergency' => 'string|nullable',
-        'fqdn' => 'string|nullable',
+        'fqdninspect' => 'nullable|string|in:YES,NO',
         'language' => 'string|nullable',
         'loglevel' => 'integer|nullable',
         'logopts' => 'string|nullable',

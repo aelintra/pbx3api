@@ -31,13 +31,11 @@ class TenantController extends Controller
 			'countrycode' => 'integer',
 			'description' => 'string',
 			'devicerec' => 'string|nullable',
-			'domain' => 'string|nullable',
 			'dynamicfeatures' => 'string|nullable',
 			'emailalert' => 'string|nullable',
 			'emergency' => 'string|nullable',
 			'ext_lim' => 'integer|nullable',
 			'ext_len' => 'integer|nullable',
-			'fqdn' => 'string|nullable',
 			'fqdninspect' => 'boolean',
 			'int_ring_delay' => 'integer',
 			'ivr_key_wait' => 'integer',
@@ -162,11 +160,22 @@ class TenantController extends Controller
             $autoHost = $tenant->shortuid.'.'.$instanceDomain;
             $reqDomain = $request->input('domain');
             $reqFqdn = $request->input('fqdn');
-            if ($reqDomain === null || $reqDomain === '') {
+            if ($reqDomain !== null && trim((string) $reqDomain) !== '') {
+                $tenant->domain = trim((string) $reqDomain);
+            } else {
                 $tenant->domain = $autoHost;
             }
-            if ($reqFqdn === null || $reqFqdn === '') {
+            if ($reqFqdn !== null && trim((string) $reqFqdn) !== '') {
+                $tenant->fqdn = trim((string) $reqFqdn);
+            } else {
                 $tenant->fqdn = $autoHost;
+            }
+        } else {
+            if ($request->input('domain') !== null && trim((string) $request->input('domain')) !== '') {
+                $tenant->domain = trim((string) $request->input('domain'));
+            }
+            if ($request->input('fqdn') !== null && trim((string) $request->input('fqdn')) !== '') {
+                $tenant->fqdn = trim((string) $request->input('fqdn'));
             }
         }
 

@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Model;
  * Instance columns such as bindaddr, bindport, nat*, logging, and global maxin/maxout/voipmax are
  * system-wide; per-tenant abstimeout, syspass (TEXT on cluster; INTEGER here), LDAP, play_*, etc. are
  * edited on each tenant, not on this row.
+ *
+ * `fqdninspect` is included in JSON (not hidden) for Option A / firewall panels; `domain` and `fqdn`
+ * remain visible and are not mass-assigned from API updates (installer sets them).
  */
 class Sysglobal extends Model
 {
@@ -71,10 +74,9 @@ class Sysglobal extends Model
         'voipmax',
     ];
 
-    /** pkey: identity. fqdninspect, fqdnprov, mycommit, userotp (deprecated), vcl: hidden from API response. staticipv4 exposed for IP Settings panel. */
+    /** pkey: identity. fqdnprov, mycommit, userotp (deprecated), vcl: hidden from API response. staticipv4 exposed for IP Settings panel. */
     protected $hidden = [
         'pkey',
-        'fqdninspect',
         'fqdnprov',
         'mycommit',
         'userotp',
