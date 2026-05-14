@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -13,10 +14,21 @@ use Illuminate\Support\Str;
 class CertificateController extends Controller
 {
     private const CUSTOM_FULLCHAIN = '/opt/pbx3/etc/ssl/custom/fullchain.pem';
+
     private const CUSTOM_PRIVKEY = '/opt/pbx3/etc/ssl/custom/privkey.pem';
+
     private const LE_DOMAIN_FILE = '/opt/pbx3/etc/identity/le-domain';
+
     private const LE_LIVE_BASE = '/etc/letsencrypt/live';
+
     private const APPLY_SCRIPT = '/opt/pbx3/scripts/apply-active-cert.sh';
+
+    private const LE_FIRST_MULTI_SCRIPT = '/opt/pbx3/scripts/le-first-cert-multi.sh';
+
+    private const LE_SYNC_SANS_SCRIPT = '/opt/pbx3/scripts/le-sync-cert-sans.sh';
+
+    /** Long-running certbot via syshelper (Option A Step 2). */
+    private const LE_SYSCMD_TIMEOUT = 120;
 
     /**
      * GET /certificates/active — which cert source is in use (custom | letsencrypt | snakeoil).
@@ -24,14 +36,16 @@ class CertificateController extends Controller
     public function active()
     {
         $source = $this->determineActiveSource();
+
         return response()->json(['source' => $source], 200);
     }
 
     /**
-     * GET /certificates/letsencrypt — status: configured, domain, expires_at, issuer.
+     * GET /certificates/letsencrypt — status: configured, domain, expires_at, issuer, domains[] (tenant FQDNs).
      */
     public function letsencrypt()
     {
+        $domains = $this->tenantFqdnSortedList();
         [$domain, $domainErr] = $this->readLeDomain();
         if ($domainErr !== null || $domain === null || $domain === '') {
             return response()->json([
@@ -39,22 +53,24 @@ class CertificateController extends Controller
                 'domain' => null,
                 'expires_at' => null,
                 'issuer' => null,
+                'domains' => $domains,
             ], 200);
         }
 
-        $fullchain = self::LE_LIVE_BASE . '/' . trim($domain) . '/fullchain.pem';
-        [$exists] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullchain) . ' && echo yes || echo no');
+        $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
+        [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
         if (trim($exists ?? '') !== 'yes') {
             return response()->json([
                 'configured' => false,
                 'domain' => trim($domain),
                 'expires_at' => null,
                 'issuer' => null,
+                'domains' => $domains,
             ], 200);
         }
 
         [$enddateOut, $enddateErr] = pbx3_request_syscmd(
-            'openssl x509 -enddate -noout -in ' . escapeshellarg($fullchain) . ' 2>/dev/null'
+            'openssl x509 -enddate -noout -in '.escapeshellarg($fullchain).' 2>/dev/null'
         );
         $expiresAt = null;
         if ($enddateErr === null && preg_match('/notAfter=\s*(.+)/', $enddateOut ?? '', $m)) {
@@ -65,7 +81,7 @@ class CertificateController extends Controller
         }
 
         [$issuerOut] = pbx3_request_syscmd(
-            'openssl x509 -noout -issuer -in ' . escapeshellarg($fullchain) . ' 2>/dev/null'
+            'openssl x509 -noout -issuer -in '.escapeshellarg($fullchain).' 2>/dev/null'
         );
         $issuer = null;
         if ($issuerOut !== null && preg_match('/issuer=(.+)/', $issuerOut, $m)) {
@@ -77,51 +93,125 @@ class CertificateController extends Controller
             'domain' => trim($domain),
             'expires_at' => $expiresAt,
             'issuer' => $issuer,
+            'domains' => $domains,
         ], 200);
     }
 
     /**
-     * POST /certificates/letsencrypt/setup — first-time Let's Encrypt: obtain cert for fqdn, write le-domain, apply.
-     * Body: { "fqdn": "host.example.com", "email": "admin@example.com" }. PBX3_SYSCMD_TIMEOUT >= 90 recommended.
+     * POST /certificates/letsencrypt/setup — first-time LE: all tenant FQDNs as SANs (Option A).
+     * Body: { "email": "admin@example.com" } — optional legacy { "fqdn", "email" } ignored for SAN list (built from tenants).
+     * PBX3_SYSCMD_TIMEOUT or per-call 120s recommended for certbot.
      */
     public function setup(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'fqdn' => 'required|string|max:253',
+            'email' => 'required|email',
+            'fqdn' => 'sometimes|string|max:253',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+        $email = $request->input('email');
+
+        $sans = $this->tenantFqdnSortedList();
+        if ($sans === []) {
+            return response()->json([
+                'message' => 'No tenant FQDNs in database; cannot build certificate SAN list.',
+            ], 422);
+        }
+        $primary = $sans[0];
+
+        [$domain, $domainErr] = $this->readLeDomain();
+        if ($domainErr === null && $domain !== null && $domain !== '') {
+            $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
+            [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
+            if (trim($exists ?? '') === 'yes') {
+                return response()->json([
+                    'message' => 'Let\'s Encrypt is already configured. Use Renew or Sync to refresh the certificate.',
+                ], 409);
+            }
+        }
+
+        $cmdParts = [self::LE_FIRST_MULTI_SCRIPT, escapeshellarg($primary), escapeshellarg($email)];
+        foreach (array_slice($sans, 1) as $extra) {
+            $cmdParts[] = escapeshellarg($extra);
+        }
+        $cmd = implode(' ', $cmdParts).' 2>&1';
+        [$out, $err] = pbx3_request_syscmd($cmd, self::LE_SYSCMD_TIMEOUT);
+        if ($err !== null) {
+            return response()->json(['message' => 'Setup failed', 'detail' => $err], 502);
+        }
+
+        return response()->json([
+            'message' => 'Let\'s Encrypt certificate obtained.',
+            'output' => trim($out ?? ''),
+            'domains' => $sans,
+        ], 200);
+    }
+
+    /**
+     * POST /certificates/letsencrypt/sync — manual re-issue with current tenant FQDN list (same cert name / le-domain).
+     */
+    public function sync(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
             'email' => 'required|email',
         ]);
         if ($validator->fails()) {
             return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
-        $fqdn = trim($request->input('fqdn'));
         $email = $request->input('email');
-        if ($fqdn === '') {
-            return response()->json(['message' => 'FQDN is required.'], 422);
-        }
 
         [$domain, $domainErr] = $this->readLeDomain();
-        if ($domainErr === null && $domain !== null && $domain !== '') {
-            $fullchain = self::LE_LIVE_BASE . '/' . trim($domain) . '/fullchain.pem';
-            [$exists] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullchain) . ' && echo yes || echo no');
-            if (trim($exists ?? '') === 'yes') {
-                return response()->json([
-                    'message' => 'Let\'s Encrypt is already configured. Use Renew now to refresh the certificate.',
-                ], 409);
-            }
+        if ($domainErr !== null || $domain === null || $domain === '') {
+            return response()->json([
+                'message' => 'Let\'s Encrypt is not configured (no le-domain). Use Setup first.',
+            ], 503);
         }
 
-        $cmd = '/opt/pbx3/scripts/le-first-cert.sh ' . escapeshellarg($fqdn) . ' ' . escapeshellarg($email) . ' 2>&1';
-        [$out, $err] = pbx3_request_syscmd($cmd);
-        if ($err !== null) {
-            return response()->json(['message' => 'Setup failed', 'detail' => $err], 502);
+        $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
+        [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
+        if (trim($exists ?? '') !== 'yes') {
+            return response()->json([
+                'message' => 'Let\'s Encrypt certificate files not found.',
+            ], 503);
         }
-        return response()->json(['message' => 'Let\'s Encrypt certificate obtained.', 'output' => trim($out ?? '')], 200);
+
+        $sans = $this->tenantFqdnSortedList();
+        if ($sans === []) {
+            return response()->json([
+                'message' => 'No tenant FQDNs in database; cannot build certificate SAN list.',
+            ], 422);
+        }
+        if (trim($domain) !== $sans[0]) {
+            return response()->json([
+                'message' => 'Primary tenant FQDN must match le-domain certificate name.',
+                'le_domain' => trim($domain),
+                'expected_primary' => $sans[0],
+            ], 409);
+        }
+
+        $cmdParts = [self::LE_SYNC_SANS_SCRIPT, escapeshellarg($email)];
+        foreach ($sans as $fq) {
+            $cmdParts[] = escapeshellarg($fq);
+        }
+        $cmd = implode(' ', $cmdParts).' 2>&1';
+        [$out, $err] = pbx3_request_syscmd($cmd, self::LE_SYSCMD_TIMEOUT);
+        if ($err !== null) {
+            return response()->json(['message' => 'Sync failed', 'detail' => $err], 502);
+        }
+
+        return response()->json([
+            'message' => 'Certificate re-issued with current tenant FQDN list.',
+            'output' => trim($out ?? ''),
+            'domains' => $sans,
+        ], 200);
     }
 
     /**
      * POST /certificates/letsencrypt/renew — trigger renewal then deploy hook (reload nginx + Asterisk).
      */
-    public function renew(Request $request)
+    public function renew()
     {
         [$domain, $domainErr] = $this->readLeDomain();
         if ($domainErr !== null || $domain === null || $domain === '') {
@@ -130,8 +220,8 @@ class CertificateController extends Controller
             ], 503);
         }
 
-        $fullchain = self::LE_LIVE_BASE . '/' . trim($domain) . '/fullchain.pem';
-        [$exists] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullchain) . ' && echo yes || echo no');
+        $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
+        [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
         if (trim($exists ?? '') !== 'yes') {
             return response()->json([
                 'message' => 'Let\'s Encrypt certificate not found.',
@@ -140,7 +230,8 @@ class CertificateController extends Controller
 
         // Open port 80, run certbot renew, close port 80 (PBX3_SYSCMD_TIMEOUT >= 90 recommended).
         [$out, $err] = pbx3_request_syscmd(
-            '/opt/pbx3/scripts/le-renew-with-80.sh 2>&1'
+            '/opt/pbx3/scripts/le-renew-with-80.sh 2>&1',
+            self::LE_SYSCMD_TIMEOUT
         );
         if ($err !== null) {
             return response()->json(['message' => 'Renewal failed', 'detail' => $err], 502);
@@ -159,6 +250,7 @@ class CertificateController extends Controller
     public function customIndex()
     {
         $installed = $this->customCertInstalled();
+
         return response()->json(['installed' => $installed], 200);
     }
 
@@ -186,7 +278,7 @@ class CertificateController extends Controller
         $certPem = is_string($certPem) ? $certPem : '';
         $keyPem = is_string($keyPem) ? $keyPem : '';
 
-        if (!str_contains($certPem, '-----BEGIN') || !str_contains($keyPem, '-----BEGIN')) {
+        if (! str_contains($certPem, '-----BEGIN') || ! str_contains($keyPem, '-----BEGIN')) {
             return response()->json([
                 'message' => 'Invalid PEM format. Provide fullchain.pem (certificate + chain) and privkey.pem.',
             ], 422);
@@ -206,15 +298,15 @@ class CertificateController extends Controller
             ], 422);
         }
 
-        if (!openssl_x509_check_private_key($cert, $key)) {
+        if (! openssl_x509_check_private_key($cert, $key)) {
             return response()->json([
                 'message' => 'Certificate and private key do not match.',
             ], 422);
         }
 
-        $prefix = 'pbx3cert_' . Str::random(8);
-        $tmpCert = '/tmp/' . $prefix . '_fullchain.pem';
-        $tmpKey = '/tmp/' . $prefix . '_privkey.pem';
+        $prefix = 'pbx3cert_'.Str::random(8);
+        $tmpCert = '/tmp/'.$prefix.'_fullchain.pem';
+        $tmpKey = '/tmp/'.$prefix.'_privkey.pem';
         file_put_contents($tmpCert, $certPem);
         file_put_contents($tmpKey, $keyPem);
         chmod($tmpCert, 0644);
@@ -224,28 +316,30 @@ class CertificateController extends Controller
         if ($mkdirErr !== null) {
             @unlink($tmpCert);
             @unlink($tmpKey);
+
             return response()->json(['message' => 'Failed to create custom cert directory', 'detail' => $mkdirErr], 502);
         }
 
         [$_, $mvErr] = pbx3_request_syscmd(
-            '/bin/mv ' . escapeshellarg($tmpCert) . ' ' . escapeshellarg(self::CUSTOM_FULLCHAIN) . ' && ' .
-            '/bin/mv ' . escapeshellarg($tmpKey) . ' ' . escapeshellarg(self::CUSTOM_PRIVKEY)
+            '/bin/mv '.escapeshellarg($tmpCert).' '.escapeshellarg(self::CUSTOM_FULLCHAIN).' && '.
+            '/bin/mv '.escapeshellarg($tmpKey).' '.escapeshellarg(self::CUSTOM_PRIVKEY)
         );
         if ($mvErr !== null) {
             @unlink($tmpCert);
             @unlink($tmpKey);
+
             return response()->json(['message' => 'Failed to install certificate', 'detail' => $mvErr], 502);
         }
 
         [$_, $chmodErr] = pbx3_request_syscmd(
-            '/bin/chmod 644 ' . escapeshellarg(self::CUSTOM_FULLCHAIN) . ' && ' .
-            '/bin/chmod 600 ' . escapeshellarg(self::CUSTOM_PRIVKEY)
+            '/bin/chmod 644 '.escapeshellarg(self::CUSTOM_FULLCHAIN).' && '.
+            '/bin/chmod 600 '.escapeshellarg(self::CUSTOM_PRIVKEY)
         );
         if ($chmodErr !== null) {
             // non-fatal; cert is in place
         }
 
-        [$_, $applyErr] = pbx3_request_syscmd(self::APPLY_SCRIPT . ' 2>&1');
+        [$_, $applyErr] = pbx3_request_syscmd(self::APPLY_SCRIPT.' 2>&1');
         if ($applyErr !== null) {
             return response()->json([
                 'message' => 'Certificate installed but reload failed. Cert is in place; fix config and reload manually.',
@@ -262,13 +356,13 @@ class CertificateController extends Controller
     public function customDestroy()
     {
         [$_, $err] = pbx3_request_syscmd(
-            '/bin/rm -f ' . escapeshellarg(self::CUSTOM_FULLCHAIN) . ' ' . escapeshellarg(self::CUSTOM_PRIVKEY)
+            '/bin/rm -f '.escapeshellarg(self::CUSTOM_FULLCHAIN).' '.escapeshellarg(self::CUSTOM_PRIVKEY)
         );
         if ($err !== null) {
             return response()->json(['message' => 'Failed to remove certificate', 'detail' => $err], 502);
         }
 
-        [$_, $applyErr] = pbx3_request_syscmd(self::APPLY_SCRIPT . ' 2>&1');
+        [$_, $applyErr] = pbx3_request_syscmd(self::APPLY_SCRIPT.' 2>&1');
         if ($applyErr !== null) {
             return response()->json([
                 'message' => 'Certificate removed but reload failed. Fix config and reload nginx/Asterisk manually.',
@@ -279,6 +373,38 @@ class CertificateController extends Controller
         return response()->json(['message' => 'Purchased certificate removed.'], 200);
     }
 
+    /**
+     * Distinct non-empty cluster.fqdn values, default tenant first (Option A 2.1).
+     *
+     * @return list<string>
+     */
+    private function tenantFqdnSortedList(): array
+    {
+        $rows = Tenant::query()
+            ->whereNotNull('fqdn')
+            ->where('fqdn', '!=', '')
+            ->orderByRaw("CASE WHEN pkey = 'default' THEN 0 ELSE 1 END")
+            ->orderBy('pkey')
+            ->get(['fqdn', 'pkey']);
+
+        $out = [];
+        $seen = [];
+        foreach ($rows as $row) {
+            $f = trim((string) $row->fqdn);
+            if ($f === '') {
+                continue;
+            }
+            $k = strtolower($f);
+            if (isset($seen[$k])) {
+                continue;
+            }
+            $seen[$k] = true;
+            $out[] = $f;
+        }
+
+        return $out;
+    }
+
     private function determineActiveSource(): string
     {
         if ($this->customCertInstalled()) {
@@ -286,30 +412,33 @@ class CertificateController extends Controller
         }
         [$domain, $domainErr] = $this->readLeDomain();
         if ($domainErr === null && $domain !== null && $domain !== '') {
-            $fullchain = self::LE_LIVE_BASE . '/' . trim($domain) . '/fullchain.pem';
-            [$exists] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullchain) . ' && echo yes || echo no');
+            $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
+            [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
             if (trim($exists ?? '') === 'yes') {
                 return 'letsencrypt';
             }
         }
+
         return 'snakeoil';
     }
 
     private function customCertInstalled(): bool
     {
         [$out] = pbx3_request_syscmd(
-            'test -f ' . escapeshellarg(self::CUSTOM_FULLCHAIN) . ' && test -f ' . escapeshellarg(self::CUSTOM_PRIVKEY) . ' && echo yes || echo no'
+            'test -f '.escapeshellarg(self::CUSTOM_FULLCHAIN).' && test -f '.escapeshellarg(self::CUSTOM_PRIVKEY).' && echo yes || echo no'
         );
+
         return trim($out ?? '') === 'yes';
     }
 
     /** @return array{0: string|null, 1: string|null} [domain content, error] */
     private function readLeDomain(): array
     {
-        [$out, $err] = pbx3_request_syscmd('cat ' . escapeshellarg(self::LE_DOMAIN_FILE) . ' 2>/dev/null');
+        [$out, $err] = pbx3_request_syscmd('cat '.escapeshellarg(self::LE_DOMAIN_FILE).' 2>/dev/null');
         if ($err !== null || $out === null) {
             return [null, $err];
         }
+
         return [trim($out), null];
     }
 }

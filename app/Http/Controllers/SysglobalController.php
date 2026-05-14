@@ -97,6 +97,9 @@ class SysglobalController extends Controller
     	try {
     		if ($sysglobal->isDirty()) {
     			$sysglobal->save();
+                if ($sysglobal->wasChanged(['fqdninspect', 'bindport'])) {
+                    pbx3_update_fqdn_inline_optional();
+                }
     		}
 
         } catch (\Exception $e) {

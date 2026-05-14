@@ -51,6 +51,9 @@ Daemon runs as privileged user (runit); no password, no sudo in PHP.
 | Stop PBX        | `/bin/systemctl stop asterisk`                  | via daemon |
 | Reboot          | `/sbin/reboot`                                  | via daemon |
 | Asterisk version| `{asterisk} -rx 'core show version' 2>/dev/null`| via daemon |
+| **LE first issue (multi-SAN)** | `/opt/pbx3/scripts/le-first-cert-multi.sh …` (long timeout: `pbx3_request_syscmd(..., 120)`) | CertificateController |
+| **LE SAN sync** | `/opt/pbx3/scripts/le-sync-cert-sans.sh …` | CertificateController |
+| **FQDN inline + Shorewall** | `/opt/pbx3/scripts/update-fqdn-inline.sh` | TenantController / SysglobalController / FirewallController `ipv4restart` |
 
 **Next candidates (single panel):** Firewall (shorewall / shorewall6 check & restart) — see SUDO_AND_PRIVILEGED_COMMANDS.md.
 

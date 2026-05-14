@@ -131,6 +131,7 @@ class FirewallController extends Controller
  */
     public function ipv4restart()
     {
+        pbx3_update_fqdn_inline_optional();
         [$rc, $err] = pbx3_request_syscmd('/sbin/shorewall check 2>&1');
         if ($err !== null) {
             return response()->json(['message' => 'Shorewall check failed', 'detail' => $err], 502);

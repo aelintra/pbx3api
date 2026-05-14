@@ -134,14 +134,15 @@ if (!function_exists('pbx3_request_syscmd')) {
      * Protocol: connect, read "Ready", send command+\n, read until <<EOT>>.
      * Use for any privileged operation (no sudo in API).
      *
-     * @param string $command Command to run (no sudo; daemon runs privileged).
+     * @param  string  $command  Command to run (no sudo; daemon runs privileged).
+     * @param  int|null  $timeoutSeconds  Override PBX3_SYSCMD_TIMEOUT (e.g. 120 for certbot).
      * @return array{0: string|null, 1: string|null} [response body, or null; error message, or null]
      */
-    function pbx3_request_syscmd(string $command): array
+    function pbx3_request_syscmd(string $command, ?int $timeoutSeconds = null): array
     {
         $host = env('PBX3_SYSCMD_HOST', '127.0.0.1');
         $port = (int) env('PBX3_SYSCMD_PORT', 7601);
-        $timeout = (int) env('PBX3_SYSCMD_TIMEOUT', 5);
+        $timeout = $timeoutSeconds ?? (int) env('PBX3_SYSCMD_TIMEOUT', 5);
 
         $errno = 0;
         $errstr = '';
@@ -172,6 +173,20 @@ if (!function_exists('pbx3_request_syscmd')) {
         fclose($fp);
 
         return [trim($response), null];
+    }
+}
+
+if (!function_exists('pbx3_update_fqdn_inline_optional')) {
+    /**
+     * Regenerate /etc/shorewall/pbx3_inline_fqdn via NetHelper and restart Shorewall (Option A).
+     * Non-fatal: logs a warning if syshelper or the script fails.
+     */
+    function pbx3_update_fqdn_inline_optional(): void
+    {
+        [, $err] = pbx3_request_syscmd('/opt/pbx3/scripts/update-fqdn-inline.sh 2>&1');
+        if ($err !== null) {
+            Log::warning('update-fqdn-inline.sh failed', ['detail' => $err]);
+        }
     }
 }
 

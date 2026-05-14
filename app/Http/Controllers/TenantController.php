@@ -163,7 +163,7 @@ class TenantController extends Controller
             if ($reqDomain !== null && trim((string) $reqDomain) !== '') {
                 $tenant->domain = trim((string) $reqDomain);
             } else {
-                $tenant->domain = $autoHost;
+                $tenant->domain = $instanceDomain;
             }
             if ($reqFqdn !== null && trim((string) $reqFqdn) !== '') {
                 $tenant->fqdn = trim((string) $reqFqdn);
@@ -183,6 +183,7 @@ class TenantController extends Controller
     	try {
 
     		$tenant->save();
+            pbx3_update_fqdn_inline_optional();
 
         } catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
@@ -215,6 +216,9 @@ class TenantController extends Controller
     	try {
     		if ($tenant->isDirty()) {
     			$tenant->save();
+                if ($tenant->wasChanged()) {
+                    pbx3_update_fqdn_inline_optional();
+                }
     		}
 
         } catch (\Exception $e) {
@@ -238,6 +242,7 @@ class TenantController extends Controller
         }
 
         $tenant->delete();
+        pbx3_update_fqdn_inline_optional();
 
         return response()->json(['tenant ' .$tenant->id .' deleted'],200);
     }
