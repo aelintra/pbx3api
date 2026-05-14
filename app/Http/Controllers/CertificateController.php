@@ -142,6 +142,20 @@ class CertificateController extends Controller
             return response()->json(['message' => 'Setup failed', 'detail' => $err], 502);
         }
 
+        // syshelper does not return shell exit status; certbot can fail while still returning stdout.
+        if (! $this->leFullchainExistsForLiveName(trim($primary))) {
+            return response()->json([
+                'message' => 'Let\'s Encrypt setup did not produce certificate files (HTTP-01 requires port 80 reachable from the internet for each name on the certificate).',
+                'detail' => trim($out ?? ''),
+            ], 502);
+        }
+        if ($this->certbotOutputLooksLikeFailure($out)) {
+            return response()->json([
+                'message' => 'Let\'s Encrypt setup reported a certbot error (certificate files may be stale — verify on disk).',
+                'detail' => trim($out ?? ''),
+            ], 502);
+        }
+
         return response()->json([
             'message' => 'Let\'s Encrypt certificate obtained.',
             'output' => trim($out ?? ''),
@@ -201,6 +215,19 @@ class CertificateController extends Controller
             return response()->json(['message' => 'Sync failed', 'detail' => $err], 502);
         }
 
+        if (! $this->leFullchainExistsForLiveName(trim($domain))) {
+            return response()->json([
+                'message' => 'Let\'s Encrypt sync did not leave certificate files in place.',
+                'detail' => trim($out ?? ''),
+            ], 502);
+        }
+        if ($this->certbotOutputLooksLikeFailure($out)) {
+            return response()->json([
+                'message' => 'Let\'s Encrypt sync appears to have failed (see certbot output).',
+                'detail' => trim($out ?? ''),
+            ], 502);
+        }
+
         return response()->json([
             'message' => 'Certificate re-issued with current tenant FQDN list.',
             'output' => trim($out ?? ''),
@@ -235,6 +262,12 @@ class CertificateController extends Controller
         );
         if ($err !== null) {
             return response()->json(['message' => 'Renewal failed', 'detail' => $err], 502);
+        }
+        if ($this->certbotOutputLooksLikeFailure($out)) {
+            return response()->json([
+                'message' => 'Renewal command reported a failure.',
+                'detail' => trim($out ?? ''),
+            ], 502);
         }
         if (stripos($out ?? '', 'No renewals were attempted') !== false ||
             stripos($out ?? '', 'not yet due for renewal') !== false) {
@@ -429,6 +462,49 @@ class CertificateController extends Controller
         );
 
         return trim($out ?? '') === 'yes';
+    }
+
+    private function leFullchainExistsForLiveName(string $liveName): bool
+    {
+        $liveName = trim($liveName);
+        if ($liveName === '') {
+            return false;
+        }
+        $fullchain = self::LE_LIVE_BASE.'/'.$liveName.'/fullchain.pem';
+        $privkey = self::LE_LIVE_BASE.'/'.$liveName.'/privkey.pem';
+        [$ok] = pbx3_request_syscmd(
+            'test -f '.escapeshellarg($fullchain).' && test -f '.escapeshellarg($privkey).' && echo yes || echo no'
+        );
+
+        return trim($ok ?? '') === 'yes';
+    }
+
+    /**
+     * syshelper does not return the shell exit code; use this on certbot combined stdout/stderr.
+     */
+    private function certbotOutputLooksLikeFailure(?string $out): bool
+    {
+        $o = $out ?? '';
+        if ($o === '') {
+            return false;
+        }
+        if (stripos($o, 'Some challenges have failed') !== false) {
+            return true;
+        }
+        if (stripos($o, 'All authorizations were not finalized') !== false) {
+            return true;
+        }
+        if (stripos($o, 'All renewals failed') !== false) {
+            return true;
+        }
+        if (stripos($o, 'Exiting abnormally') !== false) {
+            return true;
+        }
+        if (preg_match('/^\s*Certbot failed/m', $o)) {
+            return true;
+        }
+
+        return false;
     }
 
     /** @return array{0: string|null, 1: string|null} [domain content, error] */
