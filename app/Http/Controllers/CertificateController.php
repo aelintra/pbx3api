@@ -146,13 +146,13 @@ class CertificateController extends Controller
         if (! $this->leFullchainExistsForLiveName(trim($primary))) {
             return response()->json([
                 'message' => 'Let\'s Encrypt setup did not produce certificate files (HTTP-01 requires port 80 reachable from the internet for each name on the certificate).',
-                'detail' => trim($out ?? ''),
+                'detail' => $this->leSyscmdDetailForClient($out),
             ], 502);
         }
         if ($this->certbotOutputLooksLikeFailure($out)) {
             return response()->json([
                 'message' => 'Let\'s Encrypt setup reported a certbot error (certificate files may be stale — verify on disk).',
-                'detail' => trim($out ?? ''),
+                'detail' => $this->leSyscmdDetailForClient($out),
             ], 502);
         }
 
@@ -218,13 +218,13 @@ class CertificateController extends Controller
         if (! $this->leFullchainExistsForLiveName(trim($domain))) {
             return response()->json([
                 'message' => 'Let\'s Encrypt sync did not leave certificate files in place.',
-                'detail' => trim($out ?? ''),
+                'detail' => $this->leSyscmdDetailForClient($out),
             ], 502);
         }
         if ($this->certbotOutputLooksLikeFailure($out)) {
             return response()->json([
                 'message' => 'Let\'s Encrypt sync appears to have failed (see certbot output).',
-                'detail' => trim($out ?? ''),
+                'detail' => $this->leSyscmdDetailForClient($out),
             ], 502);
         }
 
@@ -266,7 +266,7 @@ class CertificateController extends Controller
         if ($this->certbotOutputLooksLikeFailure($out)) {
             return response()->json([
                 'message' => 'Renewal command reported a failure.',
-                'detail' => trim($out ?? ''),
+                'detail' => $this->leSyscmdDetailForClient($out),
             ], 502);
         }
         if (stripos($out ?? '', 'No renewals were attempted') !== false ||
@@ -501,6 +501,51 @@ class CertificateController extends Controller
             return true;
         }
         if (preg_match('/^\s*Certbot failed/m', $o)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * LE helper scripts often run Shorewall open/close around certbot; combined stdout is huge.
+     * Return a short client-safe excerpt (certbot / script lines only, capped length).
+     */
+    private function leSyscmdDetailForClient(?string $out): string
+    {
+        $raw = trim($out ?? '');
+        if ($raw === '') {
+            return '';
+        }
+        $lines = preg_split('/\R/u', $raw) ?: [];
+        $kept = [];
+        foreach ($lines as $line) {
+            if ($this->lineIsLeSyscmdFirewallNoise($line)) {
+                continue;
+            }
+            $kept[] = $line;
+        }
+        $filtered = trim(implode("\n", $kept));
+        if ($filtered === '') {
+            $filtered = $raw;
+        }
+        $max = 3500;
+        if (strlen($filtered) > $max) {
+            return '…'.substr($filtered, -$max);
+        }
+
+        return $filtered;
+    }
+
+    private function lineIsLeSyscmdFirewallNoise(string $line): bool
+    {
+        if (trim($line) === '') {
+            return true;
+        }
+        if (stripos($line, 'shorewall') !== false) {
+            return true;
+        }
+        if (preg_match('/iptables-restore|ip6tables-restore/', $line) === 1) {
             return true;
         }
 
