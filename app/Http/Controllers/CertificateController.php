@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Sysglobal;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +19,9 @@ class CertificateController extends Controller
     private const CUSTOM_PRIVKEY = '/opt/pbx3/etc/ssl/custom/privkey.pem';
 
     private const LE_DOMAIN_FILE = '/opt/pbx3/etc/identity/le-domain';
+
+    /** Written by apply-active-cert.sh (readable by API/syshelper; avoids /etc/letsencrypt/live permissions). */
+    private const TLS_ACTIVE_JSON = '/opt/pbx3/etc/identity/tls-active.json';
 
     private const LE_LIVE_BASE = '/etc/letsencrypt/live';
 
@@ -45,29 +49,38 @@ class CertificateController extends Controller
      */
     public function letsencrypt()
     {
-        $domains = $this->tenantFqdnSortedList();
-        [$domain, $domainErr] = $this->readLeDomain();
-        if ($domainErr !== null || $domain === null || $domain === '') {
+        $intendedDomains = $this->certificateFqdnList();
+        $suggestedFqdn = $this->instanceFqdn();
+        $published = $this->readTlsActiveJson();
+
+        if ($published !== null && ($published['source'] ?? '') === 'letsencrypt') {
+            return response()->json([
+                'configured' => true,
+                'domain' => $published['domain'] ?? null,
+                'suggested_fqdn' => $suggestedFqdn,
+                'expires_at' => $published['expires_at'] ?? null,
+                'issuer' => $published['issuer'] ?? null,
+                'domains' => $intendedDomains,
+                'cert_sans' => $published['cert_sans'] ?? [],
+            ], 200);
+        }
+
+        $domain = $this->resolveLePrimaryDomain();
+
+        if ($domain === null || ! $this->leFullchainExistsForLiveName($domain)) {
             return response()->json([
                 'configured' => false,
-                'domain' => null,
+                'domain' => $domain,
+                'suggested_fqdn' => $suggestedFqdn,
                 'expires_at' => null,
                 'issuer' => null,
-                'domains' => $domains,
+                'domains' => $intendedDomains,
+                'cert_sans' => [],
             ], 200);
         }
 
         $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
-        [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
-        if (trim($exists ?? '') !== 'yes') {
-            return response()->json([
-                'configured' => false,
-                'domain' => trim($domain),
-                'expires_at' => null,
-                'issuer' => null,
-                'domains' => $domains,
-            ], 200);
-        }
+        $certSans = $this->leSansFromFullchain($fullchain);
 
         [$enddateOut, $enddateErr] = pbx3_request_syscmd(
             'openssl x509 -enddate -noout -in '.escapeshellarg($fullchain).' 2>/dev/null'
@@ -91,9 +104,11 @@ class CertificateController extends Controller
         return response()->json([
             'configured' => true,
             'domain' => trim($domain),
+            'suggested_fqdn' => $suggestedFqdn,
             'expires_at' => $expiresAt,
             'issuer' => $issuer,
-            'domains' => $domains,
+            'domains' => $intendedDomains,
+            'cert_sans' => $certSans,
         ], 200);
     }
 
@@ -113,23 +128,19 @@ class CertificateController extends Controller
         }
         $email = $request->input('email');
 
-        $sans = $this->tenantFqdnSortedList();
+        $sans = $this->certificateFqdnList();
         if ($sans === []) {
             return response()->json([
-                'message' => 'No tenant FQDNs in database; cannot build certificate SAN list.',
+                'message' => 'No instance or tenant FQDNs in database; cannot build certificate SAN list.',
             ], 422);
         }
         $primary = $sans[0];
 
-        [$domain, $domainErr] = $this->readLeDomain();
-        if ($domainErr === null && $domain !== null && $domain !== '') {
-            $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
-            [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
-            if (trim($exists ?? '') === 'yes') {
-                return response()->json([
-                    'message' => 'Let\'s Encrypt is already configured. Use Renew or Sync to refresh the certificate.',
-                ], 409);
-            }
+        $existing = $this->resolveLePrimaryDomain();
+        if ($existing !== null && $this->leFullchainExistsForLiveName($existing)) {
+            return response()->json([
+                'message' => 'Let\'s Encrypt is already configured. Use Renew or Sync to refresh the certificate.',
+            ], 409);
         }
 
         $cmdParts = [self::LE_FIRST_MULTI_SCRIPT, escapeshellarg($primary), escapeshellarg($email)];
@@ -176,25 +187,17 @@ class CertificateController extends Controller
         }
         $email = $request->input('email');
 
-        [$domain, $domainErr] = $this->readLeDomain();
-        if ($domainErr !== null || $domain === null || $domain === '') {
+        $domain = $this->resolveLePrimaryDomain();
+        if ($domain === null || ! $this->leFullchainExistsForLiveName($domain)) {
             return response()->json([
-                'message' => 'Let\'s Encrypt is not configured (no le-domain). Use Setup first.',
+                'message' => 'Let\'s Encrypt is not configured (no certificate on disk). Use Setup first.',
             ], 503);
         }
 
-        $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
-        [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
-        if (trim($exists ?? '') !== 'yes') {
-            return response()->json([
-                'message' => 'Let\'s Encrypt certificate files not found.',
-            ], 503);
-        }
-
-        $sans = $this->tenantFqdnSortedList();
+        $sans = $this->certificateFqdnList();
         if ($sans === []) {
             return response()->json([
-                'message' => 'No tenant FQDNs in database; cannot build certificate SAN list.',
+                'message' => 'No instance or tenant FQDNs in database; cannot build certificate SAN list.',
             ], 422);
         }
         if (trim($domain) !== $sans[0]) {
@@ -240,18 +243,10 @@ class CertificateController extends Controller
      */
     public function renew()
     {
-        [$domain, $domainErr] = $this->readLeDomain();
-        if ($domainErr !== null || $domain === null || $domain === '') {
+        $domain = $this->resolveLePrimaryDomain();
+        if ($domain === null || ! $this->leFullchainExistsForLiveName($domain)) {
             return response()->json([
-                'message' => 'Let\'s Encrypt is not configured (no le-domain).',
-            ], 503);
-        }
-
-        $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
-        [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
-        if (trim($exists ?? '') !== 'yes') {
-            return response()->json([
-                'message' => 'Let\'s Encrypt certificate not found.',
+                'message' => 'Let\'s Encrypt is not configured (no certificate on disk).',
             ], 503);
         }
 
@@ -407,6 +402,131 @@ class CertificateController extends Controller
     }
 
     /**
+     * Instance globals.fqdn (node hostname) then tenant cluster.fqdn values (Option A / bootstrap).
+     *
+     * @return list<string>
+     */
+    private function certificateFqdnList(): array
+    {
+        $out = [];
+        $seen = [];
+        $node = $this->instanceFqdn();
+        if ($node !== null) {
+            $out[] = $node;
+            $seen[strtolower($node)] = true;
+        }
+        foreach ($this->tenantFqdnSortedList() as $f) {
+            $k = strtolower($f);
+            if (isset($seen[$k])) {
+                continue;
+            }
+            $seen[$k] = true;
+            $out[] = $f;
+        }
+
+        return $out;
+    }
+
+    private function instanceFqdn(): ?string
+    {
+        $g = Sysglobal::query()->first(['fqdn']);
+        if ($g === null) {
+            return null;
+        }
+        $f = trim((string) ($g->fqdn ?? ''));
+
+        return $f !== '' ? $f : null;
+    }
+
+    /**
+     * Primary LE live directory name: le-domain file, else cert on disk for globals.fqdn / nginx snippet.
+     */
+    private function resolveLePrimaryDomain(): ?string
+    {
+        [$fromFile] = $this->readLeDomain();
+        if ($fromFile !== null && $fromFile !== '' && $this->leFullchainExistsForLiveName($fromFile)) {
+            return $fromFile;
+        }
+
+        $node = $this->instanceFqdn();
+        if ($node !== null && $this->leFullchainExistsForLiveName($node)) {
+            $this->ensureLeDomainFile($node);
+
+            return $node;
+        }
+
+        $fromNginx = $this->lePrimaryFromNginxSnippet();
+        if ($fromNginx !== null && $this->leFullchainExistsForLiveName($fromNginx)) {
+            $this->ensureLeDomainFile($fromNginx);
+
+            return $fromNginx;
+        }
+
+        if ($fromFile !== null && $fromFile !== '') {
+            return $fromFile;
+        }
+
+        return $node;
+    }
+
+    private function ensureLeDomainFile(string $domain): void
+    {
+        $domain = trim($domain);
+        if ($domain === '') {
+            return;
+        }
+        [$existing] = $this->readLeDomain();
+        if (trim($existing ?? '') === $domain) {
+            return;
+        }
+        pbx3_request_syscmd('mkdir -p /opt/pbx3/etc/identity');
+        pbx3_request_syscmd(
+            'printf %s '.escapeshellarg($domain).' > '.escapeshellarg(self::LE_DOMAIN_FILE)
+        );
+    }
+
+    private function lePrimaryFromNginxSnippet(): ?string
+    {
+        [$out] = pbx3_request_syscmd(
+            'grep -E "^ssl_certificate[[:space:]]" '.escapeshellarg('/etc/nginx/snippets/pbx3-ssl-active.conf').
+            ' 2>/dev/null | head -1'
+        );
+        if ($out !== null && preg_match('#/etc/letsencrypt/live/([^/]+)/fullchain\.pem#', $out, $m)) {
+            return trim($m[1]);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function leSansFromFullchain(string $fullchain): array
+    {
+        [$text] = pbx3_request_syscmd(
+            'openssl x509 -noout -text -in '.escapeshellarg($fullchain).' 2>/dev/null'
+        );
+        if ($text === null || $text === '') {
+            return [];
+        }
+        if (! preg_match('/X509v3 Subject Alternative Name:\s*\n\s*(.+)/s', $text, $m)) {
+            return [];
+        }
+        $block = $m[1];
+        $sans = [];
+        if (preg_match_all('/DNS:([^,\s]+)/', $block, $dns)) {
+            foreach ($dns[1] as $name) {
+                $name = trim($name);
+                if ($name !== '') {
+                    $sans[] = $name;
+                }
+            }
+        }
+
+        return $sans;
+    }
+
+    /**
      * Distinct non-empty cluster.fqdn values, default tenant first (Option A 2.1).
      *
      * @return list<string>
@@ -440,19 +560,39 @@ class CertificateController extends Controller
 
     private function determineActiveSource(): string
     {
+        $published = $this->readTlsActiveJson();
+        if ($published !== null && in_array($published['source'] ?? '', ['custom', 'letsencrypt', 'snakeoil'], true)) {
+            return $published['source'];
+        }
         if ($this->customCertInstalled()) {
             return 'custom';
         }
-        [$domain, $domainErr] = $this->readLeDomain();
-        if ($domainErr === null && $domain !== null && $domain !== '') {
-            $fullchain = self::LE_LIVE_BASE.'/'.trim($domain).'/fullchain.pem';
-            [$exists] = pbx3_request_syscmd('test -f '.escapeshellarg($fullchain).' && echo yes || echo no');
-            if (trim($exists ?? '') === 'yes') {
-                return 'letsencrypt';
-            }
+        $domain = $this->resolveLePrimaryDomain();
+        if ($domain !== null && $this->leFullchainExistsForLiveName($domain)) {
+            return 'letsencrypt';
         }
 
         return 'snakeoil';
+    }
+
+    /**
+     * @return array{source?: string, domain?: string|null, expires_at?: string|null, issuer?: string|null, cert_sans?: list<string>}|null
+     */
+    private function readTlsActiveJson(): ?array
+    {
+        [$out] = pbx3_request_syscmd('cat '.escapeshellarg(self::TLS_ACTIVE_JSON).' 2>/dev/null');
+        if ($out === null || trim($out) === '') {
+            return null;
+        }
+        $data = json_decode(trim($out), true);
+        if (! is_array($data)) {
+            return null;
+        }
+        if (isset($data['cert_sans']) && is_array($data['cert_sans'])) {
+            $data['cert_sans'] = array_values(array_filter(array_map('strval', $data['cert_sans'])));
+        }
+
+        return $data;
     }
 
     private function customCertInstalled(): bool
