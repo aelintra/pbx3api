@@ -6,6 +6,8 @@ REPO_ROOT="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 SITE_NAME="${SITE_NAME:-pbx3-api.conf}"
 SOURCE_CONF="${SOURCE_CONF:-${REPO_ROOT}/config/nginx/pbx3-api.conf}"
+ACME_SITE_NAME="${ACME_SITE_NAME:-pbx3-acme-http.conf}"
+ACME_SOURCE="${ACME_SOURCE:-${REPO_ROOT}/config/nginx/pbx3-acme-http.conf}"
 TARGET_AVAILABLE="/etc/nginx/sites-available/${SITE_NAME}"
 TARGET_ENABLED="/etc/nginx/sites-enabled/${SITE_NAME}"
 APP_ROOT="${APP_ROOT:-${REPO_ROOT}}"
@@ -29,6 +31,17 @@ cp "${SOURCE_CONF}" "${TARGET_AVAILABLE}"
 sed -i "s|^[[:space:]]*fastcgi_pass[[:space:]]\\+unix:[^;]*;|        fastcgi_pass unix:${PHP_FPM_SOCKET};|" "${TARGET_AVAILABLE}"
 
 ln -sfn "${TARGET_AVAILABLE}" "${TARGET_ENABLED}"
+
+if [ -f "${ACME_SOURCE}" ]; then
+	ACME_AVAILABLE="/etc/nginx/sites-available/${ACME_SITE_NAME}"
+	ACME_ENABLED="/etc/nginx/sites-enabled/${ACME_SITE_NAME}"
+	cp "${ACME_SOURCE}" "${ACME_AVAILABLE}"
+	ln -sfn "${ACME_AVAILABLE}" "${ACME_ENABLED}"
+	mkdir -p /opt/pbx3/var/acme-challenge
+	chown "${APP_USER}:${APP_GROUP}" /opt/pbx3/var/acme-challenge 2>/dev/null || true
+	chmod 755 /opt/pbx3/var/acme-challenge
+	echo "Installed nginx ACME site: ${ACME_AVAILABLE}"
+fi
 
 nginx -t
 
