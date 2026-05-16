@@ -194,18 +194,11 @@ class CertificateController extends Controller
             ], 503);
         }
 
-        $sans = $this->certificateFqdnList();
+        $sans = $this->orderSansForLeSync($domain, $this->certificateFqdnList());
         if ($sans === []) {
             return response()->json([
                 'message' => 'No instance or tenant FQDNs in database; cannot build certificate SAN list.',
             ], 422);
-        }
-        if (trim($domain) !== $sans[0]) {
-            return response()->json([
-                'message' => 'Primary tenant FQDN must match le-domain certificate name.',
-                'le_domain' => trim($domain),
-                'expected_primary' => $sans[0],
-            ], 409);
         }
 
         $cmdParts = [self::LE_SYNC_SANS_SCRIPT, escapeshellarg($email)];
@@ -410,10 +403,18 @@ class CertificateController extends Controller
     {
         $out = [];
         $seen = [];
-        $node = $this->instanceFqdn();
-        if ($node !== null) {
-            $out[] = $node;
-            $seen[strtolower($node)] = true;
+        // When LE is already on disk, certbot --cert-name must stay le-domain (may differ from empty globals.fqdn).
+        $lePrimary = $this->resolveLePrimaryDomain();
+        if ($lePrimary !== null && $this->leFullchainExistsForLiveName($lePrimary)) {
+            $primary = trim($lePrimary);
+            $out[] = $primary;
+            $seen[strtolower($primary)] = true;
+        } else {
+            $node = $this->instanceFqdn();
+            if ($node !== null) {
+                $out[] = $node;
+                $seen[strtolower($node)] = true;
+            }
         }
         foreach ($this->tenantFqdnSortedList() as $f) {
             $k = strtolower($f);
@@ -429,11 +430,22 @@ class CertificateController extends Controller
 
     private function instanceFqdn(): ?string
     {
-        $g = Sysglobal::query()->first(['fqdn']);
+        $g = Sysglobal::query()->where('pkey', 'global')->first(['fqdn']);
         if ($g === null) {
-            return null;
+            return $this->leDomainFromFileOrNull();
         }
         $f = trim((string) ($g->fqdn ?? ''));
+        if ($f !== '') {
+            return $f;
+        }
+
+        return $this->leDomainFromFileOrNull();
+    }
+
+    private function leDomainFromFileOrNull(): ?string
+    {
+        [$fromFile] = $this->readLeDomain();
+        $f = trim((string) ($fromFile ?? ''));
 
         return $f !== '' ? $f : null;
     }
@@ -445,28 +457,63 @@ class CertificateController extends Controller
     {
         [$fromFile] = $this->readLeDomain();
         if ($fromFile !== null && $fromFile !== '' && $this->leFullchainExistsForLiveName($fromFile)) {
-            return $fromFile;
+            return trim($fromFile);
         }
 
         $node = $this->instanceFqdn();
         if ($node !== null && $this->leFullchainExistsForLiveName($node)) {
             $this->ensureLeDomainFile($node);
 
-            return $node;
+            return trim($node);
         }
 
         $fromNginx = $this->lePrimaryFromNginxSnippet();
         if ($fromNginx !== null && $this->leFullchainExistsForLiveName($fromNginx)) {
             $this->ensureLeDomainFile($fromNginx);
 
-            return $fromNginx;
+            return trim($fromNginx);
         }
 
         if ($fromFile !== null && $fromFile !== '') {
-            return $fromFile;
+            return trim($fromFile);
         }
 
-        return $node;
+        return $node !== null ? trim($node) : null;
+    }
+
+    /**
+     * le-sync-cert-sans.sh requires fqdn1 to match le-domain file exactly (certbot --cert-name).
+     *
+     * @param  list<string>  $sans
+     * @return list<string>
+     */
+    private function orderSansForLeSync(?string $lePrimary, array $sans): array
+    {
+        [$fromFile] = $this->readLeDomain();
+        $first = trim((string) ($fromFile ?? ''));
+        if ($first === '') {
+            $first = trim((string) ($lePrimary ?? ''));
+        }
+        if ($first === '') {
+            return $sans;
+        }
+
+        $out = [$first];
+        $seen = [strtolower($first) => true];
+        foreach ($sans as $s) {
+            $t = trim((string) $s);
+            if ($t === '') {
+                continue;
+            }
+            $k = strtolower($t);
+            if (isset($seen[$k])) {
+                continue;
+            }
+            $seen[$k] = true;
+            $out[] = $t;
+        }
+
+        return $out;
     }
 
     private function ensureLeDomainFile(string $domain): void
