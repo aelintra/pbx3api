@@ -49,7 +49,6 @@ class CertificateController extends Controller
      */
     public function letsencrypt()
     {
-        $intendedDomains = $this->certificateFqdnList();
         $suggestedFqdn = $this->instanceFqdn();
         $published = $this->readTlsActiveJson();
 
@@ -60,11 +59,12 @@ class CertificateController extends Controller
                 'suggested_fqdn' => $suggestedFqdn,
                 'expires_at' => $published['expires_at'] ?? null,
                 'issuer' => $published['issuer'] ?? null,
-                'domains' => $intendedDomains,
+                'domains' => $this->certificateFqdnList(),
                 'cert_sans' => $published['cert_sans'] ?? [],
             ], 200);
         }
 
+        $intendedDomains = $this->certificateFqdnList();
         $domain = $this->resolveLePrimaryDomain();
 
         if ($domain === null || ! $this->leFullchainExistsForLiveName($domain)) {
@@ -403,18 +403,11 @@ class CertificateController extends Controller
     {
         $out = [];
         $seen = [];
-        // When LE is already on disk, certbot --cert-name must stay le-domain (may differ from empty globals.fqdn).
-        $lePrimary = $this->resolveLePrimaryDomain();
-        if ($lePrimary !== null && $this->leFullchainExistsForLiveName($lePrimary)) {
-            $primary = trim($lePrimary);
+        // List intended SANs for display/sync args — use le-domain file then globals.fqdn (no heavy resolveLePrimaryDomain).
+        $primary = $this->leDomainFromFileOrNull() ?? $this->instanceFqdnFromGlobalsOnly();
+        if ($primary !== null) {
             $out[] = $primary;
             $seen[strtolower($primary)] = true;
-        } else {
-            $node = $this->instanceFqdn();
-            if ($node !== null) {
-                $out[] = $node;
-                $seen[strtolower($node)] = true;
-            }
         }
         foreach ($this->tenantFqdnSortedList() as $f) {
             $k = strtolower($f);
@@ -430,16 +423,18 @@ class CertificateController extends Controller
 
     private function instanceFqdn(): ?string
     {
+        return $this->instanceFqdnFromGlobalsOnly() ?? $this->leDomainFromFileOrNull();
+    }
+
+    private function instanceFqdnFromGlobalsOnly(): ?string
+    {
         $g = Sysglobal::query()->where('pkey', 'global')->first(['fqdn']);
         if ($g === null) {
-            return $this->leDomainFromFileOrNull();
+            return null;
         }
         $f = trim((string) ($g->fqdn ?? ''));
-        if ($f !== '') {
-            return $f;
-        }
 
-        return $this->leDomainFromFileOrNull();
+        return $f !== '' ? $f : null;
     }
 
     private function leDomainFromFileOrNull(): ?string
