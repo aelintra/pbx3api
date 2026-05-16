@@ -818,6 +818,6 @@ if (!function_exists('generate_shortuid')) {
     {
         $path = env('IDPWGEN_PATH', '/opt/pbx3/golang/idpwgen');
         $charset = $charset ?: '0123456789bcdfghjkmnpqrstvwxyz';
-        return idpwgen_run($path, $length, $charset);
+        return strtolower(idpwgen_run($path, $length, $charset));
     }
 }

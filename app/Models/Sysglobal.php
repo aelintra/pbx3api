@@ -82,4 +82,38 @@ class Sysglobal extends Model
         'userotp',
         'vcl',
     ];
+
+    /**
+     * JSON id (KSUID). Legacy installs stored KSUID in pkey only.
+     */
+    public function getIdAttribute($value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+        if ($value !== '') {
+            return $value;
+        }
+        $pkey = trim((string) ($this->attributes['pkey'] ?? ''));
+        if (strlen($pkey) === 27 && preg_match('/^[a-zA-Z0-9]{27}$/', $pkey) === 1) {
+            return $pkey;
+        }
+
+        return null;
+    }
+
+    /**
+     * Instance UID (subdomain). Matches first label of fqdn when not stored (install sets both).
+     */
+    public function getShortuidAttribute($value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+        if ($value !== '') {
+            return $value;
+        }
+        $fqdn = trim((string) ($this->attributes['fqdn'] ?? ''));
+        if ($fqdn !== '' && str_contains($fqdn, '.')) {
+            return explode('.', $fqdn, 2)[0];
+        }
+
+        return null;
+    }
 }
