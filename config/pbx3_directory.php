@@ -1,0 +1,26 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | PBX3 org directory bucket (Phase 4+)
+    |--------------------------------------------------------------------------
+    |
+    | When PBX3_ORG_BUCKET is set, instance backups may be copied to
+    | s3://{bucket}/instances/{globals.id}/backups/{stamp}/ after local create.
+    | Telephony does not depend on this; upload is best-effort and async.
+    |
+    */
+
+    'org_bucket' => env('PBX3_ORG_BUCKET'),
+
+    'backup_upload_enabled' => env('PBX3_DIRECTORY_BACKUP_UPLOAD', true),
+
+    'default_backup_policy' => [
+        'maxage_days' => (int) env('PBX3_BACKUP_MAXAGE_DAYS', 30),
+        'glacier_after_days' => (int) env('PBX3_BACKUP_GLACIER_AFTER_DAYS', 0),
+        'legal_hold' => filter_var(env('PBX3_BACKUP_LEGAL_HOLD', false), FILTER_VALIDATE_BOOL),
+    ],
+
+];

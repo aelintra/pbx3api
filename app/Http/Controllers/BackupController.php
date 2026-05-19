@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Directory\InstanceBackupDirectoryUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -71,6 +72,13 @@ class BackupController extends Controller
 
         try {
             $backupName = create_new_backup();
+
+            if (app(InstanceBackupDirectoryUpload::class)->isConfigured()) {
+                dispatch(function () use ($backupName) {
+                    app(InstanceBackupDirectoryUpload::class)->upload($backupName, 'manual');
+                })->afterResponse();
+            }
+
             return response()->json(['newbackupname' => $backupName]);
         } catch (\Exception $e) {
             Log::error("Failed to create backup: " . $e->getMessage());

@@ -57,6 +57,23 @@ return [
             'throw' => false,
         ],
 
+        /*
+         * Org directory bucket (catalog, instance backups). Uses PBX3_ORG_BUCKET;
+         * credentials via instance IAM role or AWS_* env. Requires:
+         * composer require league/flysystem-aws-s3-v3
+         */
+        'pbx3_org' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('PBX3_ORG_BUCKET'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+        ],
+
         'backups' => [
             'driver' => 'local',
             'root' => '/opt/pbx3/bkup',
