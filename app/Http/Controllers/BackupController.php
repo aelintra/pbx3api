@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Backup\BackupIndexService;
 use App\Services\Backup\LocalBackupRetention;
 use App\Services\Directory\InstanceBackupDirectoryUpload;
 use Illuminate\Http\Request;
@@ -21,39 +22,13 @@ class BackupController extends Controller
  * 
  * @return Backups
  */
-    public function index () {
-
-        $bkup = array();
-    	if ($handle = opendir('/opt/pbx3/bkup')) {
-            while (false !== ($entry = readdir($handle))) {
-                if ($entry != '.' && $entry != '..') {
-                    if (preg_match (' /^pbx3bak\.\d+\.zip$/ ', $entry)) {
-                        array_push($bkup, $entry);
-                    }
-                }
-            }
-            closedir($handle);
-            rsort($bkup);
-        }
-        else {
-            return Response::json(['Error' => 'Could not open bkup directory '],509);
+    public function index(BackupIndexService $index)
+    {
+        if (! is_dir('/opt/pbx3/bkup') && ! app(InstanceBackupDirectoryUpload::class)->isConfigured()) {
+            return Response::json(['Error' => 'Could not open bkup directory '], 509);
         }
 
-        $backups = array ();
-        foreach ($bkup as $file ) {
-            preg_match('/\.(\d+)\.zip$/', $file, $matches);
-            $epoch = (int) $matches[1];
-            $fsize = filesize('/opt/pbx3/bkup/'.$file);
-            $backups[$file] = [
-                'filesize' => $fsize,
-                'date' => date('D d M H:i:s Y', $epoch),
-                'epoch' => $epoch,
-                'created_at' => gmdate('Y-m-d\TH:i:s\Z', $epoch),
-                'backup_stamp' => gmdate('Ymd\THis\Z', $epoch),
-            ];
-        }
-
-        return response()->json($backups,200);
+        return response()->json($index->mergedIndex(), 200);
     }
 
 /**
