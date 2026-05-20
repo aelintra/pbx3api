@@ -72,6 +72,12 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'options' => [
+                'http' => [
+                    'connect_timeout' => (int) env('PBX3_S3_CONNECT_TIMEOUT', 3),
+                    'timeout' => (int) env('PBX3_S3_HTTP_TIMEOUT', 10),
+                ],
+            ],
             'throw' => false,
         ],
 
