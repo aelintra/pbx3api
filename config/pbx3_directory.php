@@ -17,6 +17,9 @@ return [
 
     'backup_upload_enabled' => env('PBX3_DIRECTORY_BACKUP_UPLOAD', true),
 
+    // Agreed retention (DESIGN_RULES.md option C): local max 9 (FIFO) + S3 maxage_days (lifecycle ops).
+    'local_max_count' => (int) env('PBX3_BACKUP_LOCAL_MAX_COUNT', 9),
+
     'default_backup_policy' => [
         'maxage_days' => (int) env('PBX3_BACKUP_MAXAGE_DAYS', 30),
         'glacier_after_days' => (int) env('PBX3_BACKUP_GLACIER_AFTER_DAYS', 0),

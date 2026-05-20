@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Backup\LocalBackupRetention;
 use App\Services\Directory\InstanceBackupDirectoryUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -40,11 +41,16 @@ class BackupController extends Controller
 
         $backups = array ();
         foreach ($bkup as $file ) {
-            preg_match( '/\.(\d+).zip$/',$file,$matches);       
-            $rdate = date('D d M H:i:s Y', $matches[1]);
-            $fsize = filesize("/opt/pbx3/bkup/".$file);
-            $backups[$file]["filesize"] = $fsize;
-            $backups[$file]["date"] = $rdate;                
+            preg_match('/\.(\d+)\.zip$/', $file, $matches);
+            $epoch = (int) $matches[1];
+            $fsize = filesize('/opt/pbx3/bkup/'.$file);
+            $backups[$file] = [
+                'filesize' => $fsize,
+                'date' => date('D d M H:i:s Y', $epoch),
+                'epoch' => $epoch,
+                'created_at' => gmdate('Y-m-d\TH:i:s\Z', $epoch),
+                'backup_stamp' => gmdate('Ymd\THis\Z', $epoch),
+            ];
         }
 
         return response()->json($backups,200);
@@ -79,7 +85,12 @@ class BackupController extends Controller
                 })->afterResponse();
             }
 
-            return response()->json(['newbackupname' => $backupName]);
+            $pruned = app(LocalBackupRetention::class)->pruneExcess();
+
+            return response()->json([
+                'newbackupname' => $backupName,
+                'pruned' => $pruned,
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to create backup: " . $e->getMessage());
             return response()->json(['Error' => 'Failed to create backup: ' . $e->getMessage()], 500);

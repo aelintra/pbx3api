@@ -1,0 +1,13 @@
+# Daily instance backup (option C — local FIFO + S3 copy).
+# Install: cp to /etc/cron.d/pbx3-backup and adjust user/paths.
+#
+# Requires: PBX3_ORG_BUCKET in /opt/pbx3api/.env for S3 upload (optional).
+# Local retention: PBX3_BACKUP_LOCAL_MAX_COUNT (default 9).
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+0 2 * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:backup-run --trigger=scheduled >> /var/log/pbx3-backup.log 2>&1
+
+# Alternative: Laravel scheduler (also runs pbx3:backup-run at 02:00 via bootstrap/app.php):
+# * * * * * root cd /opt/pbx3api && /usr/bin/php artisan schedule:run >> /dev/null 2>&1

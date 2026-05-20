@@ -12,6 +12,9 @@ use ZipArchive;
  */
 class InstanceBackupDirectoryUpload
 {
+    /** S3 object tag for lifecycle rules (expire tagged backup packages only). */
+    private const S3_TAGGING = 'class=backup';
+
     public function isConfigured(): bool
     {
         if (! config('pbx3_directory.backup_upload_enabled')) {
@@ -81,7 +84,7 @@ class InstanceBackupDirectoryUpload
             if ($stream === false) {
                 throw new \RuntimeException('Cannot open local backup for read');
             }
-            $disk->writeStream($zipKey, $stream);
+            $disk->writeStream($zipKey, $stream, ['Tagging' => self::S3_TAGGING]);
             if (is_resource($stream)) {
                 fclose($stream);
             }
@@ -106,7 +109,11 @@ class InstanceBackupDirectoryUpload
                     ],
                 ],
             ];
-            $disk->put($manifestKey, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $disk->put(
+                $manifestKey,
+                json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+                ['Tagging' => self::S3_TAGGING]
+            );
 
             if (! $disk->exists($policyKey)) {
                 $disk->put(
