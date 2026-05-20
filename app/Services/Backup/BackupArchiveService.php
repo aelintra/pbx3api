@@ -41,8 +41,11 @@ class BackupArchiveService
 
         $ttlMinutes = max(1, (int) config('pbx3_directory.backup_presigned_ttl_minutes', 15));
         $expires = now()->addMinutes($ttlMinutes);
-        $url = $disk->temporaryUrl($zipKey, $expires);
         $filename = $this->localFilenameForStamp($backupStamp);
+        $url = $disk->temporaryUrl($zipKey, $expires, [
+            'ResponseContentType' => 'application/zip',
+            'ResponseContentDisposition' => 'attachment; filename="'.$filename.'"',
+        ]);
 
         $user = auth()->user();
         Log::info('backup archive presigned download issued', [
