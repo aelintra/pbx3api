@@ -79,8 +79,10 @@ class InstanceBackupDirectoryUpload
         $policyKey = "{$prefix}/policy.json";
         $metaKey = "instances/{$instanceId}/meta.json";
 
+        $tagging = $this->backupTagging();
+
         try {
-            $this->putObject($disk, $zipKey, $localPath, self::S3_TAGGING);
+            $this->putObject($disk, $zipKey, $localPath, $tagging);
             $this->assertObjectExists($disk, $zipKey, 'backup.zip');
 
             $bytes = filesize($localPath) ?: 0;
@@ -103,10 +105,11 @@ class InstanceBackupDirectoryUpload
                     ],
                 ],
             ];
-            $disk->put(
+            $this->putString(
+                $disk,
                 $manifestKey,
                 json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-                ['Tagging' => self::S3_TAGGING]
+                $tagging
             );
             $this->assertObjectExists($disk, $manifestKey, 'manifest.json');
 
@@ -200,28 +203,92 @@ class InstanceBackupDirectoryUpload
         return "https://{$fqdn}:44300/api";
     }
 
+    private function backupTagging(): ?string
+    {
+        return config('pbx3_directory.backup_s3_tagging') ? self::S3_TAGGING : null;
+    }
+
     /**
-     * PutObject via Laravel put() — writeStream()+Tagging can fail silently when disk throw=false.
+     * PutObject from local file. Retries without tags if IAM lacks s3:PutObjectTagging.
      */
     private function putObject($disk, string $key, string $localPath, ?string $tagging = null): void
+    {
+        if ($tagging === null || $tagging === '') {
+            $this->putFileStream($disk, $key, $localPath, null);
+
+            return;
+        }
+
+        try {
+            $this->putFileStream($disk, $key, $localPath, $tagging);
+        } catch (\Throwable $e) {
+            if (! $this->isTaggingAccessDenied($e)) {
+                throw $e;
+            }
+            Log::warning('directory backup upload: PutObjectTagging denied; stored without class=backup tag', [
+                'key' => $key,
+                'hint' => 'Add s3:PutObjectTagging to the node IAM policy (OPS_S3_RUNBOOK.md §3.1)',
+            ]);
+            $this->putFileStream($disk, $key, $localPath, null);
+        }
+    }
+
+    private function putString($disk, string $key, string $contents, ?string $tagging = null): void
+    {
+        if ($tagging === null || $tagging === '') {
+            $this->executePut($disk, $key, $contents, null);
+
+            return;
+        }
+
+        try {
+            $this->executePut($disk, $key, $contents, $tagging);
+        } catch (\Throwable $e) {
+            if (! $this->isTaggingAccessDenied($e)) {
+                throw $e;
+            }
+            Log::warning('directory backup upload: PutObjectTagging denied; stored without class=backup tag', [
+                'key' => $key,
+                'hint' => 'Add s3:PutObjectTagging to the node IAM policy (OPS_S3_RUNBOOK.md §3.1)',
+            ]);
+            $this->executePut($disk, $key, $contents, null);
+        }
+    }
+
+    private function putFileStream($disk, string $key, string $localPath, ?string $tagging): void
     {
         $stream = fopen($localPath, 'rb');
         if ($stream === false) {
             throw new \RuntimeException('Cannot open local backup for read');
         }
 
-        $options = $tagging !== null && $tagging !== '' ? ['Tagging' => $tagging] : [];
-
         try {
-            $ok = $disk->put($key, $stream, $options);
-            if ($ok === false) {
-                throw new \RuntimeException("S3 put returned false for {$key}");
-            }
+            $this->executePut($disk, $key, $stream, $tagging);
         } finally {
             if (is_resource($stream)) {
                 fclose($stream);
             }
         }
+    }
+
+    /**
+     * @param  string|resource  $body
+     */
+    private function executePut($disk, string $key, $body, ?string $tagging): void
+    {
+        $options = $tagging !== null && $tagging !== '' ? ['Tagging' => $tagging] : [];
+        $ok = $disk->put($key, $body, $options);
+        if ($ok === false) {
+            throw new \RuntimeException("S3 put returned false for {$key}");
+        }
+    }
+
+    private function isTaggingAccessDenied(\Throwable $e): bool
+    {
+        $msg = $e->getMessage();
+
+        return str_contains($msg, 'PutObjectTagging')
+            || (str_contains($msg, 'AccessDenied') && str_contains($msg, 'Tagging'));
     }
 
     private function assertObjectExists($disk, string $key, string $label): void

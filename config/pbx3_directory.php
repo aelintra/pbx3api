@@ -17,6 +17,9 @@ return [
 
     'backup_upload_enabled' => env('PBX3_DIRECTORY_BACKUP_UPLOAD', true),
 
+    // Tag uploads class=backup for S3 lifecycle (requires s3:PutObjectTagging on node IAM).
+    'backup_s3_tagging' => filter_var(env('PBX3_BACKUP_S3_TAGGING', true), FILTER_VALIDATE_BOOL),
+
     // Agreed retention (DESIGN_RULES.md option C): local max 9 (FIFO) + S3 maxage_days (lifecycle ops).
     'local_max_count' => (int) env('PBX3_BACKUP_LOCAL_MAX_COUNT', 9),
 
