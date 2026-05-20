@@ -125,6 +125,9 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
  */
         Route::get('backups', [BackupController::class, 'index']);
         Route::get('backups/new', [BackupController::class, 'new']);
+        Route::get('backups/archive/{backup_stamp}/download-url', [BackupController::class, 'downloadArchiveUrl'])
+            ->where('backup_stamp', '\d{8}T\d{6}Z');
+        Route::post('backups/restore-from-archive', [BackupController::class, 'restoreFromArchive']);
         Route::get('backups/{backup}', [BackupController::class, 'download']);
         Route::post('backups', [BackupController::class, 'save']);
         Route::put('backups/{backup}', [BackupController::class, 'update']);

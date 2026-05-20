@@ -29,4 +29,7 @@ return [
         'legal_hold' => filter_var(env('PBX3_BACKUP_LEGAL_HOLD', false), FILTER_VALIDATE_BOOL),
     ],
 
+    // Presigned GET for S3-only archives (S5.3).
+    'backup_presigned_ttl_minutes' => (int) env('PBX3_BACKUP_PRESIGNED_TTL_MINUTES', 15),
+
 ];
