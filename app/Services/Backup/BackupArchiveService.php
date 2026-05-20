@@ -63,6 +63,7 @@ class BackupArchiveService
 
     /**
      * Download backup.zip from S3 to /opt/pbx3/bkup/pbx3bak.{epoch}.zip.
+     * Stages under /tmp (www-data writable), then installs via syshelper (same as create_new_backup).
      */
     public function rehydrateToLocal(string $backupStamp): string
     {
@@ -73,13 +74,15 @@ class BackupArchiveService
             throw new \RuntimeException("Archive backup.zip not found for stamp {$backupStamp}");
         }
 
-        if (! is_dir(self::BKUP_DIR) && ! mkdir(self::BKUP_DIR, 0755, true) && ! is_dir(self::BKUP_DIR)) {
-            throw new \RuntimeException('Cannot create backup directory');
-        }
+        $this->ensureBkupDirViaSyshelper();
 
         $localFilename = $this->localFilenameForStamp($backupStamp);
-        $localPath = self::BKUP_DIR.'/'.$localFilename;
-        $tmpPath = $localPath.'.rehydrate.tmp';
+        $tmpPath = '/tmp/'.$localFilename;
+        $finalPath = self::BKUP_DIR.'/'.$localFilename;
+
+        if (is_file($tmpPath)) {
+            @unlink($tmpPath);
+        }
 
         $stream = $disk->readStream($zipKey);
         if ($stream === false) {
@@ -91,7 +94,7 @@ class BackupArchiveService
             if (is_resource($stream)) {
                 fclose($stream);
             }
-            throw new \RuntimeException('Cannot write local backup file');
+            throw new \RuntimeException('Cannot write rehydrate staging file');
         }
 
         try {
@@ -103,21 +106,67 @@ class BackupArchiveService
             fclose($out);
         }
 
-        if (! rename($tmpPath, $localPath)) {
+        if (! is_file($tmpPath) || filesize($tmpPath) === 0) {
             @unlink($tmpPath);
-            throw new \RuntimeException('Failed to finalize rehydrated backup');
+            throw new \RuntimeException('Rehydrate staging file missing or empty');
+        }
+
+        [$_, $error] = pbx3_request_syscmd(
+            '/bin/mv '.escapeshellarg($tmpPath).' '.escapeshellarg($finalPath)
+        );
+        if ($error !== null) {
+            @unlink($tmpPath);
+            throw new \RuntimeException('Failed to install rehydrated backup: '.$error);
+        }
+
+        if (! is_file($finalPath)) {
+            throw new \RuntimeException('Rehydrated backup not present after syshelper mv');
+        }
+
+        [$_, $chownErr] = pbx3_request_syscmd(
+            '/bin/chown www-data:www-data '.escapeshellarg($finalPath)
+        );
+        if ($chownErr !== null) {
+            Log::warning('backup archive rehydrate: chown failed', ['error' => $chownErr]);
+        }
+
+        [$_, $chmodErr] = pbx3_request_syscmd(
+            '/bin/chmod 664 '.escapeshellarg($finalPath)
+        );
+        if ($chmodErr !== null) {
+            Log::warning('backup archive rehydrate: chmod failed', ['error' => $chmodErr]);
         }
 
         $user = auth()->user();
         Log::info('backup archive rehydrated to local', [
             'backup_stamp' => $backupStamp,
             'local_file' => $localFilename,
-            'bytes' => filesize($localPath) ?: 0,
+            'bytes' => filesize($finalPath) ?: 0,
             'user_id' => $user?->id,
             'user_email' => $user?->email,
         ]);
 
         return $localFilename;
+    }
+
+    /** @see create_new_backup() — bkup/ is root-owned; API stages in /tmp and syshelper installs. */
+    private function ensureBkupDirViaSyshelper(): void
+    {
+        if (is_dir(self::BKUP_DIR)) {
+            return;
+        }
+
+        [$_, $error] = pbx3_request_syscmd('/bin/mkdir -p '.escapeshellarg(self::BKUP_DIR));
+        if ($error !== null) {
+            throw new \RuntimeException('Failed to create backup directory: '.$error);
+        }
+
+        pbx3_request_syscmd(
+            '/bin/chown www-data:www-data '.escapeshellarg(self::BKUP_DIR)
+        );
+        pbx3_request_syscmd(
+            '/bin/chmod 755 '.escapeshellarg(self::BKUP_DIR)
+        );
     }
 
     public function assertValidStamp(string $backupStamp): void

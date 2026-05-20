@@ -54,6 +54,8 @@ Daemon runs as privileged user (runit); no password, no sudo in PHP.
 | **LE first issue (multi-SAN)** | `/opt/pbx3/scripts/le-first-cert-multi.sh …` (long timeout: `pbx3_request_syscmd(..., 120)`) | CertificateController |
 | **LE SAN sync** | `/opt/pbx3/scripts/le-sync-cert-sans.sh …` | CertificateController |
 | **FQDN inline + Shorewall** | `/opt/pbx3/scripts/update-fqdn-inline.sh` | TenantController / SysglobalController / FirewallController `ipv4restart` |
+| **Backup rehydrate (S3→bkup)** | `/bin/mv /tmp/pbx3bak.*.zip /opt/pbx3/bkup/…` + chown/chmod | `BackupArchiveService::rehydrateToLocal` (stages in `/tmp`, same pattern as `create_new_backup`) |
+| **Backup delete / local prune** | `/bin/rm -f /opt/pbx3/bkup/…` | `BackupController`, `LocalBackupRetention` |
 
 **Next candidates (single panel):** Firewall (shorewall / shorewall6 check & restart) — see SUDO_AND_PRIVILEGED_COMMANDS.md.
 
