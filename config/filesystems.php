@@ -75,10 +75,11 @@ return [
             'options' => [
                 'http' => [
                     'connect_timeout' => (int) env('PBX3_S3_CONNECT_TIMEOUT', 3),
-                    'timeout' => (int) env('PBX3_S3_HTTP_TIMEOUT', 10),
+                    'timeout' => (int) env('PBX3_S3_HTTP_TIMEOUT', 120),
                 ],
             ],
-            'throw' => false,
+            // Must throw or verify exists — false negatives logged "upload complete" with writeStream+Tagging.
+            'throw' => true,
         ],
 
         'backups' => [

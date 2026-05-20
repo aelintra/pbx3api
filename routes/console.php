@@ -88,7 +88,8 @@ Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {-
     }
     $ok = $upload->upload($filename, $trigger);
     if ($ok) {
-        $this->info("Uploaded {$filename} to org bucket.");
+        $bucket = config('pbx3_directory.org_bucket');
+        $this->info("Uploaded {$filename} to s3://{$bucket}/instances/…/backups/… (see laravel.log for key)");
 
         return 0;
     }

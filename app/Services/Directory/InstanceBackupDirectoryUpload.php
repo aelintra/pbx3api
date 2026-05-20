@@ -80,14 +80,8 @@ class InstanceBackupDirectoryUpload
         $metaKey = "instances/{$instanceId}/meta.json";
 
         try {
-            $stream = fopen($localPath, 'rb');
-            if ($stream === false) {
-                throw new \RuntimeException('Cannot open local backup for read');
-            }
-            $disk->writeStream($zipKey, $stream, ['Tagging' => self::S3_TAGGING]);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
+            $this->putObject($disk, $zipKey, $localPath, self::S3_TAGGING);
+            $this->assertObjectExists($disk, $zipKey, 'backup.zip');
 
             $bytes = filesize($localPath) ?: 0;
             $sha256 = hash_file('sha256', $localPath);
@@ -114,6 +108,7 @@ class InstanceBackupDirectoryUpload
                 json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
                 ['Tagging' => self::S3_TAGGING]
             );
+            $this->assertObjectExists($disk, $manifestKey, 'manifest.json');
 
             if (! $disk->exists($policyKey)) {
                 $disk->put(
@@ -203,5 +198,39 @@ class InstanceBackupDirectoryUpload
         }
 
         return "https://{$fqdn}:44300/api";
+    }
+
+    /**
+     * PutObject via Laravel put() — writeStream()+Tagging can fail silently when disk throw=false.
+     */
+    private function putObject($disk, string $key, string $localPath, ?string $tagging = null): void
+    {
+        $stream = fopen($localPath, 'rb');
+        if ($stream === false) {
+            throw new \RuntimeException('Cannot open local backup for read');
+        }
+
+        $options = $tagging !== null && $tagging !== '' ? ['Tagging' => $tagging] : [];
+
+        try {
+            $ok = $disk->put($key, $stream, $options);
+            if ($ok === false) {
+                throw new \RuntimeException("S3 put returned false for {$key}");
+            }
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+    }
+
+    private function assertObjectExists($disk, string $key, string $label): void
+    {
+        if (! $disk->exists($key)) {
+            throw new \RuntimeException(
+                "S3 upload verification failed: {$label} missing at s3://".
+                config('pbx3_directory.org_bucket')."/{$key}"
+            );
+        }
     }
 }
