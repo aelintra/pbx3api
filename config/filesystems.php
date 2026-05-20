@@ -64,8 +64,9 @@ return [
          */
         'pbx3_org' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            // Empty .env values must be null so EC2 instance role credentials are used.
+            'key' => env('AWS_ACCESS_KEY_ID') ?: null,
+            'secret' => env('AWS_SECRET_ACCESS_KEY') ?: null,
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('PBX3_ORG_BUCKET'),
             'url' => env('AWS_URL'),
