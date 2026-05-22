@@ -32,6 +32,13 @@ sed -i "s|^[[:space:]]*fastcgi_pass[[:space:]]\\+unix:[^;]*;|        fastcgi_pas
 
 ln -sfn "${TARGET_AVAILABLE}" "${TARGET_ENABLED}"
 
+# Ubuntu's stock site also uses listen 80 default_server; only one allowed.
+DEFAULT_SITE="/etc/nginx/sites-enabled/default"
+if [ -e "${DEFAULT_SITE}" ] && [ -f "${ACME_SOURCE}" ]; then
+	rm -f "${DEFAULT_SITE}"
+	echo "Removed ${DEFAULT_SITE} (pbx3-acme-http.conf is default_server on :80)"
+fi
+
 if [ -f "${ACME_SOURCE}" ]; then
 	ACME_AVAILABLE="/etc/nginx/sites-available/${ACME_SITE_NAME}"
 	ACME_ENABLED="/etc/nginx/sites-enabled/${ACME_SITE_NAME}"
