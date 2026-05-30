@@ -224,6 +224,84 @@ bootstrap_laravel_app() {
     fi
 }
 
+run_as_www_data() {
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u www-data -- "$@"
+    else
+        su -s /bin/sh www-data -c "$*"
+    fi
+}
+
+validate_install_health() {
+    app_root="${APP_ROOT:-${REPO_ROOT}}"
+    db_link="${app_root}/database/database.sqlite"
+    pbx3_sqlite="${PBX3_SQLITE_PATH:-${REPO_ROOT}/../pbx3/db/sqlite.db}"
+
+    echo "Running post-install health checks..."
+
+    if [ ! -e "${db_link}" ]; then
+        echo "Health check failed: Laravel DB link missing: ${db_link}" >&2
+        echo "Run installer without SKIP_ARTISAN=1 or create the symlink to ${pbx3_sqlite}." >&2
+        exit 1
+    fi
+
+    if [ -L "${db_link}" ]; then
+        link_target="$(readlink -f "${db_link}" 2>/dev/null || true)"
+        if [ -z "${link_target}" ] || [ ! -e "${link_target}" ]; then
+            echo "Health check failed: symlink ${db_link} does not resolve to a readable file" >&2
+            exit 1
+        fi
+        pbx3_sqlite="${link_target}"
+    elif [ -f "${db_link}" ]; then
+        pbx3_sqlite="${db_link}"
+    else
+        echo "Health check failed: ${db_link} is not a symlink or regular file" >&2
+        exit 1
+    fi
+
+    run_as_www_data test -r "${pbx3_sqlite}" || {
+        echo "Health check failed: www-data cannot read ${pbx3_sqlite}" >&2
+        exit 1
+    }
+    run_as_www_data test -w "${pbx3_sqlite}" || {
+        echo "Health check failed: www-data cannot write ${pbx3_sqlite}" >&2
+        exit 1
+    }
+
+    if ! command -v nginx >/dev/null 2>&1; then
+        echo "Health check failed: nginx not found in PATH" >&2
+        exit 1
+    fi
+    if ! nginx -t >/dev/null 2>&1; then
+        echo "Health check failed: nginx -t" >&2
+        nginx -t >&2 || true
+        exit 1
+    fi
+
+    if [ ! -S "${PHP_FPM_SOCKET}" ]; then
+        echo "Health check failed: PHP-FPM socket missing: ${PHP_FPM_SOCKET}" >&2
+        echo "Ensure ${PHP_FPM_SERVICE} is running (systemctl status ${PHP_FPM_SERVICE})." >&2
+        exit 1
+    fi
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "Health check failed: curl required for HTTPS readiness check (install pbx3 .deb or apt install curl)" >&2
+        exit 1
+    fi
+
+    http_code="$(curl -k -s -o /dev/null -w '%{http_code}' --connect-timeout 10 'https://127.0.0.1:44300/up' 2>/dev/null || echo '000')"
+    case "${http_code}" in
+        200) ;;
+        *)
+            echo "Health check failed: GET https://127.0.0.1:44300/up returned HTTP ${http_code} (expected 200)" >&2
+            echo "Check nginx site, php-fpm socket, and Laravel bootstrap (journalctl -u nginx -u ${PHP_FPM_SERVICE})." >&2
+            exit 1
+            ;;
+    esac
+
+    echo "Post-install health checks passed (DB symlink, nginx -t, php-fpm socket, /up → 200)."
+}
+
 install_runtime_packages
 install_php_deps
 ensure_snakeoil_cert
@@ -237,5 +315,7 @@ PHP_FPM_SERVICE="${PHP_FPM_SERVICE}" \
 PHP_FPM_SOCKET="${PHP_FPM_SOCKET}" \
 PBX3_SQLITE_PATH="${PBX3_SQLITE_PATH}" \
 sh "${SCRIPT_DIR}/install-nginx-site.sh"
+
+validate_install_health
 
 echo "pbx3api installer completed"

@@ -37,6 +37,10 @@ The installer supports clone-based testing and now performs:
 3. fallback snakeoil cert generation if cert files are missing
 4. Laravel bootstrap (`.env`, `database/database.sqlite` symlink to PBX DB, writable `storage/` and `bootstrap/cache/`, artisan cache/key setup)
 5. nginx site deployment via `install-nginx-site.sh`
+6. post-install health checks (fail non-zero if broken):
+   - `database/database.sqlite` symlink resolves; `www-data` can read/write the PBX DB
+   - `nginx -t` succeeds; PHP-FPM socket exists at `PHP_FPM_SOCKET`
+   - `curl -k https://127.0.0.1:44300/up` returns HTTP `200` (expects **pbx3** `.deb` installed first — `curl` is in pbx3 `Depends`, not pbx3api `apt`)
 
 Ownership model applied by installer:
 
