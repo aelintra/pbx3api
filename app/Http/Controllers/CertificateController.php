@@ -225,7 +225,7 @@ class CertificateController extends Controller
         }
 
         return response()->json([
-            'message' => 'Certificate re-issued with current tenant FQDN list.',
+            'message' => 'Certificate re-issued to match current instance and tenant FQDN list.',
             'output' => trim($out ?? ''),
             'domains' => $sans,
         ], 200);
