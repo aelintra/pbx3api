@@ -208,9 +208,11 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::get('extensions/export/pdf', [ExtensionController::class, 'exportPdf']);
         Route::get('extensions/{extension}', [ExtensionController::class, 'show']);
         Route::get('extensions/{extension}/runtime', [ExtensionController::class, 'showruntime']);
+        Route::get('extensions/{extension}/cos', [ExtensionController::class, 'showcos']);
         Route::post('extensions', [ExtensionController::class, 'save']);
         Route::put('extensions/{extension}', [ExtensionController::class, 'update']);
         Route::put('extensions/{extension}/runtime', [ExtensionController::class, 'updateruntime']);
+        Route::put('extensions/{extension}/cos', [ExtensionController::class, 'updatecos']);
         Route::post('extensions/{extension}/regenerate-sip-password', [ExtensionController::class, 'regenerateSipPassword']);
         Route::delete('extensions/{extension}', [ExtensionController::class, 'delete']);
 

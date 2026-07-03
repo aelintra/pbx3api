@@ -9,13 +9,15 @@ use Illuminate\Support\Facades\Validator;
 
 class ClassOfServiceController extends Controller
 {
-    // cos table (sqlite_create_tenant.sql). pkey = identity-only (not updateable). orideopen/orideclosed/system defaults not updateable.
+    // cos table (sqlite_create_tenant.sql). pkey = identity-only (not updateable). orideopen/orideclosed not updateable.
     private $updateableColumns = [
         'active' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
         'cname' => 'string|nullable',
         'description' => 'string|nullable',
         'dialplan' => 'required|string',
+        'defaultopen' => 'in:YES,NO',
+        'defaultclosed' => 'in:YES,NO',
     ];
 
     /** Return column names that are updateable (for schema metadata). */

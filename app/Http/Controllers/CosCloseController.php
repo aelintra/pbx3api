@@ -122,7 +122,7 @@ class CosCloseController extends Controller
  * @param  Cos
  * @return 204
  */
-    public function delete(CosOpen $cosclose) {
+    public function delete(CosClose $cosclose) {
         $cosclose->delete();
 
         return response()->json(null, 204);

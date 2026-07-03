@@ -25,7 +25,7 @@ class SysglobalController extends Controller
         'abstimeout' => 'integer|nullable',
         'bindaddr' => 'string|nullable',
         'bindport' => 'string|nullable',
-        'cosstart' => 'string|nullable',
+        'cosstart' => 'in:ON,OFF',
         'emergency' => 'string|nullable',
         'fqdninspect' => 'nullable|string|in:YES,NO',
         'language' => 'string|nullable',

@@ -387,7 +387,102 @@ class ExtensionController extends Controller
         $amiHandle->logout();
 
         return Response::json($rets, 200);
-    }    
+    }
+
+/**
+ * Daytime (open) and nighttime (closed) CoS assignments for an extension.
+ * Rules are tenant-scoped; open/closed lists are cos_pkey values present in junction tables.
+ */
+    public function showcos(Extension $extension)
+    {
+        $cluster = $extension->cluster;
+        $rules = Cos::where('cluster', $cluster)
+            ->orderBy('pkey', 'asc')
+            ->get(['pkey', 'cname', 'description', 'active', 'defaultopen', 'defaultclosed']);
+
+        $open = IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)
+            ->where('cluster', $cluster)
+            ->orderBy('cos_pkey', 'asc')
+            ->pluck('cos_pkey')
+            ->values();
+
+        $closed = IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)
+            ->where('cluster', $cluster)
+            ->orderBy('cos_pkey', 'asc')
+            ->pluck('cos_pkey')
+            ->values();
+
+        return Response::json([
+            'rules' => $rules,
+            'open' => $open,
+            'closed' => $closed,
+        ], 200);
+    }
+
+/**
+ * Replace daytime (open) and nighttime (closed) CoS assignments for an extension.
+ * Body: { "open": ["rule1", ...], "closed": ["rule2", ...] } — full lists (not a patch).
+ */
+    public function updatecos(Request $request, Extension $extension)
+    {
+        $validator = Validator::make($request->all(), [
+            'open' => 'present|array',
+            'open.*' => 'string',
+            'closed' => 'present|array',
+            'closed.*' => 'string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $cluster = $extension->cluster;
+        $validPkeys = Cos::where('cluster', $cluster)->pluck('pkey')->all();
+        $validSet = array_fill_keys($validPkeys, true);
+
+        $open = array_values(array_unique(array_map('strval', $request->input('open', []))));
+        $closed = array_values(array_unique(array_map('strval', $request->input('closed', []))));
+
+        foreach (['open' => $open, 'closed' => $closed] as $field => $list) {
+            foreach ($list as $cosPkey) {
+                if (!isset($validSet[$cosPkey])) {
+                    return response()->json([
+                        $field => ["Unknown CoS rule for this tenant: {$cosPkey}"],
+                    ], 422);
+                }
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($extension, $cluster, $open, $closed) {
+                IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)
+                    ->where('cluster', $cluster)
+                    ->delete();
+                IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)
+                    ->where('cluster', $cluster)
+                    ->delete();
+
+                foreach ($open as $cosPkey) {
+                    IpPhoneCosOpen::create([
+                        'ipphone_pkey' => $extension->pkey,
+                        'cos_pkey' => $cosPkey,
+                        'cluster' => $cluster,
+                    ]);
+                }
+                foreach ($closed as $cosPkey) {
+                    IpPhoneCosClosed::create([
+                        'ipphone_pkey' => $extension->pkey,
+                        'cos_pkey' => $cosPkey,
+                        'cluster' => $cluster,
+                    ]);
+                }
+            });
+        } catch (\Exception $e) {
+            return Response::json(['Error' => $e->getMessage()], 409);
+        }
+
+        return $this->showcos($extension);
+    }
 
 /**
  * Create a new MAILBOX extension instance
@@ -820,13 +915,18 @@ class ExtensionController extends Controller
     public function delete(Extension $extension) {
 
         // Delete related rows only if tables exist; missing tables must not block extension delete
+        $cluster = $extension->cluster;
         try {
-            IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)->delete();
+            IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)
+                ->where('cluster', $cluster)
+                ->delete();
         } catch (\Throwable $e) {
             // table may not exist
         }
         try {
-            IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)->delete();
+            IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)
+                ->where('cluster', $cluster)
+                ->delete();
         } catch (\Throwable $e) {
             // table may not exist
         }
@@ -923,7 +1023,7 @@ class ExtensionController extends Controller
 
 	private function create_default_cos_instances($extension) {
 
-		$costable = Cos::all();
+		$costable = Cos::where('cluster', $extension->cluster)->get();
 
 		foreach ($costable as $cos) {
 
