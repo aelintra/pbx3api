@@ -81,6 +81,37 @@ if (!function_exists('cluster_identifier_to_shortuid')) {
 }
 
 /**
+ * All known identifiers for a cluster row (pkey, shortuid, id).
+ * Use with whereIn when reading legacy rows that may store pkey or shortuid in cluster.
+ *
+ * @param string|null $identifier  Cluster pkey, shortuid, or id
+ * @return string[]
+ */
+if (!function_exists('cluster_identifier_aliases')) {
+    function cluster_identifier_aliases($identifier) {
+        if ($identifier === null || $identifier === '') {
+            return [];
+        }
+        $identifier = (string) $identifier;
+        $row = DB::table('cluster')
+            ->where('pkey', $identifier)
+            ->orWhere('shortuid', $identifier)
+            ->orWhere('id', $identifier)
+            ->first(['pkey', 'shortuid', 'id']);
+        if (!$row) {
+            return [$identifier];
+        }
+        $out = [];
+        foreach ([$row->pkey ?? null, $row->shortuid ?? null, $row->id ?? null, $identifier] as $v) {
+            if ($v !== null && $v !== '') {
+                $out[(string) $v] = true;
+            }
+        }
+        return array_keys($out);
+    }
+}
+
+/**
  * Attach tenant_pkey (cluster display name) to each item in a collection that has a cluster property.
  * Used for PDF/CSV exports so views can show tenant pkey instead of cluster id/shortuid.
  *

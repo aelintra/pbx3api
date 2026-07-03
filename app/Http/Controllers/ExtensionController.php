@@ -395,19 +395,24 @@ class ExtensionController extends Controller
  */
     public function showcos(Extension $extension)
     {
-        $cluster = $extension->cluster;
-        $rules = Cos::where('cluster', $cluster)
+        // Legacy rows may store cluster as pkey; new rows store shortuid. Match either.
+        $aliases = cluster_identifier_aliases($extension->cluster);
+        if ($aliases === []) {
+            $aliases = [(string) $extension->cluster];
+        }
+
+        $rules = Cos::whereIn('cluster', $aliases)
             ->orderBy('pkey', 'asc')
             ->get(['pkey', 'cname', 'description', 'active', 'defaultopen', 'defaultclosed']);
 
         $open = IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)
-            ->where('cluster', $cluster)
+            ->whereIn('cluster', $aliases)
             ->orderBy('cos_pkey', 'asc')
             ->pluck('cos_pkey')
             ->values();
 
         $closed = IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)
-            ->where('cluster', $cluster)
+            ->whereIn('cluster', $aliases)
             ->orderBy('cos_pkey', 'asc')
             ->pluck('cos_pkey')
             ->values();
@@ -436,8 +441,14 @@ class ExtensionController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $cluster = $extension->cluster;
-        $validPkeys = Cos::where('cluster', $cluster)->pluck('pkey')->all();
+        $aliases = cluster_identifier_aliases($extension->cluster);
+        if ($aliases === []) {
+            $aliases = [(string) $extension->cluster];
+        }
+        // Always write junction rows with canonical shortuid.
+        $cluster = cluster_identifier_to_shortuid($extension->cluster) ?? (string) $extension->cluster;
+
+        $validPkeys = Cos::whereIn('cluster', $aliases)->pluck('pkey')->all();
         $validSet = array_fill_keys($validPkeys, true);
 
         $open = array_values(array_unique(array_map('strval', $request->input('open', []))));
@@ -454,12 +465,12 @@ class ExtensionController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($extension, $cluster, $open, $closed) {
+            DB::transaction(function () use ($extension, $aliases, $cluster, $open, $closed) {
                 IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)
-                    ->where('cluster', $cluster)
+                    ->whereIn('cluster', $aliases)
                     ->delete();
                 IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)
-                    ->where('cluster', $cluster)
+                    ->whereIn('cluster', $aliases)
                     ->delete();
 
                 foreach ($open as $cosPkey) {
@@ -915,17 +926,20 @@ class ExtensionController extends Controller
     public function delete(Extension $extension) {
 
         // Delete related rows only if tables exist; missing tables must not block extension delete
-        $cluster = $extension->cluster;
+        $aliases = cluster_identifier_aliases($extension->cluster);
+        if ($aliases === []) {
+            $aliases = [(string) $extension->cluster];
+        }
         try {
             IpPhoneCosOpen::where('ipphone_pkey', $extension->pkey)
-                ->where('cluster', $cluster)
+                ->whereIn('cluster', $aliases)
                 ->delete();
         } catch (\Throwable $e) {
             // table may not exist
         }
         try {
             IpPhoneCosClosed::where('ipphone_pkey', $extension->pkey)
-                ->where('cluster', $cluster)
+                ->whereIn('cluster', $aliases)
                 ->delete();
         } catch (\Throwable $e) {
             // table may not exist
@@ -1022,8 +1036,13 @@ class ExtensionController extends Controller
     }
 
 	private function create_default_cos_instances($extension) {
+		$aliases = cluster_identifier_aliases($extension->cluster);
+		if ($aliases === []) {
+			$aliases = [(string) $extension->cluster];
+		}
+		$cluster = cluster_identifier_to_shortuid($extension->cluster) ?? (string) $extension->cluster;
 
-		$costable = Cos::where('cluster', $extension->cluster)->get();
+		$costable = Cos::whereIn('cluster', $aliases)->get();
 
 		foreach ($costable as $cos) {
 
@@ -1031,7 +1050,7 @@ class ExtensionController extends Controller
 				IpPhoneCosOpen::create([
     				'ipphone_pkey' => $extension->pkey,
     				'cos_pkey' => $cos->pkey,
-    				'cluster' => $extension->cluster,
+    				'cluster' => $cluster,
     				]);
 			}
 
@@ -1039,7 +1058,7 @@ class ExtensionController extends Controller
 				IpPhoneCosClosed::create([
     				'ipphone_pkey' => $extension->pkey,
     				'cos_pkey' => $cos->pkey,
-    				'cluster' => $extension->cluster,
+    				'cluster' => $cluster,
     				]);
 			}		
 		}
