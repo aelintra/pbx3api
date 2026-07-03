@@ -27,7 +27,7 @@ class InboundRouteController extends Controller
         'cluster' => 'exists:cluster,pkey',
         'cname' => 'string|nullable',
         'description' => 'string|nullable',
-        'devicerec' => 'string|nullable',
+        'devicerec' => 'in:None,Inbound,default',
         'disa' => 'in:DISA,CALLBACK|nullable',
         'disapass' => 'string|nullable',
         'inprefix' => 'string|nullable',

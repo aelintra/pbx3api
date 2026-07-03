@@ -24,7 +24,7 @@ class TrunkController extends Controller
 			'cluster' => 'exists:cluster,pkey',
 			'cname' => 'string|nullable',
 			'description' => 'string|nullable',
-			'devicerec' => 'in:None,OTR,OTRR,Inbound,Outbound,Both',
+			'devicerec' => 'in:None,Inbound,Outbound,Both',
 			'disa' => 'in:DISA,CALLBACK|nullable',
 			'disapass' => 'string|nullable',
 			'host' => 'string|nullable',

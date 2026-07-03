@@ -36,7 +36,6 @@ class Queue extends Model
         'devicerec',
         'divert',
         'greetnum',
-        'greeting',
         'members',
         'musicclass',
         'options',
@@ -51,6 +50,7 @@ class Queue extends Model
     /** name is deprecated (use cname); hide from array/JSON. */
     protected $hidden = [
         'name',
+        'greeting',
     ];
 
 	/**

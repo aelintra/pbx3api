@@ -40,7 +40,7 @@ class TrunkRequest extends FormRequest
             'callerid' => 'integer|nullable',
             'callprogress' => 'in:ON,OFF',
             'description' => 'string|max:255',
-            'devicerec' => 'in:None,OTR,OTRR,Inbound.Outbound,Both',
+            'devicerec' => 'in:None,Inbound,Outbound,Both',
             'disa' => 'in:DISA,CALLBACK|nullable',
             'disapass' => 'string|nullable|min:8',
             'host' => 'required|string|max:255',

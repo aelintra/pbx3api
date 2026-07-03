@@ -167,11 +167,16 @@ class SysCommandController extends Controller
 
         // Instance line on Home: globals.fqdn when set; else globals.id (KSUID). (pkey is fixed "global".)
         $instance = null;
+        $sitename = null;
         try {
             $g = DB::table('globals')->first();
             if ($g) {
                 $fqdn = isset($g->fqdn) ? trim((string) $g->fqdn) : '';
                 $instance = $fqdn !== '' ? $fqdn : ($g->id ?? null);
+                $sn = isset($g->sitename) ? trim((string) $g->sitename) : '';
+                if ($sn !== '') {
+                    $sitename = $sn;
+                }
             }
         } catch (\Throwable $e) {
             // ignore
@@ -179,6 +184,7 @@ class SysCommandController extends Controller
 
         $system = [
             'instance' => $instance,
+            'sitename' => $sitename,
             'distro' => $this->safeShell("lsb_release -ds 2>/dev/null"),
             'asterisk_release' => $this->getAsteriskRelease($asterisk),
             'app_release' => trim(shell_exec("dpkg-query -W -f '\${Version}' pbx3 2>/dev/null") ?: '') ?: null,
