@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use App\Models\IpPhoneCosOpen;
 use App\Models\IpPhoneCosClosed;
-use App\Models\Cos;
+use App\Models\ClassOfService;
 use App\CustomClasses\Ami;
 class ExtensionController extends Controller
 {
@@ -401,7 +401,7 @@ class ExtensionController extends Controller
             $aliases = [(string) $extension->cluster];
         }
 
-        $rules = Cos::whereIn('cluster', $aliases)
+        $rules = ClassOfService::whereIn('cluster', $aliases)
             ->orderBy('pkey', 'asc')
             ->get(['pkey', 'cname', 'description', 'active', 'defaultopen', 'defaultclosed']);
 
@@ -448,7 +448,7 @@ class ExtensionController extends Controller
         // Always write junction rows with canonical shortuid.
         $cluster = cluster_identifier_to_shortuid($extension->cluster) ?? (string) $extension->cluster;
 
-        $validPkeys = Cos::whereIn('cluster', $aliases)->pluck('pkey')->all();
+        $validPkeys = ClassOfService::whereIn('cluster', $aliases)->pluck('pkey')->all();
         $validSet = array_fill_keys($validPkeys, true);
 
         $open = array_values(array_unique(array_map('strval', $request->input('open', []))));
@@ -1042,7 +1042,7 @@ class ExtensionController extends Controller
 		}
 		$cluster = cluster_identifier_to_shortuid($extension->cluster) ?? (string) $extension->cluster;
 
-		$costable = Cos::whereIn('cluster', $aliases)->get();
+		$costable = ClassOfService::whereIn('cluster', $aliases)->get();
 
 		foreach ($costable as $cos) {
 

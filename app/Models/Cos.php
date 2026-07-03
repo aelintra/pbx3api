@@ -8,6 +8,8 @@ class Cos extends Model
 {
     protected $table = 'cos';
     protected $primaryKey = 'pkey';
+    protected $keyType = 'string';
+    public $incrementing = false;
     public $timestamps = false;
 
     public function openExtensions()
