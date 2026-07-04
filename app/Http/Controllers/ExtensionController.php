@@ -372,11 +372,14 @@ class ExtensionController extends Controller
     public function showruntime (Extension $extension) {
 
         $amiHandle = get_ami_handle();
+        $key = $this->runtimeAstdbKey($extension);
+        $legacyPkey = (string) ($extension->pkey ?? '');
 
         $rets = [];
-        $rets['cfim'] = $amiHandle->GetDB('cfim', $extension->pkey);
-        $rets['cfbs'] = $amiHandle->GetDB('cfbs', $extension->pkey);
-        $rets['ringdelay'] = $amiHandle->GetDB('ringdelay', $extension->pkey);
+        // Prefer shortuid key (what pbx3cagi CFCheck / star-codes use); fall back to legacy pkey.
+        $rets['cfim'] = $this->runtimeAstdbGet($amiHandle, 'cfim', $key, $legacyPkey);
+        $rets['cfbs'] = $this->runtimeAstdbGet($amiHandle, 'cfbs', $key, $legacyPkey);
+        $rets['ringdelay'] = $this->runtimeAstdbGet($amiHandle, 'ringdelay', $key, $legacyPkey);
 
         if (($extension->technology ?? '') === 'SIP') {
             $live = pjsip_endpoint_live($amiHandle, $extension->shortuid ?? $extension->pkey);
@@ -897,32 +900,21 @@ class ExtensionController extends Controller
         }
 
         $amiHandle = get_ami_handle();
+        // AstDB keys must be extension shortuid: LepDial sets agi_extension to shortuid,
+        // and phone star-codes key CFIM/CFBS by PJSIP endpoint id (also shortuid).
+        $key = $this->runtimeAstdbKey($extension);
+        $legacyPkey = (string) ($extension->pkey ?? '');
 
         if ($request->exists('cfim')) {
-            $cfim = $request->input('cfim');
-            if ($cfim === null || $cfim === '') {
-                $amiHandle->DelDB('cfim', $extension->pkey);
-            } else {
-                $amiHandle->PutDB('cfim', $extension->pkey, $cfim);
-            }
+            $this->runtimeAstdbSet($amiHandle, 'cfim', $key, $legacyPkey, $request->input('cfim'));
         }
 
         if ($request->exists('cfbs')) {
-            $cfbs = $request->input('cfbs');
-            if ($cfbs === null || $cfbs === '') {
-                $amiHandle->DelDB('cfbs', $extension->pkey);
-            } else {
-                $amiHandle->PutDB('cfbs', $extension->pkey, $cfbs);
-            }
+            $this->runtimeAstdbSet($amiHandle, 'cfbs', $key, $legacyPkey, $request->input('cfbs'));
         }
 
         if ($request->exists('ringdelay')) {
-            $ringdelay = $request->input('ringdelay');
-            if ($ringdelay === null || $ringdelay === '') {
-                $amiHandle->DelDB('ringdelay', $extension->pkey);
-            } else {
-                $amiHandle->PutDB('ringdelay', $extension->pkey, $ringdelay);
-            }
+            $this->runtimeAstdbSet($amiHandle, 'ringdelay', $key, $legacyPkey, $request->input('ringdelay'));
         }
 
         $amiHandle->logout();
@@ -1073,6 +1065,40 @@ class ExtensionController extends Controller
     				'cluster' => $cluster,
     				]);
 			}		
+		}
+	}
+
+	/** AstDB key for runtime CFIM/CFBS/ringdelay — must match pbx3cagi (shortuid / PJSIP endpoint). */
+	private function runtimeAstdbKey(Extension $extension): string
+	{
+		$key = trim((string) ($extension->shortuid ?? ''));
+		if ($key !== '') {
+			return $key;
+		}
+		return trim((string) ($extension->pkey ?? ''));
+	}
+
+	/** Read family/key; if empty and legacy pkey differs, try legacy key (pre-shortuid API writes). */
+	private function runtimeAstdbGet($amiHandle, string $family, string $key, string $legacyPkey): ?string
+	{
+		$val = $amiHandle->GetDB($family, $key);
+		if (($val === null || $val === '') && $legacyPkey !== '' && $legacyPkey !== $key) {
+			$val = $amiHandle->GetDB($family, $legacyPkey);
+		}
+		return $val;
+	}
+
+	/** Write or clear under shortuid; remove legacy pkey key when it differs. */
+	private function runtimeAstdbSet($amiHandle, string $family, string $key, string $legacyPkey, $value): void
+	{
+		$empty = $value === null || $value === '';
+		if ($empty) {
+			$amiHandle->DelDB($family, $key);
+		} else {
+			$amiHandle->PutDB($family, $key, $value);
+		}
+		if ($legacyPkey !== '' && $legacyPkey !== $key) {
+			$amiHandle->DelDB($family, $legacyPkey);
 		}
 	}
 
