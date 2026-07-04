@@ -711,49 +711,74 @@ class Ami
     }
     
     /**
-     * Database functions cobbled in by coco 7/5/12
-     *
-     * @return string
-     */    
+     * Database functions — native AMI DBGet/DBPut/DBDel (not CLI "database …" Command).
+     * Much faster than Action: Command for runtime panel saves.
+     */
+    private function _sanitizeAstdbSegment(string $segment): string
+    {
+        return str_replace(["\r", "\n"], '', $segment);
+    }
+
+    /** Read one AMI action response packet (lines until blank line). */
+    private function _readActionResponse(): string
+    {
+        $response = '';
+        while ($line = fgets($this->_socket)) {
+            $response .= $line;
+            if (rtrim($line, "\r\n") === '') {
+                break;
+            }
+        }
+        return $response;
+    }
+
 	public function GetDB($family, $key) {
-	
-	$this->_checkSocket();	
-		
-	$value = "";
+        $this->_checkSocket();
+        $family = $this->_sanitizeAstdbSegment($family);
+        $key = $this->_sanitizeAstdbSegment($key);
 
-	$response = $this->_sendCommand("Action: Command\r\nCommand: database get $family $key\r\n\r\n", '--END COMMAND--', false);
+        if (!fwrite($this->_socket, "Action: DBGet\r\nFamily: {$family}\r\nKey: {$key}\r\n\r\n")) {
+            Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
+        }
 
-	if ($response) {
-		$value_start = strpos($response, "Value: ") + 7;
-		$value_stop = strpos($response, "\n", $value_start);
-		if ($value_start > 8) {
-			$value = substr($response, $value_start, $value_stop - $value_start);
-		}
+        $response = $this->_readActionResponse();
+        if (strpos($response, 'Response: Success') === false) {
+            return '';
+        }
+        if (preg_match('/^Value: (.+)$/m', $response, $matches)) {
+            return trim($matches[1]);
+        }
+        return '';
 	}
-	return $value;
-}
 
 	public function PutDB($family, $key, $value) {
-		
-	$this->_checkSocket();		
-		
-	$response = $this->_sendCommand("Action: Command\r\nCommand: database put $family $key $value\r\n\r\n", '--END COMMAND--', false);
+        $this->_checkSocket();
+        $family = $this->_sanitizeAstdbSegment($family);
+        $key = $this->_sanitizeAstdbSegment($key);
+        $value = $this->_sanitizeAstdbSegment((string) $value);
 
-	if (strpos($response, "Updated database successfully") != FALSE) {
-		return TRUE;
+        if (!fwrite($this->_socket, "Action: DBPut\r\nFamily: {$family}\r\nKey: {$key}\r\nVal: {$value}\r\n\r\n")) {
+            Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
+        }
+
+        $response = $this->_readActionResponse();
+        return strpos($response, 'Response: Success') !== false;
 	}
-	return FALSE;
- 
-}
 
     public function DelDB($family, $key) {
-	$response = $this->_sendCommand("Action: Command\r\nCommand: database del $family $key\r\n\r\n", '--END COMMAND--', false);
+        $this->_checkSocket();
+        $family = $this->_sanitizeAstdbSegment($family);
+        $key = $this->_sanitizeAstdbSegment($key);
 
-	if (strpos($response, "Database entry removed.") != FALSE){
-		return TRUE;
-	}
-	return FALSE;
-}
+        if (!fwrite($this->_socket, "Action: DBDel\r\nFamily: {$family}\r\nKey: {$key}\r\n\r\n")) {
+            Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
+        }
+
+        $response = $this->_readActionResponse();
+        // Missing key is fine when clearing legacy pkey entries.
+        return strpos($response, 'Response: Success') !== false
+            || strpos($response, 'Database entry not found') !== false;
+    }
 
     /**
      * Hangup a live channel 

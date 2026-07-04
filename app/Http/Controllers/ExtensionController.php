@@ -906,15 +906,19 @@ class ExtensionController extends Controller
         $legacyPkey = (string) ($extension->pkey ?? '');
 
         if ($request->exists('cfim')) {
-            $this->runtimeAstdbSet($amiHandle, 'cfim', $key, $legacyPkey, $request->input('cfim'));
+            $this->runtimeAstdbSet($amiHandle, 'cfim', $key, $request->input('cfim'));
         }
 
         if ($request->exists('cfbs')) {
-            $this->runtimeAstdbSet($amiHandle, 'cfbs', $key, $legacyPkey, $request->input('cfbs'));
+            $this->runtimeAstdbSet($amiHandle, 'cfbs', $key, $request->input('cfbs'));
         }
 
         if ($request->exists('ringdelay')) {
-            $this->runtimeAstdbSet($amiHandle, 'ringdelay', $key, $legacyPkey, $request->input('ringdelay'));
+            $this->runtimeAstdbSet($amiHandle, 'ringdelay', $key, $request->input('ringdelay'));
+        }
+
+        if ($legacyPkey !== '' && $legacyPkey !== $key) {
+            $this->runtimeAstdbClearLegacy($amiHandle, $legacyPkey);
         }
 
         $amiHandle->logout();
@@ -1088,8 +1092,8 @@ class ExtensionController extends Controller
 		return $val;
 	}
 
-	/** Write or clear under shortuid; remove legacy pkey key when it differs. */
-	private function runtimeAstdbSet($amiHandle, string $family, string $key, string $legacyPkey, $value): void
+	/** Write or clear one AstDB family under shortuid key. */
+	private function runtimeAstdbSet($amiHandle, string $family, string $key, $value): void
 	{
 		$empty = $value === null || $value === '';
 		if ($empty) {
@@ -1097,7 +1101,12 @@ class ExtensionController extends Controller
 		} else {
 			$amiHandle->PutDB($family, $key, $value);
 		}
-		if ($legacyPkey !== '' && $legacyPkey !== $key) {
+	}
+
+	/** Remove pre-shortuid pkey keys once per save (not per field). */
+	private function runtimeAstdbClearLegacy($amiHandle, string $legacyPkey): void
+	{
+		foreach (['cfim', 'cfbs', 'ringdelay'] as $family) {
 			$amiHandle->DelDB($family, $legacyPkey);
 		}
 	}
