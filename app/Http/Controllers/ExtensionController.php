@@ -885,38 +885,50 @@ class ExtensionController extends Controller
  */
     public function updateruntime (Request $request, Extension $extension) {
 
-        $validator = Validator::make($request->all(),[
-            'cfim' => 
-                ['regex:/^\+?\d+$/'],
-                ['nullable'],
-            'cfbs' => 
-                ['regex:/^\+?\d+$/'],
-                ['nullable'],            
-            'ringdelay' => 'integer|nullable'
+        // nullable must be in the same rule list as regex (bare ['nullable'] entries were ignored).
+        $validator = Validator::make($request->all(), [
+            'cfim' => ['nullable', 'regex:/^\+?\d+$/'],
+            'cfbs' => ['nullable', 'regex:/^\+?\d+$/'],
+            'ringdelay' => ['nullable', 'integer', 'min:0'],
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(),422);
+            return response()->json($validator->errors(), 422);
         }
 
         $amiHandle = get_ami_handle();
 
-        if (isset($request->cfim)) {
-           $amiHandle->PutDB('cfim', $extension->pkey, $request->cfim); 
+        if ($request->exists('cfim')) {
+            $cfim = $request->input('cfim');
+            if ($cfim === null || $cfim === '') {
+                $amiHandle->DelDB('cfim', $extension->pkey);
+            } else {
+                $amiHandle->PutDB('cfim', $extension->pkey, $cfim);
+            }
         }
 
-        if ($request->cfbs) {
-           $amiHandle->PutDB('cfbs', $extension->pkey, $request->cfbs); 
-        }        
+        if ($request->exists('cfbs')) {
+            $cfbs = $request->input('cfbs');
+            if ($cfbs === null || $cfbs === '') {
+                $amiHandle->DelDB('cfbs', $extension->pkey);
+            } else {
+                $amiHandle->PutDB('cfbs', $extension->pkey, $cfbs);
+            }
+        }
 
-        if ($request->ringdelay) {
-           $amiHandle->PutDB('ringdelay', $extension->pkey, $request->ringdelay); 
+        if ($request->exists('ringdelay')) {
+            $ringdelay = $request->input('ringdelay');
+            if ($ringdelay === null || $ringdelay === '') {
+                $amiHandle->DelDB('ringdelay', $extension->pkey);
+            } else {
+                $amiHandle->PutDB('ringdelay', $extension->pkey, $ringdelay);
+            }
         }
 
         $amiHandle->logout();
 
-        return Response::json(null,204);
-    }        
+        return Response::json(null, 204);
+    }
 
 /**
  * Delete  Extension instance
