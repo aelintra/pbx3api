@@ -732,6 +732,22 @@ class Ami
         return $response;
     }
 
+    /** Read DBGet response (Success ack + DBGetResponse event + DBGetComplete). */
+    private function _readDbGetResponse(): string
+    {
+        $response = '';
+        while ($line = fgets($this->_socket)) {
+            $response .= $line;
+            if (strpos($line, 'DBGetComplete') !== false) {
+                break;
+            }
+            if (strpos($response, 'Response: Error') !== false && rtrim($line, "\r\n") === '') {
+                break;
+            }
+        }
+        return $response;
+    }
+
 	public function GetDB($family, $key) {
         $this->_checkSocket();
         $family = $this->_sanitizeAstdbSegment($family);
@@ -741,11 +757,12 @@ class Ami
             Response::make(['message' => "Asterisk won't accept our commands"], 503)->send();
         }
 
-        $response = $this->_readActionResponse();
-        if (strpos($response, 'Response: Success') === false) {
+        $response = $this->_readDbGetResponse();
+        if (strpos($response, 'Response: Error') !== false) {
             return '';
         }
-        if (preg_match('/^Value: (.+)$/m', $response, $matches)) {
+        // Native AMI DBGet uses Val: on DBGetResponse (not CLI "Value:").
+        if (preg_match('/^Val: (.+)$/m', $response, $matches)) {
             return trim($matches[1]);
         }
         return '';
