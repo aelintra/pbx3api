@@ -3,6 +3,7 @@
 use App\Models\Trunk;
 use App\Services\Backup\BackupRunService;
 use App\Services\Backup\LocalBackupRetention;
+use App\Services\Directory\FleetPreflightService;
 use App\Services\Directory\InstanceBackupDirectoryUpload;
 use App\Services\TenantDefaultBackfillService;
 use Illuminate\Foundation\Inspiring;
@@ -97,3 +98,23 @@ Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {-
 
     return 1;
 })->purpose('Upload a local /opt/pbx3/bkup zip to instances/{ksuid}/backups/ on PBX3_ORG_BUCKET');
+
+Artisan::command('pbx3:fleet-preflight', function (FleetPreflightService $preflight) {
+    $checks = $preflight->run();
+    $failed = 0;
+    foreach ($checks as $check) {
+        $mark = $check['ok'] ? 'OK' : 'FAIL';
+        $this->line(sprintf('[%s] %s — %s', $mark, $check['name'], $check['detail']));
+        if (! $check['ok']) {
+            $failed++;
+        }
+    }
+    if ($failed > 0) {
+        $this->error("Fleet preflight: {$failed} check(s) failed.");
+
+        return 1;
+    }
+    $this->info('Fleet preflight: all checks passed.');
+
+    return 0;
+})->purpose('Verify fleet readiness: KSUID, PBX3_ORG_BUCKET, instance-role S3 access (S8.4)');
