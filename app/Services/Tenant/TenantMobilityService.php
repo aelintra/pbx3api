@@ -31,7 +31,7 @@ class TenantMobilityService
         'meetme',
         'queue',
         'route',
-        'users',
+        // users (Laravel auth) lives in instance SQL, not sqlite_create_tenant.sql — not exported
     ];
 
     /**
@@ -156,6 +156,8 @@ class TenantMobilityService
                     $aliases = cluster_identifier_aliases($shortuid);
                     $this->removeTenantRows($pdo, $aliases, $clusterId);
                 }
+                // mergeMiniDatabase opens a separate PDO to the mini-DB — SQLite forbids
+                // ATTACH DATABASE while this connection has an open transaction.
                 $imported = $this->mergeMiniDatabase($pdo, $miniDb);
                 $pdo->commit();
             } catch (\Throwable $e) {
@@ -167,6 +169,9 @@ class TenantMobilityService
             if (empty($options['skip_media'])) {
                 $mediaResult = $this->installMedia($workDir, $shortuid, (string) ($tenant['pkey'] ?? ''));
             }
+
+            // Regenerate Shorewall pbx3_inline_fqdn from cluster.fqdn (same as TenantController create/update/delete).
+            pbx3_update_fqdn_inline_optional();
 
             return [
                 'tenant' => $tenant,
@@ -202,6 +207,7 @@ class TenantMobilityService
         $path = config('database.connections.sqlite.database');
         $pdo = new \PDO('sqlite:'.$path);
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('PRAGMA busy_timeout = 30000');
 
         return $pdo;
     }
@@ -233,54 +239,92 @@ class TenantMobilityService
         $attachPath = str_replace("'", "''", $miniDbPath);
         $source->exec("ATTACH DATABASE '{$attachPath}' AS tenant_export");
 
-        $rowCounts = [];
-        $clusterId = (string) $cluster->id;
-        $source->prepare('INSERT INTO tenant_export.cluster SELECT * FROM cluster WHERE id = ?')
-            ->execute([$clusterId]);
-        $rowCounts['cluster'] = 1;
+        try {
+            $rowCounts = [];
+            $clusterId = (string) $cluster->id;
+            $source->prepare('INSERT INTO tenant_export.cluster SELECT * FROM cluster WHERE id = ?')
+                ->execute([$clusterId]);
+            $rowCounts['cluster'] = 1;
 
-        $placeholders = implode(',', array_fill(0, count($aliases), '?'));
-        foreach (self::TENANT_DATA_TABLES as $table) {
-            if (! $this->tableExists($source, $table)) {
-                continue;
+            $placeholders = implode(',', array_fill(0, count($aliases), '?'));
+            foreach (self::TENANT_DATA_TABLES as $table) {
+                if (! $this->tableExists($source, $table)) {
+                    continue;
+                }
+                if (! $this->tableExistsOnConnection($source, 'tenant_export', $table)) {
+                    continue;
+                }
+                $stmt = $source->prepare(
+                    "INSERT INTO tenant_export.{$table} SELECT * FROM {$table} WHERE cluster IN ({$placeholders})"
+                );
+                $stmt->execute($aliases);
+                $rowCounts[$table] = $stmt->rowCount();
             }
-            $stmt = $source->prepare(
-                "INSERT INTO tenant_export.{$table} SELECT * FROM {$table} WHERE cluster IN ({$placeholders})"
-            );
-            $stmt->execute($aliases);
-            $rowCounts[$table] = $stmt->rowCount();
+
+            return $rowCounts;
+        } finally {
+            $source->exec('DETACH DATABASE tenant_export');
         }
-
-        $source->exec('DETACH DATABASE tenant_export');
-
-        return $rowCounts;
     }
 
     /**
+     * Copy rows from mini-DB into the live DB. Uses a second PDO connection — not ATTACH —
+     * because import() wraps this in BEGIN … COMMIT and SQLite rejects ATTACH in a transaction.
+     *
      * @return array<string, int>
      */
     private function mergeMiniDatabase(\PDO $target, string $miniDbPath): array
     {
-        $attachPath = str_replace("'", "''", $miniDbPath);
-        $target->exec("ATTACH DATABASE '{$attachPath}' AS tenant_import");
+        $mini = new \PDO('sqlite:'.$miniDbPath);
+        $mini->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $mini->exec('PRAGMA busy_timeout = 30000');
 
         $imported = [];
-        $target->exec('INSERT INTO cluster SELECT * FROM tenant_import.cluster');
-        $imported['cluster'] = 1;
-
-        foreach (self::TENANT_DATA_TABLES as $table) {
-            if (! $this->tableExists($target, $table)) {
-                continue;
-            }
-            $before = (int) $target->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
-            $target->exec("INSERT INTO {$table} SELECT * FROM tenant_import.{$table}");
-            $after = (int) $target->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
-            $imported[$table] = $after - $before;
+        if ($this->tableExists($mini, 'cluster')) {
+            $imported['cluster'] = $this->copyTableRows($mini, $target, 'cluster');
         }
 
-        $target->exec('DETACH DATABASE tenant_import');
+        foreach (self::TENANT_DATA_TABLES as $table) {
+            if (! $this->tableExists($mini, $table) || ! $this->tableExists($target, $table)) {
+                continue;
+            }
+            $imported[$table] = $this->copyTableRows($mini, $target, $table);
+        }
 
         return $imported;
+    }
+
+    private function copyTableRows(\PDO $from, \PDO $to, string $table): int
+    {
+        $columns = $this->tableColumns($from, $table);
+        if ($columns === []) {
+            return 0;
+        }
+        $quoted = array_map(static fn (string $c) => '"'.$c.'"', $columns);
+        $colList = implode(', ', $quoted);
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+        $insert = $to->prepare("INSERT INTO {$table} ({$colList}) VALUES ({$placeholders})");
+
+        $count = 0;
+        foreach ($from->query("SELECT * FROM {$table}") as $row) {
+            $values = [];
+            foreach ($columns as $column) {
+                $values[] = $row[$column] ?? null;
+            }
+            $insert->execute($values);
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /** @return list<string> */
+    private function tableColumns(\PDO $pdo, string $table): array
+    {
+        $stmt = $pdo->query("PRAGMA table_info({$table})");
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return array_column($rows, 'name');
     }
 
     /**
@@ -446,7 +490,14 @@ class TenantMobilityService
 
     private function tableExists(\PDO $pdo, string $table): bool
     {
-        $stmt = $pdo->prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1");
+        return $this->tableExistsOnConnection($pdo, '', $table);
+    }
+
+    /** @param  ''|'tenant_export'|'tenant_import'  $attachedAlias */
+    private function tableExistsOnConnection(\PDO $pdo, string $attachedAlias, string $table): bool
+    {
+        $catalog = $attachedAlias === '' ? 'sqlite_master' : "{$attachedAlias}.sqlite_master";
+        $stmt = $pdo->prepare("SELECT 1 FROM {$catalog} WHERE type = 'table' AND name = ? LIMIT 1");
         $stmt->execute([$table]);
 
         return (bool) $stmt->fetchColumn();

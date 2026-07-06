@@ -151,6 +151,7 @@ Artisan::command('tenant:import {zip : Path to export zip} {--replace : Overwrit
     if (! empty($media['recordings'])) {
         $this->line('Recording media installed.');
     }
+    $this->line('Shorewall FQDN inline rules refreshed (when globals.fqdninspect is YES).');
     $this->comment('Next: SPA Commit, Certificates Sync, DNS cutover, move-tenant.sh — see TENANT_MIGRATION_RUNBOOK.md');
 
     return 0;
