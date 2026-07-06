@@ -5,6 +5,7 @@ use App\Services\Backup\BackupRunService;
 use App\Services\Backup\LocalBackupRetention;
 use App\Services\Directory\FleetPreflightService;
 use App\Services\Directory\InstanceBackupDirectoryUpload;
+use App\Services\Tenant\TenantMobilityService;
 use App\Services\TenantDefaultBackfillService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -98,6 +99,62 @@ Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {-
 
     return 1;
 })->purpose('Upload a local /opt/pbx3/bkup zip to instances/{ksuid}/backups/ on PBX3_ORG_BUCKET');
+
+Artisan::command('tenant:export {tenant : cluster id, shortuid, or pkey} {--include-recordings : Bundle on-node recording files} {--output= : Override output zip path}', function (TenantMobilityService $mobility) {
+    try {
+        $result = $mobility->export($this->argument('tenant'), [
+            'include_recordings' => (bool) $this->option('include-recordings'),
+            'output_path' => $this->option('output') ?: null,
+        ]);
+    } catch (\Throwable $e) {
+        $this->error($e->getMessage());
+
+        return 1;
+    }
+
+    $manifest = $result['manifest'];
+    $tenant = $manifest['tenant'] ?? [];
+    $this->info('Exported tenant '.$tenant['pkey'].' ('.$tenant['shortuid'].')');
+    $this->line('Zip: '.$result['zip_path']);
+    foreach ($manifest['row_counts'] ?? [] as $table => $count) {
+        if ($count > 0) {
+            $this->line("  {$table}: {$count}");
+        }
+    }
+
+    return 0;
+})->purpose('Export one tenant to pbx3tenant.{shortuid}.{epoch}.zip (S8.6)');
+
+Artisan::command('tenant:import {zip : Path to export zip} {--replace : Overwrite existing tenant with same id/shortuid/pkey} {--skip-media : Import DB only}', function (TenantMobilityService $mobility) {
+    try {
+        $result = $mobility->import($this->argument('zip'), [
+            'replace' => (bool) $this->option('replace'),
+            'skip_media' => (bool) $this->option('skip-media'),
+        ]);
+    } catch (\Throwable $e) {
+        $this->error($e->getMessage());
+
+        return 1;
+    }
+
+    $tenant = $result['tenant'] ?? [];
+    $this->info('Imported tenant '.$tenant['pkey'].' ('.$tenant['shortuid'].')');
+    foreach ($result['imported_rows'] ?? [] as $table => $count) {
+        if ($count > 0) {
+            $this->line("  {$table}: +{$count}");
+        }
+    }
+    $media = $result['media'] ?? [];
+    if (! empty($media['greetings'])) {
+        $this->line('Greeting media installed.');
+    }
+    if (! empty($media['recordings'])) {
+        $this->line('Recording media installed.');
+    }
+    $this->comment('Next: SPA Commit, Certificates Sync, DNS cutover, move-tenant.sh — see TENANT_MIGRATION_RUNBOOK.md');
+
+    return 0;
+})->purpose('Import tenant from export zip; preserves cluster.id KSUID (S8.6)');
 
 Artisan::command('pbx3:fleet-preflight', function (FleetPreflightService $preflight) {
     $checks = $preflight->run();

@@ -32,4 +32,10 @@ return [
     // Presigned GET for S3-only archives (S5.3).
     'backup_presigned_ttl_minutes' => (int) env('PBX3_BACKUP_PRESIGNED_TTL_MINUTES', 15),
 
+    // Tenant export/import (S8.6) — paths on the PBX node.
+    'tenant_export_dir' => env('PBX3_TENANT_EXPORT_DIR', '/opt/pbx3/bkup'),
+    'tenant_schema_sql' => env('PBX3_TENANT_SCHEMA_SQL', '/opt/pbx3/db/db_sql/sqlite_create_tenant.sql'),
+    'tenant_sounds_root' => env('PBX3_TENANT_SOUNDS_ROOT', '/usr/share/asterisk/sounds'),
+    'tenant_recordings_root' => env('PBX3_TENANT_RECORDINGS_ROOT', '/opt/pbx3/media/recordings'),
+
 ];
