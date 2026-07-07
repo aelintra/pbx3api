@@ -1,0 +1,19 @@
+# Call recordings — local archive offload + retention (Phase R1.5).
+# Install: cp to /etc/cron.d/pbx3-recordings and adjust user/paths.
+#
+# Replaces legacy pbx3 shell jobs (offload_simple.sh, agerecordings.sh,
+# agegracerecordings.sh, manageRecs.php) — remove those from /etc/cron.d/pbx3.
+#
+# Env (optional) in /opt/pbx3api/.env:
+#   PBX3_RECORDINGS_OFFLOAD_ENABLED (default true)
+#   PBX3_RECORDINGS_STABLE_MINUTES  (default 5)
+#   PBX3_RECORDINGS_ARCHIVE_ROOT    (default /opt/pbx3/media/recordings)
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Offload stable spool wavs to the local archive and index rows (every 10 min).
+*/10 * * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:recordings-offload >> /var/log/pbx3-recordings.log 2>&1
+
+# Retention: age-out + grace purge + recmaxsize + recused tally (daily 02:30).
+30 2 * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:recordings-retain >> /var/log/pbx3-recordings.log 2>&1
