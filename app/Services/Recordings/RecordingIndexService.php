@@ -2,6 +2,7 @@
 
 namespace App\Services\Recordings;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -30,6 +31,7 @@ class RecordingIndexService
     {
         $disk = Storage::disk(self::DISK);
         $rows = [];
+        $tenantNames = $this->tenantNameMap();
 
         $tenantFilter = $filters['tenant'] ?? null;
         $from = $filters['from'] ?? null;
@@ -48,6 +50,7 @@ class RecordingIndexService
                 }
 
                 $row = $this->parse($tenant, $rel);
+                $row['tenant_name'] = $tenantNames[$tenant] ?? $tenant;
 
                 if ($from !== null && $row['epoch'] > 0 && $row['epoch'] < $from) {
                     continue;
@@ -154,6 +157,7 @@ class RecordingIndexService
         return [
             'id' => $this->idFromRelativePath($rel),
             'tenant' => $tenant,
+            'tenant_name' => $tenant,
             'filename' => $filename,
             'epoch' => $epoch,
             'created_at' => $epoch > 0 ? gmdate('Y-m-d\TH:i:s\Z', $epoch) : null,
@@ -166,9 +170,31 @@ class RecordingIndexService
         ];
     }
 
+    /**
+     * Map cluster shortuid → display name (pkey). Recording directories are
+     * named by the cluster shortuid; operators recognise the tenant name.
+     *
+     * @return array<string, string>
+     */
+    private function tenantNameMap(): array
+    {
+        $map = [];
+        try {
+            foreach (DB::table('cluster')->get(['shortuid', 'pkey']) as $row) {
+                if (! empty($row->shortuid) && ! empty($row->pkey)) {
+                    $map[(string) $row->shortuid] = (string) $row->pkey;
+                }
+            }
+        } catch (\Throwable) {
+            // No DB / table — fall back to shortuid (handled by caller).
+        }
+
+        return $map;
+    }
+
     private function matchesSearch(array $row, string $needle): bool
     {
-        foreach (['filename', 'dnid', 'callerid', 'queue', 'extension'] as $field) {
+        foreach (['filename', 'dnid', 'callerid', 'queue', 'extension', 'tenant', 'tenant_name'] as $field) {
             $value = $row[$field] ?? null;
             if ($value !== null && str_contains(strtolower((string) $value), $needle)) {
                 return true;
