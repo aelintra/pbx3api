@@ -35,7 +35,8 @@ class RecordingIndexService
 
         $indexed = [];
         foreach ($rows as $row) {
-            $indexed[$row['cluster'].'|'.$row['filename']] = true;
+            $tenantKey = (string) ($row['tenant'] ?? $row['cluster'] ?? '');
+            $indexed[$tenantKey.'|'.$row['filename']] = true;
         }
 
         foreach ($this->scanSpool($filters, $tenantNames, $indexed) as $row) {
