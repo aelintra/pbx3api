@@ -176,3 +176,59 @@ Artisan::command('pbx3:fleet-preflight', function (FleetPreflightService $prefli
 
     return 0;
 })->purpose('Verify fleet readiness: KSUID, PBX3_ORG_BUCKET, instance-role S3 access (S8.4)');
+
+Artisan::command('pbx3:recordings-offload', function (\App\Services\Recordings\RecordingOffloadService $offload) {
+    $stats = $offload->run();
+    $this->info(sprintf(
+        'Offload complete: %d moved, %d skipped (not stable), %d errors',
+        $stats['offloaded'],
+        $stats['skipped'],
+        $stats['errors']
+    ));
+
+    return $stats['errors'] > 0 ? 1 : 0;
+})->purpose('Move stable spool recordings to local archive and index rows (R1.5)');
+
+Artisan::command('pbx3:recordings-retain {--usage-only : Only update cluster.recused}', function (
+    \App\Services\Recordings\RecordingRetentionService $retention,
+    \App\Services\Recordings\RecordingUsageService $usage,
+) {
+    if ((bool) $this->option('usage-only')) {
+        $count = $usage->updateAllTenants();
+        $this->info("Updated recused for {$count} tenant(s).");
+
+        return 0;
+    }
+
+    $stats = $retention->run();
+    $this->info(sprintf(
+        'Retention: %d aged, %d purged, %d size-evicted, %d errors',
+        $stats['aged'],
+        $stats['purged'],
+        $stats['size_evicted'],
+        $stats['errors']
+    ));
+
+    return $stats['errors'] > 0 ? 1 : 0;
+})->purpose('Recording retention (age-out, grace purge, recmaxsize) and recused tally (R1.5)');
+
+Artisan::command('pbx3:recordings-migrate-schema', function (\App\Services\Recordings\RecordingSchemaService $schema) {
+    if ($schema->ensureTable()) {
+        $this->info('recordings table is present.');
+
+        return 0;
+    }
+    $this->error('Failed to create recordings table — check PBX3_RECORDINGS_SCHEMA_SQL and laravel.log');
+
+    return 1;
+})->purpose('Apply sqlite_add_recordings_table.sql to the instance DB (R1.5)');
+
+Artisan::command('pbx3:recordings-reconcile {--tenant= : Limit to one tenant shortuid}', function (
+    \App\Services\Recordings\RecordingReconcileService $reconcile,
+) {
+    $tenant = $this->option('tenant');
+    $stats = $reconcile->run(is_string($tenant) && $tenant !== '' ? $tenant : null);
+    $this->info(sprintf('Reconcile: %d inserted, %d already indexed', $stats['inserted'], $stats['skipped']));
+
+    return 0;
+})->purpose('Backfill recordings table from local archive files (R1.5)');

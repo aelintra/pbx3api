@@ -36,5 +36,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('pbx3:backup-run --trigger=scheduled')
             ->dailyAt('02:00')
             ->withoutOverlapping(120);
+
+        $schedule->command('pbx3:recordings-offload')
+            ->everyTenMinutes()
+            ->withoutOverlapping(30);
+
+        $schedule->command('pbx3:recordings-retain')
+            ->dailyAt('02:30')
+            ->withoutOverlapping(60);
     })
     ->create();

@@ -8,11 +8,10 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * Call recordings management (Phase R1 — local-first).
+ * Call recordings management (Phase R1 / R1.5).
  *
- * Read-only over the recordings disk (config: filesystems 'recordings',
- * PBX3_RECORDINGS_ROOT). No DB table; the filesystem is the source of truth.
- * Tenant scoping is by directory; access is admin-only (route middleware).
+ * List/search via SQLite catalog when present, with spool filesystem fallback.
+ * Stream/download resolve spool or archive paths by KSUID or legacy id.
  */
 class RecordingController extends Controller
 {
@@ -50,12 +49,12 @@ class RecordingController extends Controller
     /** Stream a recording inline (supports range requests for seeking). */
     public function stream(string $recording)
     {
-        $rel = $this->index->relativePathFromId($recording);
-        if ($rel === null) {
+        $abs = $this->index->absolutePathFromId($recording);
+        if ($abs === null || ! is_file($abs)) {
             return Response::json(['Error' => 'Recording not found'], 404);
         }
 
-        return response()->file($this->index->absolutePath($rel), [
+        return response()->file($abs, [
             'Content-Type' => 'audio/wav',
             'Accept-Ranges' => 'bytes',
         ]);
@@ -64,12 +63,12 @@ class RecordingController extends Controller
     /** Download a recording as an attachment. */
     public function download(string $recording)
     {
-        $rel = $this->index->relativePathFromId($recording);
-        if ($rel === null) {
+        $abs = $this->index->absolutePathFromId($recording);
+        if ($abs === null || ! is_file($abs)) {
             return Response::json(['Error' => 'Recording not found'], 404);
         }
 
-        return response()->download($this->index->absolutePath($rel), basename($rel), [
+        return response()->download($abs, basename($abs), [
             'Content-Type' => 'audio/wav',
         ]);
     }

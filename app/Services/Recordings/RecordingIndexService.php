@@ -6,32 +6,153 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Filesystem index for call recordings (Phase R1 — local-first, no DB, no S3).
- *
- * Layout: {recordings disk root}/{tenant}/{filename}.wav
- * Capture (pbx3cagi MixMonitor) names files:
- *   regular : {epoch}-{tenant}-{calledid}-{clid}.wav  (API: dnid, callerid)
- *   queue   : {epoch}-{tenant}-{queue}-{extension}-{clid}.wav  (swept)
- *             Qexec{epoch}-...                                       (unswept)
- *
- * Parsing is best-effort; the raw filename is always returned so an operator
- * can still identify a recording the parser could not fully decompose.
+ * Call recordings index — SQLite catalog (R1.5) with spool/archive filesystem fallback (Rule 1).
  */
 class RecordingIndexService
 {
-    private const DISK = 'recordings';
+    private const SPOOL_DISK = 'recordings';
+
+    private const ARCHIVE_DISK = 'recordings_archive';
+
+    public function __construct(
+        private readonly RecordingSchemaService $schema,
+        private readonly RecordingFilenameParser $parser,
+        private readonly RecordingPathHelper $paths,
+    ) {}
 
     /**
-     * List recordings, newest first, with optional filters.
-     *
      * @param  array{tenant?:?string, from?:?int, to?:?int, search?:?string}  $filters
      * @return array<int, array<string, mixed>>
      */
     public function list(array $filters = []): array
     {
-        $disk = Storage::disk(self::DISK);
-        $rows = [];
         $tenantNames = $this->tenantNameMap();
+        $rows = [];
+
+        if ($this->schema->tableExists()) {
+            $rows = $this->listFromDatabase($filters, $tenantNames);
+        }
+
+        $indexed = [];
+        foreach ($rows as $row) {
+            $indexed[$row['cluster'].'|'.$row['filename']] = true;
+        }
+
+        foreach ($this->scanSpool($filters, $tenantNames, $indexed) as $row) {
+            $rows[] = $row;
+        }
+
+        if ($rows === []) {
+            $rows = $this->scanSpool($filters, $tenantNames, []);
+        }
+
+        usort($rows, static fn (array $a, array $b): int => ($b['epoch'] <=> $a['epoch']));
+
+        return $rows;
+    }
+
+    /**
+     * Resolve a recording id to an absolute filesystem path for streaming.
+     */
+    public function absolutePathFromId(string $id): ?string
+    {
+        if ($this->paths->isKsuidId($id) && $this->schema->tableExists()) {
+            $row = DB::table('recordings')->where('id', $id)->whereNull('deleted_at')->first();
+            if ($row !== null) {
+                $path = (string) ($row->local_path ?? '');
+                if ($path !== '' && is_file($path)) {
+                    return $path;
+                }
+            }
+        }
+
+        $rel = $this->relativePathFromLegacyId($id);
+        if ($rel === null) {
+            return null;
+        }
+
+        $spool = Storage::disk(self::SPOOL_DISK);
+        if ($spool->exists($rel)) {
+            return $spool->path($rel);
+        }
+
+        [$tenant, $filename] = explode('/', $rel, 2);
+        $archiveRel = $this->findInArchive($tenant, $filename);
+        if ($archiveRel !== null) {
+            return Storage::disk(self::ARCHIVE_DISK)->path($archiveRel);
+        }
+
+        return null;
+    }
+
+    /** @deprecated Use absolutePathFromId */
+    public function relativePathFromId(string $id): ?string
+    {
+        $abs = $this->absolutePathFromId($id);
+
+        return $abs !== null ? $abs : null;
+    }
+
+    /** @deprecated Use absolutePathFromId */
+    public function absolutePath(string $relativePath): string
+    {
+        if (str_starts_with($relativePath, '/')) {
+            return $relativePath;
+        }
+
+        return Storage::disk(self::SPOOL_DISK)->path($relativePath);
+    }
+
+    /**
+     * @param  array<string, string>  $tenantNames
+     * @return array<int, array<string, mixed>>
+     */
+    private function listFromDatabase(array $filters, array $tenantNames): array
+    {
+        $query = DB::table('recordings')->whereNull('deleted_at');
+
+        $tenantFilter = $filters['tenant'] ?? null;
+        if ($tenantFilter !== null && $tenantFilter !== '') {
+            $query->where('cluster', $tenantFilter);
+        }
+
+        $from = $filters['from'] ?? null;
+        if ($from !== null) {
+            $query->where('epoch', '>=', $from);
+        }
+
+        $to = $filters['to'] ?? null;
+        if ($to !== null) {
+            $query->where('epoch', '<=', $to);
+        }
+
+        $search = isset($filters['search']) ? strtolower(trim((string) $filters['search'])) : null;
+
+        $rows = [];
+        foreach ($query->get() as $row) {
+            $item = $this->rowFromDatabase($row, $tenantNames);
+            if ($search !== null && $search !== '' && ! $this->matchesSearch($item, $search)) {
+                continue;
+            }
+            if ($item['playable']) {
+                $rows[] = $item;
+            } elseif ($row->location === RecordingPathHelper::LOCATION_S3_ONLY) {
+                $rows[] = $item;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<string, string>  $tenantNames
+     * @param  array<string, true>  $skipKeys
+     * @return array<int, array<string, mixed>>
+     */
+    private function scanSpool(array $filters, array $tenantNames, array $skipKeys): array
+    {
+        $disk = Storage::disk(self::SPOOL_DISK);
+        $rows = [];
 
         $tenantFilter = $filters['tenant'] ?? null;
         $from = $filters['from'] ?? null;
@@ -49,9 +170,13 @@ class RecordingIndexService
                     continue;
                 }
 
-                $row = $this->parse($tenant, $rel);
-                $row['tenant_name'] = $tenantNames[$tenant] ?? $tenant;
+                $filename = basename($rel);
+                $key = $tenant.'|'.$filename;
+                if (isset($skipKeys[$key])) {
+                    continue;
+                }
 
+                $row = $this->rowFromSpool($tenant, $filename, $rel, $tenantNames);
                 if ($from !== null && $row['epoch'] > 0 && $row['epoch'] < $from) {
                     continue;
                 }
@@ -62,118 +187,116 @@ class RecordingIndexService
                     continue;
                 }
 
-                try {
-                    $row['filesize'] = (int) $disk->size($rel);
-                } catch (\Throwable) {
-                    $row['filesize'] = 0;
-                }
-
                 $rows[] = $row;
             }
         }
-
-        usort($rows, static fn (array $a, array $b): int => ($b['epoch'] <=> $a['epoch']));
 
         return $rows;
     }
 
     /**
-     * Resolve an opaque recording id back to a validated relative path
-     * ({tenant}/{filename}.wav) that lives on the recordings disk.
-     */
-    public function relativePathFromId(string $id): ?string
-    {
-        $decoded = base64_decode(strtr($id, '-_', '+/'), true);
-        if ($decoded === false || $decoded === '') {
-            return null;
-        }
-
-        // Reject traversal / absolute paths; require {tenant}/{file}.wav shape.
-        if (str_contains($decoded, "\0") || str_contains($decoded, '..') || str_starts_with($decoded, '/')) {
-            return null;
-        }
-        if (preg_match('#^[^/]+/[^/]+\.wav$#i', $decoded) !== 1) {
-            return null;
-        }
-
-        if (! Storage::disk(self::DISK)->exists($decoded)) {
-            return null;
-        }
-
-        return $decoded;
-    }
-
-    /** Absolute filesystem path for a validated relative path. */
-    public function absolutePath(string $relativePath): string
-    {
-        return Storage::disk(self::DISK)->path($relativePath);
-    }
-
-    private function idFromRelativePath(string $rel): string
-    {
-        return rtrim(strtr(base64_encode($rel), '+/', '-_'), '=');
-    }
-
-    /**
+     * @param  array<string, string>  $tenantNames
      * @return array<string, mixed>
      */
-    private function parse(string $tenant, string $rel): array
+    private function rowFromDatabase(object $row, array $tenantNames): array
     {
-        $filename = basename($rel);
-        $base = preg_replace('/\.wav$/i', '', $filename);
+        $tenant = (string) $row->cluster;
+        $filename = (string) $row->filename;
+        $localPath = (string) ($row->local_path ?? '');
+        $playable = $localPath !== '' && is_file($localPath);
 
-        $isQueueUnmatched = false;
-        if (stripos($base, 'Qexec') === 0) {
-            $isQueueUnmatched = true;
-            $base = substr($base, strlen('Qexec'));
+        if (! $playable && $localPath !== '') {
+            $archiveRel = $this->findInArchive($tenant, $filename);
+            if ($archiveRel !== null) {
+                $localPath = Storage::disk(self::ARCHIVE_DISK)->path($archiveRel);
+                $playable = is_file($localPath);
+            }
         }
 
-        $tokens = explode('-', $base);
-
-        $epoch = 0;
-        if (isset($tokens[0]) && preg_match('/^(\d+)/', $tokens[0], $m) === 1) {
-            $epoch = (int) $m[1];
-        }
-
-        $dnid = null;
-        $callerid = null;
-        $queue = null;
-        $extension = null;
-
-        $count = count($tokens);
-        if ($count >= 5) {
-            // {epoch}-{tenant}-{queue}-{extension}-{callerid}
-            $queue = $tokens[2];
-            $extension = $tokens[3];
-            $callerid = $tokens[4];
-        } elseif ($count === 4) {
-            // {epoch}-{tenant}-{calledid}-{clid}
-            $dnid = $tokens[2];
-            $callerid = $tokens[3];
-        } elseif ($count === 3) {
-            $dnid = $tokens[2];
+        $filesize = (int) ($row->filesize ?? 0);
+        if ($playable && $filesize === 0) {
+            $filesize = filesize($localPath) ?: 0;
         }
 
         return [
-            'id' => $this->idFromRelativePath($rel),
+            'id' => (string) $row->id,
             'tenant' => $tenant,
-            'tenant_name' => $tenant,
+            'tenant_name' => $tenantNames[$tenant] ?? $tenant,
             'filename' => $filename,
-            'epoch' => $epoch,
-            'created_at' => $epoch > 0 ? gmdate('Y-m-d\TH:i:s\Z', $epoch) : null,
-            'dnid' => $dnid,
-            'callerid' => $callerid,
-            'queue' => $queue,
-            'extension' => $extension,
-            'is_queue' => $queue !== null || $isQueueUnmatched,
-            'filesize' => 0,
+            'epoch' => (int) $row->epoch,
+            'created_at' => (int) $row->epoch > 0 ? gmdate('Y-m-d\TH:i:s\Z', (int) $row->epoch) : null,
+            'dnid' => $row->dnid,
+            'callerid' => $row->callerid,
+            'queue' => $row->queue,
+            'extension' => $row->extension,
+            'is_queue' => $row->queue !== null,
+            'location' => (string) ($row->location ?? RecordingPathHelper::LOCATION_ARCHIVE),
+            'filesize' => $filesize,
+            'playable' => $playable,
         ];
     }
 
     /**
-     * Map cluster shortuid → display name (pkey). Recording directories are
-     * named by the cluster shortuid; operators recognise the tenant name.
-     *
+     * @param  array<string, string>  $tenantNames
+     * @return array<string, mixed>
+     */
+    private function rowFromSpool(string $tenant, string $filename, string $rel, array $tenantNames): array
+    {
+        $parsed = $this->parser->parse($tenant, $filename);
+        $filesize = 0;
+        try {
+            $filesize = (int) Storage::disk(self::SPOOL_DISK)->size($rel);
+        } catch (\Throwable) {
+            // non-fatal
+        }
+
+        return array_merge($parsed, [
+            'id' => $this->paths->legacyIdFromSpoolPath($tenant, $filename),
+            'tenant_name' => $tenantNames[$tenant] ?? $tenant,
+            'location' => RecordingPathHelper::LOCATION_SPOOL,
+            'filesize' => $filesize,
+            'playable' => true,
+        ]);
+    }
+
+    private function relativePathFromLegacyId(string $id): ?string
+    {
+        if ($this->paths->isKsuidId($id)) {
+            return null;
+        }
+
+        return $this->paths->decodeLegacyId($id);
+    }
+
+    private function findInArchive(string $tenant, string $filename): ?string
+    {
+        $archive = Storage::disk(self::ARCHIVE_DISK);
+        $prefix = $tenant;
+
+        if (! $archive->exists($prefix)) {
+            $deletePath = "deletes/{$tenant}/{$filename}";
+            if ($archive->exists($deletePath)) {
+                return $deletePath;
+            }
+
+            return null;
+        }
+
+        foreach ($archive->allFiles($prefix) as $rel) {
+            if (strcasecmp(basename($rel), $filename) === 0) {
+                return $rel;
+            }
+        }
+
+        $deletePath = "deletes/{$tenant}/{$filename}";
+        if ($archive->exists($deletePath)) {
+            return $deletePath;
+        }
+
+        return null;
+    }
+
+    /**
      * @return array<string, string>
      */
     private function tenantNameMap(): array
@@ -186,7 +309,7 @@ class RecordingIndexService
                 }
             }
         } catch (\Throwable) {
-            // No DB / table — fall back to shortuid (handled by caller).
+            // fall back to shortuid
         }
 
         return $map;

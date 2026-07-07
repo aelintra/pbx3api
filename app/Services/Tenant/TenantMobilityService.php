@@ -30,6 +30,7 @@ class TenantMobilityService
         'page',
         'meetme',
         'queue',
+        'recordings',
         'route',
         // users (Laravel auth) lives in instance SQL, not sqlite_create_tenant.sql — not exported
     ];
@@ -66,7 +67,7 @@ class TenantMobilityService
             $greetingBytes = $this->exportGreetingMedia($shortuid, $mediaRoot.'/greetings/'.$shortuid);
             $recordingBytes = 0;
             if (! empty($options['include_recordings'])) {
-                $recordingBytes = $this->exportRecordingMedia((string) $cluster->pkey, $mediaRoot.'/recordings');
+                $recordingBytes = $this->exportRecordingMedia($shortuid, $mediaRoot.'/recordings');
             }
 
             $globals = Sysglobal::query()->first();
@@ -373,7 +374,7 @@ class TenantMobilityService
         return $this->copyTree($src, $destDir);
     }
 
-    private function exportRecordingMedia(string $tenantPkey, string $destDir): int
+    private function exportRecordingMedia(string $shortuid, string $destDir): int
     {
         $recRoot = rtrim((string) config('pbx3_directory.tenant_recordings_root'), '/');
         if (! is_dir($recRoot)) {
@@ -384,16 +385,12 @@ class TenantMobilityService
             return 0;
         }
 
-        $bytes = 0;
-        foreach (glob("{$recRoot}/*/*{$tenantPkey}*") ?: [] as $path) {
-            if (is_file($path)) {
-                $name = basename($path);
-                copy($path, "{$destDir}/{$name}");
-                $bytes += filesize($path) ?: 0;
-            }
+        $tenantDir = "{$recRoot}/{$shortuid}";
+        if (! is_dir($tenantDir)) {
+            return 0;
         }
 
-        return $bytes;
+        return $this->copyTree($tenantDir, $destDir);
     }
 
     /**
@@ -416,18 +413,14 @@ class TenantMobilityService
         }
 
         $recordingsSrc = "{$workDir}/media/recordings";
-        if (is_dir($recordingsSrc) && ($files = scandir($recordingsSrc)) !== false) {
+        if (is_dir($recordingsSrc)) {
             $recRoot = rtrim((string) config('pbx3_directory.tenant_recordings_root'), '/');
-            foreach ($files as $file) {
-                if ($file === '.' || $file === '..') {
-                    continue;
-                }
-                $srcFile = "{$recordingsSrc}/{$file}";
-                if (! is_file($srcFile)) {
-                    continue;
-                }
-                pbx3_request_syscmd('/bin/mkdir -p '.escapeshellarg($recRoot));
-                pbx3_request_syscmd('/bin/cp -a '.escapeshellarg($srcFile).' '.escapeshellarg("{$recRoot}/{$file}"));
+            $dest = "{$recRoot}/{$shortuid}";
+            [$ok] = pbx3_request_syscmd('/bin/mkdir -p '.escapeshellarg($dest));
+            if ($ok !== null) {
+                pbx3_request_syscmd('/bin/cp -a '.escapeshellarg($recordingsSrc).'/. '.escapeshellarg($dest));
+                pbx3_request_syscmd('/bin/chown -R asterisk:asterisk '.escapeshellarg($dest));
+                pbx3_request_syscmd('/bin/chmod -R u+rwX,go+rX '.escapeshellarg($dest));
                 $result['recordings'] = true;
             }
         }

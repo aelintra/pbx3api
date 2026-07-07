@@ -113,6 +113,16 @@ return [
             'throw' => false,
         ],
 
+        /*
+         * Call recordings local archive (Phase R1.5). Offload job moves stable
+         * spool wavs to {root}/{tenant}/{yyyy}/{mm}/{dd}/{filename}.wav.
+         */
+        'recordings_archive' => [
+            'driver' => 'local',
+            'root' => env('PBX3_RECORDINGS_ARCHIVE_ROOT', '/opt/pbx3/media/recordings'),
+            'throw' => false,
+        ],
+
     ],
 
     /*
