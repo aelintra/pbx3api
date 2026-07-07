@@ -116,10 +116,13 @@ return [
         /*
          * Call recordings local archive (Phase R1.5). Offload job moves stable
          * spool wavs to {root}/{tenant}/{yyyy}/{mm}/{dd}/{filename}.wav.
+         * public visibility → dirs 0755 / files 0644 so the web (php-fpm) user
+         * can traverse the tree the root-run offload/cron creates.
          */
         'recordings_archive' => [
             'driver' => 'local',
             'root' => env('PBX3_RECORDINGS_ARCHIVE_ROOT', '/opt/pbx3/media/recordings'),
+            'visibility' => 'public',
             'throw' => false,
         ],
 

@@ -272,26 +272,31 @@ class RecordingIndexService
     private function findInArchive(string $tenant, string $filename): ?string
     {
         $archive = Storage::disk(self::ARCHIVE_DISK);
-        $prefix = $tenant;
 
-        if (! $archive->exists($prefix)) {
-            $deletePath = "deletes/{$tenant}/{$filename}";
-            if ($archive->exists($deletePath)) {
-                return $deletePath;
-            }
-
-            return null;
-        }
-
-        foreach ($archive->allFiles($prefix) as $rel) {
-            if (strcasecmp(basename($rel), $filename) === 0) {
-                return $rel;
-            }
+        // Deterministic layout: {tenant}/{yyyy}/{mm}/{dd}/{filename} keyed off the epoch in the name.
+        $parsed = $this->parser->parse($tenant, $filename);
+        $expected = $this->paths->archiveRelativePath($tenant, (int) $parsed['epoch'], $filename);
+        if ($archive->exists($expected)) {
+            return $expected;
         }
 
         $deletePath = "deletes/{$tenant}/{$filename}";
         if ($archive->exists($deletePath)) {
             return $deletePath;
+        }
+
+        // Fallback scan (e.g. clock skew in name). Rule 1: never let a permission
+        // error on one tenant dir break the whole listing.
+        if ($archive->exists($tenant)) {
+            try {
+                foreach ($archive->allFiles($tenant) as $rel) {
+                    if (strcasecmp(basename($rel), $filename) === 0) {
+                        return $rel;
+                    }
+                }
+            } catch (\Throwable) {
+                return null;
+            }
         }
 
         return null;
