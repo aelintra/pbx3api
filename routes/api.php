@@ -28,6 +28,7 @@ use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\QueueController;
+use App\Http\Controllers\RecordingController;
 use App\Http\Controllers\SnapShotController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\SchemaController;
@@ -309,6 +310,13 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
         Route::post('conferences', [ConferenceController::class, 'save']);
         Route::put('conferences/{conference}', [ConferenceController::class, 'update']);
         Route::delete('conferences/{conference}', [ConferenceController::class, 'delete']);
+
+    /**
+     * Call recordings (Phase R1 — local-first; filesystem-backed, read-only)
+     */
+        Route::get('recordings', [RecordingController::class, 'index']);
+        Route::get('recordings/{recording}/stream', [RecordingController::class, 'stream']);
+        Route::get('recordings/{recording}/download', [RecordingController::class, 'download']);
 
     /**
      * Snapshots

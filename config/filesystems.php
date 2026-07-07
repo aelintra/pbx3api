@@ -101,6 +101,18 @@ return [
             'throw' => false,
         ],
 
+        /*
+         * Call recordings (Phase R1 — local-first, no S3). Asterisk MixMonitor
+         * writes finished wav files to {root}/{tenant_shortuid}/, named
+         * {epoch}-{tenant}-{calledid}-{clid}.wav. Root is configurable per node
+         * (PBX3_RECORDINGS_ROOT) but defaults to the live MixMonitor spool.
+         */
+        'recordings' => [
+            'driver' => 'local',
+            'root' => env('PBX3_RECORDINGS_ROOT', '/var/spool/asterisk/monitor'),
+            'throw' => false,
+        ],
+
     ],
 
     /*
