@@ -302,10 +302,33 @@ validate_install_health() {
     echo "Post-install health checks passed (DB symlink, nginx -t, php-fpm socket, /up → 200)."
 }
 
+install_cron_jobs() {
+    cron_dir="${SCRIPT_DIR}/cron.d"
+    app_root="${APP_ROOT:-${REPO_ROOT}}"
+
+    # Only wire the app path if it differs from the packaged /opt/pbx3api default.
+    for job in pbx3-backup pbx3-recordings; do
+        src="${cron_dir}/${job}.example"
+        dst="/etc/cron.d/${job}"
+        if [ ! -f "${src}" ]; then
+            continue
+        fi
+        if [ -f "${dst}" ]; then
+            echo "Cron ${dst} already present — leaving as-is."
+            continue
+        fi
+        sed "s#/opt/pbx3api#${app_root}#g" "${src}" > "${dst}"
+        chown root:root "${dst}"
+        chmod 644 "${dst}"
+        echo "Installed cron ${dst}"
+    done
+}
+
 install_runtime_packages
 install_php_deps
 ensure_snakeoil_cert
 bootstrap_laravel_app
+install_cron_jobs
 
 # Default to the current clone path so local testing works.
 # Override APP_ROOT/SOURCE_CONF/PHP_FPM_SERVICE/PHP_FPM_SOCKET/PHP_VERSION/PBX3_SQLITE_PATH as needed.
