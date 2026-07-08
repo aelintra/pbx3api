@@ -22,6 +22,7 @@ class FleetPreflightService
             $this->checkAwsRegion(),
             $this->checkNoEmptyStaticAwsKeys(),
             $this->checkS3BackupsPrefix(),
+            $this->checkNodeTenantPrefixDenied(),
         ];
     }
 
@@ -164,5 +165,71 @@ class FleetPreflightService
             'ok' => true,
             'detail' => "list OK under {$prefix}/",
         ];
+    }
+
+    /**
+     * §2.6.1 — node role must not write under tenants/* (gatekeeper / presign path).
+     *
+     * @return FleetCheck
+     */
+    private function checkNodeTenantPrefixDenied(): array
+    {
+        if (! app(InstanceBackupDirectoryUpload::class)->isConfigured()) {
+            return [
+                'name' => 'S3 tenants/* denied',
+                'ok' => false,
+                'detail' => 'Fleet bucket not configured — skipped deny test.',
+            ];
+        }
+
+        $probeKey = 'tenants/_fleet-preflight-iam-deny/probe.txt';
+
+        try {
+            $disk = Storage::disk('pbx3_org');
+            $wrote = $disk->put($probeKey, 'preflight-deny-probe');
+            if ($wrote) {
+                try {
+                    $disk->delete($probeKey);
+                } catch (\Throwable) {
+                    // best-effort cleanup
+                }
+
+                return [
+                    'name' => 'S3 tenants/* denied',
+                    'ok' => false,
+                    'detail' => 'PutObject to tenants/* succeeded — node IAM is too broad (§2.6.1).',
+                ];
+            }
+
+            return [
+                'name' => 'S3 tenants/* denied',
+                'ok' => true,
+                'detail' => 'PutObject to tenants/* denied (§2.6.1 OK).',
+            ];
+        } catch (\Throwable $e) {
+            if ($this->isAccessDenied($e)) {
+                return [
+                    'name' => 'S3 tenants/* denied',
+                    'ok' => true,
+                    'detail' => 'PutObject to tenants/* denied (§2.6.1 OK).',
+                ];
+            }
+
+            return [
+                'name' => 'S3 tenants/* denied',
+                'ok' => false,
+                'detail' => 'Deny probe failed: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    private function isAccessDenied(\Throwable $e): bool
+    {
+        $msg = strtolower($e->getMessage());
+
+        return str_contains($msg, 'accessdenied')
+            || str_contains($msg, 'access denied')
+            || str_contains($msg, '403')
+            || str_contains($msg, 'not authorized');
     }
 }
