@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Route;
+use App\Services\Fleet\FleetPostureService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -197,6 +198,15 @@ class RouteController extends Controller
             if ($v === null || $v === '' || (is_string($v) && strtolower(trim($v)) === 'none')) {
                 $request->merge([$key => null]);
             }
+        }
+
+        if (app(FleetPostureService::class)->isFleetNode()) {
+            $request->merge([
+                'path1' => config('pbx3_fleet.egress_trunk_pkey', 'Egress'),
+                'path2' => null,
+                'path3' => null,
+                'path4' => null,
+            ]);
         }
     }
 

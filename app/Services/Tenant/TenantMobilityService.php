@@ -3,6 +3,7 @@
 namespace App\Services\Tenant;
 
 use App\Models\Sysglobal;
+use App\Services\Fleet\FleetPostureService;
 use Illuminate\Support\Facades\DB;
 use ZipArchive;
 
@@ -160,6 +161,9 @@ class TenantMobilityService
                 // mergeMiniDatabase opens a separate PDO to the mini-DB — SQLite forbids
                 // ATTACH DATABASE while this connection has an open transaction.
                 $imported = $this->mergeMiniDatabase($pdo, $miniDb);
+                if (app(FleetPostureService::class)->isFleetNode()) {
+                    $imported['route_fleet_normalized'] = $this->normalizeFleetRoutes($pdo);
+                }
                 $pdo->commit();
             } catch (\Throwable $e) {
                 $pdo->rollBack();
@@ -171,8 +175,9 @@ class TenantMobilityService
                 $mediaResult = $this->installMedia($workDir, $shortuid, (string) ($tenant['pkey'] ?? ''));
             }
 
-            // Regenerate Shorewall pbx3_inline_fqdn from cluster.fqdn (same as TenantController create/update/delete).
-            pbx3_update_fqdn_inline_optional();
+            if (! app(FleetPostureService::class)->isFleetNode()) {
+                pbx3_update_fqdn_inline_optional();
+            }
 
             return [
                 'tenant' => $tenant,
@@ -293,6 +298,18 @@ class TenantMobilityService
         }
 
         return $imported;
+    }
+
+    /** @return int Rows updated */
+    private function normalizeFleetRoutes(\PDO $pdo): int
+    {
+        $egress = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
+        $stmt = $pdo->prepare(
+            'UPDATE route SET path1 = ?, path2 = NULL, path3 = NULL, path4 = NULL WHERE path1 IS NOT NULL OR path2 IS NOT NULL OR path3 IS NOT NULL OR path4 IS NOT NULL'
+        );
+        $stmt->execute([$egress]);
+
+        return $stmt->rowCount();
     }
 
     private function copyTableRows(\PDO $from, \PDO $to, string $table): int

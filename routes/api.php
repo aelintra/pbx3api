@@ -36,6 +36,7 @@ use App\Http\Controllers\SysCommandController;
 use App\Http\Controllers\SysglobalController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
+use App\Http\Controllers\FleetPostureController;
 
 
 Route::group(['prefix' => 'auth'], function () {
@@ -74,6 +75,8 @@ Route::group(['prefix' => 'auth'], function () {
     });
 });
 
+Route::middleware(['auth:sanctum'])->get('fleet-posture', [FleetPostureController::class, 'show']);
+
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('test/admin-only', function () {
         return response()->json(['message' => 'Admin access granted']);
@@ -81,6 +84,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 });
 
 // Expansion: granular abilities and admin vs tenant route groups — see pbx3spa/workingdocs/ADMIN_PANELS_AND_PERMISSIONS.md.
+
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
  * Everything in this group requires admin privileges (Sanctum abilities:admin).

@@ -3,6 +3,8 @@
 namespace App\Services\Directory;
 
 use App\Models\Sysglobal;
+use App\Services\Fleet\FleetPostureService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -23,6 +25,7 @@ class FleetPreflightService
             $this->checkNoEmptyStaticAwsKeys(),
             $this->checkS3BackupsPrefix(),
             $this->checkNodeTenantPrefixDenied(),
+            $this->checkEgressTrunk(),
         ];
     }
 
@@ -231,5 +234,46 @@ class FleetPreflightService
             || str_contains($msg, 'access denied')
             || str_contains($msg, '403')
             || str_contains($msg, 'not authorized');
+    }
+
+    /**
+     * Phase A — fleet nodes must have an active Egress trunk to the SBC pool.
+     *
+     * @return FleetCheck
+     */
+    private function checkEgressTrunk(): array
+    {
+        $posture = app(FleetPostureService::class);
+        if (! $posture->isFleetNode() && ! config('pbx3_directory.org_bucket')) {
+            return [
+                'name' => 'Egress trunk',
+                'ok' => true,
+                'detail' => 'skipped (solo node)',
+            ];
+        }
+
+        $pkey = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
+        $row = DB::table('trunks')->where('pkey', $pkey)->first(['active', 'host']);
+        if ($row === null) {
+            return [
+                'name' => 'Egress trunk',
+                'ok' => false,
+                'detail' => "Missing trunks.pkey={$pkey} — run seed-fleet-egress-trunk.sh",
+            ];
+        }
+
+        if ((string) ($row->active ?? '') !== 'YES') {
+            return [
+                'name' => 'Egress trunk',
+                'ok' => false,
+                'detail' => "{$pkey} exists but is not active",
+            ];
+        }
+
+        return [
+            'name' => 'Egress trunk',
+            'ok' => true,
+            'detail' => "{$pkey} → ".((string) ($row->host ?? 'unset')),
+        ];
     }
 }
