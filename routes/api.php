@@ -37,6 +37,7 @@ use App\Http\Controllers\SysglobalController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Http\Controllers\FleetPostureController;
+use App\Http\Controllers\FleetMobilityController;
 
 
 Route::group(['prefix' => 'auth'], function () {
@@ -76,6 +77,18 @@ Route::group(['prefix' => 'auth'], function () {
 });
 
 Route::middleware(['auth:sanctum'])->get('fleet-posture', [FleetPostureController::class, 'show']);
+
+/**
+ * Fleet control-plane mobility API (S8.10). Bearer PBX3_FLEET_SERVICE_TOKEN — not Sanctum.
+ */
+Route::middleware(['fleet.token'])->prefix('fleet')->group(function () {
+    Route::get('preflight', [FleetMobilityController::class, 'preflight']);
+    Route::post('tenants/{tenant}/export', [FleetMobilityController::class, 'export']);
+    Route::post('tenants/import', [FleetMobilityController::class, 'import']);
+    Route::post('commit', [FleetMobilityController::class, 'commit']);
+    Route::post('certificates/sync', [FleetMobilityController::class, 'certificatesSync']);
+    Route::delete('tenants/{tenant}', [FleetMobilityController::class, 'destroyTenant']);
+});
 
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('test/admin-only', function () {

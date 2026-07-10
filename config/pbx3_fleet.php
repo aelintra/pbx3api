@@ -22,4 +22,16 @@ return [
 
     'egress_failover_pkey' => 'EgressFailover',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fleet service token (S8.10 — control plane → this node)
+    |--------------------------------------------------------------------------
+    |
+    | Shared bearer for /api/fleet/* mobility endpoints. Not a Sanctum admin
+    | token. Must match the token the gatekeeper uses when calling this node.
+    |
+    */
+
+    'service_token' => env('PBX3_FLEET_SERVICE_TOKEN', ''),
+
 ];
