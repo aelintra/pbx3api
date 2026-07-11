@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Services\Snapshot\SnapshotRetention;
 
 class SnapShotController extends Controller
 {
@@ -71,7 +72,12 @@ class SnapShotController extends Controller
 
         try {
             $snapshotName = create_new_snapshot();
-            return response()->json(['newsnapshotname' => $snapshotName]);
+            $pruned = app(SnapshotRetention::class)->pruneExcess();
+
+            return response()->json([
+                'newsnapshotname' => $snapshotName,
+                'pruned' => $pruned,
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to create snapshot: " . $e->getMessage());
             return response()->json(['Error' => 'Failed to create snapshot: ' . $e->getMessage()], 500);

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Services\Snapshot\SnapshotRetention;
 //use Illuminate\Support\Facades\Response;
 //use Illuminate\Support\Facades\Validator;
 
@@ -50,6 +51,8 @@ class SysCommandController extends Controller
 
     /**
      * Run Asterisk config generator then reload. Clears dirty state (mycommit = NO).
+     * After a successful commit, takes a DB snapshot (S9.6) and FIFO-prunes /opt/pbx3/snap/ (S9.7).
+     * Snapshot failure is logged but does not fail the commit (config is already applied).
      */
     public function commit () {
         $genAst = env('PBX3_GENAST_SCRIPT', '/opt/pbx3/scripts/genAst.sh');
@@ -66,7 +69,23 @@ class SysCommandController extends Controller
         } catch (\Throwable $e) {
             // ignore
         }
-        return response()->json(['message' => 'Commit completed'], 200);
+
+        $payload = ['message' => 'Commit completed'];
+        try {
+            $snapshotName = create_new_snapshot();
+            $pruned = app(SnapshotRetention::class)->pruneExcess();
+            $payload['snapshot'] = $snapshotName;
+            if ($pruned !== []) {
+                $payload['snapshots_pruned'] = $pruned;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('commit succeeded but snapshot failed', [
+                'error' => $e->getMessage(),
+            ]);
+            $payload['snapshot_error'] = $e->getMessage();
+        }
+
+        return response()->json($payload, 200);
     } 
 
     public function reboot ()

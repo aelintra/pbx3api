@@ -5,6 +5,7 @@ use App\Services\Backup\BackupRunService;
 use App\Services\Backup\LocalBackupRetention;
 use App\Services\Directory\FleetPreflightService;
 use App\Services\Directory\InstanceBackupDirectoryUpload;
+use App\Services\Snapshot\SnapshotRetention;
 use App\Services\Tenant\TenantMobilityService;
 use App\Services\TenantDefaultBackfillService;
 use Illuminate\Foundation\Inspiring;
@@ -74,6 +75,18 @@ Artisan::command('pbx3:prune-backups', function (LocalBackupRetention $retention
 
     return 0;
 })->purpose('FIFO prune /opt/pbx3/bkup to PBX3_BACKUP_LOCAL_MAX_COUNT (does not touch S3)');
+
+Artisan::command('pbx3:prune-snapshots', function (SnapshotRetention $retention) {
+    $removed = $retention->pruneExcess();
+    if ($removed === []) {
+        $this->info('Nothing to prune.');
+
+        return 0;
+    }
+    $this->info('Removed: '.implode(', ', $removed));
+
+    return 0;
+})->purpose('FIFO prune /opt/pbx3/snap to PBX3_SNAPSHOT_MAX_COUNT');
 
 Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {--trigger=manual : manual|scheduled|pre-upgrade}', function (InstanceBackupDirectoryUpload $upload) {
     $filename = basename($this->argument('filename'));
