@@ -161,7 +161,63 @@ class RecordingS3UploadService
             'z_updater' => 'recordings-s3-upload',
         ]);
 
+        $this->ensureTenantPolicy($tenant);
+
         return true;
+    }
+
+    /**
+     * Upsert tenants/{shortuid}/recordings/policy.json (maxage_days ← cluster.recmaxage).
+     */
+    private function ensureTenantPolicy(string $tenant): void
+    {
+        static $written = [];
+
+        if (isset($written[$tenant])) {
+            return;
+        }
+
+        $maxAge = (int) (DB::table('cluster')->where('shortuid', $tenant)->value('recmaxage') ?? 60);
+        if ($maxAge < 1) {
+            $maxAge = 60;
+        }
+
+        $key = "tenants/{$tenant}/recordings/policy.json";
+        $body = json_encode([
+            'schema_version' => 1,
+            'tenant_shortuid' => $tenant,
+            'maxage_days' => $maxAge,
+            'class' => 'recording',
+            'updated_at' => gmdate('c'),
+            'note' => 'PCI-shaped S3 DR — not PCI-attested',
+        ], JSON_UNESCAPED_SLASHES);
+
+        try {
+            $presign = $this->gatekeeper->presign('PUT', $key);
+            $verify = (bool) config('pbx3_recordings.gatekeeper_http_verify', true);
+            $response = Http::withOptions([
+                'verify' => $verify,
+                'body' => $body,
+            ])
+                ->timeout(30)
+                ->send('PUT', $presign['url']);
+
+            if (! $response->successful()) {
+                Log::warning('recording policy.json PUT failed', [
+                    'tenant' => $tenant,
+                    'status' => $response->status(),
+                ]);
+
+                return;
+            }
+
+            $written[$tenant] = true;
+        } catch (\Throwable $e) {
+            Log::warning('recording policy.json exception', [
+                'tenant' => $tenant,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

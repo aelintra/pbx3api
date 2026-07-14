@@ -112,18 +112,25 @@ class RecordingRetentionService
         }
 
         $now = gmdate('Y-m-d H:i:s');
-        $updates = [
+
+        if ($hasS3) {
+            // Keep searchable/playable via S3 — do not set deleted_at (DESIGN §6.1).
+            DB::table('recordings')->where('id', $row->id)->update([
+                'local_path' => null,
+                'location' => RecordingPathHelper::LOCATION_S3_ONLY,
+                'deleted_at' => null,
+                'z_updated' => $now,
+                'z_updater' => 'recordings-retention',
+            ]);
+
+            return true;
+        }
+
+        DB::table('recordings')->where('id', $row->id)->update([
             'deleted_at' => $now,
             'z_updated' => $now,
             'z_updater' => 'recordings-retention',
-        ];
-
-        if ($hasS3) {
-            $updates['local_path'] = null;
-            $updates['location'] = RecordingPathHelper::LOCATION_S3_ONLY;
-        }
-
-        DB::table('recordings')->where('id', $row->id)->update($updates);
+        ]);
 
         return true;
     }
