@@ -49,34 +49,54 @@ class RecordingS3UploadService
         $limit = $limit ?? max(1, (int) config('pbx3_recordings.upload_batch', 50));
         $allow = $this->tenantAllowlist();
 
-        $query = DB::table('recordings')
-            ->whereNull('deleted_at')
-            ->where(function ($q) {
-                $q->whereNull('s3_key')->orWhere('s3_key', '');
-            })
-            ->whereIn('location', [
-                RecordingPathHelper::LOCATION_ARCHIVE,
-                RecordingPathHelper::LOCATION_SPOOL,
-            ])
-            ->orderBy('epoch')
-            ->limit($limit);
+        // Page through candidates until we upload $limit files (or run out).
+        // Older rows may have lost local files — do not burn the batch on skips alone.
+        $page = 200;
+        $offset = 0;
+        $maxScan = max($limit * 20, 500);
 
-        if ($allow !== null) {
-            $query->whereIn('cluster', $allow);
-        }
+        while ($stats['uploaded'] < $limit && $offset < $maxScan) {
+            $query = DB::table('recordings')
+                ->whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->whereNull('s3_key')->orWhere('s3_key', '');
+                })
+                ->whereIn('location', [
+                    RecordingPathHelper::LOCATION_ARCHIVE,
+                    RecordingPathHelper::LOCATION_SPOOL,
+                ])
+                ->orderBy('epoch')
+                ->offset($offset)
+                ->limit($page);
 
-        foreach ($query->get() as $row) {
-            if ($this->uploadRow($row)) {
-                $stats['uploaded']++;
-            } else {
-                // distinguish skip vs error roughly via local file missing
+            if ($allow !== null) {
+                $query->whereIn('cluster', $allow);
+            }
+
+            $rows = $query->get();
+            if ($rows->isEmpty()) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                if ($stats['uploaded'] >= $limit) {
+                    break 2;
+                }
+
                 $local = (string) ($row->local_path ?? '');
                 if ($local === '' || ! is_file($local)) {
                     $stats['skipped']++;
+                    continue;
+                }
+
+                if ($this->uploadRow($row)) {
+                    $stats['uploaded']++;
                 } else {
                     $stats['errors']++;
                 }
             }
+
+            $offset += $page;
         }
 
         return $stats;
