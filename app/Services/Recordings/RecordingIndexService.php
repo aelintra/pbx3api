@@ -86,6 +86,37 @@ class RecordingIndexService
         return null;
     }
 
+    /**
+     * S3 object key for a catalog row (S7), or null if none.
+     */
+    public function s3KeyFromId(string $id): ?string
+    {
+        if (! $this->paths->isKsuidId($id) || ! $this->schema->tableExists()) {
+            return null;
+        }
+
+        $row = DB::table('recordings')->where('id', $id)->whereNull('deleted_at')->first();
+        if ($row === null) {
+            return null;
+        }
+
+        $key = (string) ($row->s3_key ?? '');
+
+        return $key !== '' ? $key : null;
+    }
+
+    /** Filename for Content-Disposition when streaming from S3. */
+    public function filenameFromId(string $id): ?string
+    {
+        if (! $this->paths->isKsuidId($id) || ! $this->schema->tableExists()) {
+            return null;
+        }
+
+        $row = DB::table('recordings')->where('id', $id)->whereNull('deleted_at')->first();
+
+        return $row !== null ? (string) $row->filename : null;
+    }
+
     /** @deprecated Use absolutePathFromId */
     public function relativePathFromId(string $id): ?string
     {
@@ -138,6 +169,8 @@ class RecordingIndexService
             if ($item['playable']) {
                 $rows[] = $item;
             } elseif ($row->location === RecordingPathHelper::LOCATION_S3_ONLY) {
+                $rows[] = $item;
+            } elseif (! empty($row->s3_key)) {
                 $rows[] = $item;
             }
         }
@@ -219,6 +252,12 @@ class RecordingIndexService
             $filesize = filesize($localPath) ?: 0;
         }
 
+        $s3Key = (string) ($row->s3_key ?? '');
+        $location = (string) ($row->location ?? RecordingPathHelper::LOCATION_ARCHIVE);
+        if (! $playable && $s3Key !== '') {
+            $playable = true;
+        }
+
         return [
             'id' => (string) $row->id,
             'tenant' => $tenant,
@@ -231,7 +270,8 @@ class RecordingIndexService
             'queue' => $row->queue,
             'extension' => $row->extension,
             'is_queue' => $row->queue !== null,
-            'location' => (string) ($row->location ?? RecordingPathHelper::LOCATION_ARCHIVE),
+            'location' => $location,
+            'archived' => $location === RecordingPathHelper::LOCATION_S3_ONLY,
             'filesize' => $filesize,
             'playable' => $playable,
         ];

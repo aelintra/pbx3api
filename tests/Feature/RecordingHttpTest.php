@@ -39,6 +39,10 @@ test('recordings stream returns 404 when missing', function () {
             ->once()
             ->with('missing-id')
             ->andReturn(null);
+        $mock->shouldReceive('s3KeyFromId')
+            ->once()
+            ->with('missing-id')
+            ->andReturn(null);
     });
 
     $response = $this->getJson('/api/recordings/missing-id/stream');
@@ -50,6 +54,10 @@ test('recordings stream returns 404 when missing', function () {
 test('recordings download returns 404 when missing', function () {
     $this->mock(RecordingIndexService::class, function ($mock) {
         $mock->shouldReceive('absolutePathFromId')
+            ->once()
+            ->with('missing-id')
+            ->andReturn(null);
+        $mock->shouldReceive('s3KeyFromId')
             ->once()
             ->with('missing-id')
             ->andReturn(null);

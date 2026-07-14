@@ -28,6 +28,18 @@ class RecordingPathHelper
         return "deletes/{$tenant}/{$filename}";
     }
 
+    /**
+     * S3 object key under PBX3_RECORDINGS_BUCKET (S7).
+     * tenants/{shortuid}/recordings/media/{yyyy}/{mm}/{dd}/{filename}
+     */
+    public function s3ObjectKey(string $tenant, int $epoch, string $filename): string
+    {
+        $ts = $epoch > 0 ? $epoch : time();
+        $date = gmdate('Y/m/d', $ts);
+
+        return "tenants/{$tenant}/recordings/media/{$date}/{$filename}";
+    }
+
     /** Legacy R1 id: base64url of spool-relative {tenant}/{filename}.wav */
     public function legacyIdFromSpoolPath(string $tenant, string $filename): string
     {

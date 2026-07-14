@@ -2,22 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Recordings\GatekeeperRecordingsClient;
 use App\Services\Recordings\RecordingIndexService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Call recordings management (Phase R1 / R1.5).
+ * Call recordings management (Phase R1 / R1.5 / S7).
  *
  * List/search via SQLite catalog when present, with spool filesystem fallback.
- * Stream/download resolve spool or archive paths by KSUID or legacy id.
+ * Stream/download resolve local paths first; S3-only rows use gatekeeper GET
+ * presign then server-side proxy (keeps recordings bucket CORS-free).
  */
 class RecordingController extends Controller
 {
-    public function __construct(private readonly RecordingIndexService $index)
-    {
-    }
+    public function __construct(
+        private readonly RecordingIndexService $index,
+        private readonly GatekeeperRecordingsClient $gatekeeper,
+    ) {}
 
     /**
      * List/search recordings. Filters: tenant, from, to (YYYY-MM-DD UTC or epoch),
@@ -46,31 +52,91 @@ class RecordingController extends Controller
         return response()->json($this->index->list($filters), 200);
     }
 
-    /** Stream a recording inline (supports range requests for seeking). */
+    /** Stream a recording inline (supports range requests for local files). */
     public function stream(string $recording)
     {
         $abs = $this->index->absolutePathFromId($recording);
-        if ($abs === null || ! is_file($abs)) {
-            return Response::json(['Error' => 'Recording not found'], 404);
+        if ($abs !== null && is_file($abs)) {
+            return response()->file($abs, [
+                'Content-Type' => 'audio/wav',
+                'Accept-Ranges' => 'bytes',
+            ]);
         }
 
-        return response()->file($abs, [
-            'Content-Type' => 'audio/wav',
-            'Accept-Ranges' => 'bytes',
-        ]);
+        return $this->streamFromS3($recording, false);
     }
 
     /** Download a recording as an attachment. */
     public function download(string $recording)
     {
         $abs = $this->index->absolutePathFromId($recording);
-        if ($abs === null || ! is_file($abs)) {
+        if ($abs !== null && is_file($abs)) {
+            return response()->download($abs, basename($abs), [
+                'Content-Type' => 'audio/wav',
+            ]);
+        }
+
+        return $this->streamFromS3($recording, true);
+    }
+
+    /**
+     * Proxy a gated S3 GET so the browser never talks to the recordings bucket.
+     */
+    private function streamFromS3(string $recording, bool $asAttachment): StreamedResponse|\Illuminate\Http\JsonResponse
+    {
+        $key = $this->index->s3KeyFromId($recording);
+        if ($key === null) {
             return Response::json(['Error' => 'Recording not found'], 404);
         }
 
-        return response()->download($abs, basename($abs), [
+        if (! $this->gatekeeper->isConfigured()) {
+            return Response::json(['Error' => 'Recording archived remotely but gatekeeper is not configured'], 503);
+        }
+
+        try {
+            $presign = $this->gatekeeper->presign('GET', $key);
+            $verify = (bool) config('pbx3_recordings.gatekeeper_http_verify', true);
+            $upstream = Http::withOptions(['verify' => $verify, 'stream' => true])
+                ->timeout(120)
+                ->get($presign['url']);
+
+            if (! $upstream->successful()) {
+                Log::warning('recording s3 GET failed', [
+                    'key' => $key,
+                    'status' => $upstream->status(),
+                ]);
+
+                return Response::json(['Error' => 'Recording not found in archive'], 404);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('recording s3 stream exception', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
+
+            return Response::json(['Error' => 'Recording archive unavailable'], 503);
+        }
+
+        $filename = $this->index->filenameFromId($recording) ?? basename($key);
+        $headers = [
             'Content-Type' => 'audio/wav',
-        ]);
+            'Accept-Ranges' => 'bytes',
+        ];
+        if ($asAttachment) {
+            $headers['Content-Disposition'] = 'attachment; filename="'.$filename.'"';
+        } else {
+            $headers['Content-Disposition'] = 'inline; filename="'.$filename.'"';
+        }
+
+        return response()->stream(function () use ($upstream) {
+            $body = $upstream->toPsrResponse()->getBody();
+            while (! $body->eof()) {
+                echo $body->read(8192);
+                if (connection_aborted()) {
+                    break;
+                }
+            }
+        }, 200, $headers);
     }
 
     /**

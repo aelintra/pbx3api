@@ -202,6 +202,28 @@ Artisan::command('pbx3:recordings-offload', function (\App\Services\Recordings\R
     return $stats['errors'] > 0 ? 1 : 0;
 })->purpose('Move stable spool recordings to local archive and index rows (R1.5)');
 
+Artisan::command('pbx3:recordings-s3-upload {--limit= : Max rows this run}', function (
+    \App\Services\Recordings\RecordingS3UploadService $upload,
+) {
+    if (! $upload->isConfigured()) {
+        $this->warn('S3 upload not configured (set PBX3_RECORDING_UPLOAD_ENABLED + PBX3_GATEKEEPER_URL + PBX3_GATEKEEPER_TOKEN).');
+
+        return 0;
+    }
+
+    $limitOpt = $this->option('limit');
+    $limit = is_numeric($limitOpt) ? (int) $limitOpt : null;
+    $stats = $upload->run($limit);
+    $this->info(sprintf(
+        'S3 upload: %d uploaded, %d skipped, %d errors',
+        $stats['uploaded'],
+        $stats['skipped'],
+        $stats['errors']
+    ));
+
+    return $stats['errors'] > 0 ? 1 : 0;
+})->purpose('Upload local archive recordings to dedicated S3 bucket via gatekeeper presign (S7)');
+
 Artisan::command('pbx3:recordings-retain {--usage-only : Only update cluster.recused}', function (
     \App\Services\Recordings\RecordingRetentionService $retention,
     \App\Services\Recordings\RecordingUsageService $usage,
