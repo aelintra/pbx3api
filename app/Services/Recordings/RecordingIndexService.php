@@ -254,7 +254,8 @@ class RecordingIndexService
 
         $s3Key = (string) ($row->s3_key ?? '');
         $location = (string) ($row->location ?? RecordingPathHelper::LOCATION_ARCHIVE);
-        if (! $playable && $s3Key !== '') {
+        $onS3 = $s3Key !== '';
+        if (! $playable && $onS3) {
             $playable = true;
         }
 
@@ -271,6 +272,7 @@ class RecordingIndexService
             'extension' => $row->extension,
             'is_queue' => $row->queue !== null,
             'location' => $location,
+            'on_s3' => $onS3,
             'archived' => $location === RecordingPathHelper::LOCATION_S3_ONLY,
             'filesize' => $filesize,
             'playable' => $playable,
@@ -295,6 +297,8 @@ class RecordingIndexService
             'id' => $this->paths->legacyIdFromSpoolPath($tenant, $filename),
             'tenant_name' => $tenantNames[$tenant] ?? $tenant,
             'location' => RecordingPathHelper::LOCATION_SPOOL,
+            'on_s3' => false,
+            'archived' => false,
             'filesize' => $filesize,
             'playable' => true,
         ]);
