@@ -24,3 +24,6 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Retention: age-out + grace purge + recmaxsize + recused tally (daily 02:30).
 30 2 * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:recordings-retain >> /var/log/pbx3-recordings.log 2>&1
+
+# S7.10 — sweeper: backfill archive → SQLite; repair local/S3 drift (daily 03:15).
+15 3 * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:recordings-reconcile >> /var/log/pbx3-recordings.log 2>&1

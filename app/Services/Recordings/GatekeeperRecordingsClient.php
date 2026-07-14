@@ -74,4 +74,48 @@ class GatekeeperRecordingsClient
             'bucket' => (string) ($json['bucket'] ?? ''),
         ];
     }
+
+    /**
+     * True when the object exists in the recordings bucket (S7.10 drift sweeper).
+     * Uses a short-lived GET and Range: bytes=0-0 — no node IAM on tenants/*.
+     */
+    public function objectExists(string $key): bool
+    {
+        if ($key === '' || ! $this->isConfigured()) {
+            return false;
+        }
+
+        try {
+            $presign = $this->presign('GET', $key, null, 120);
+            $verify = (bool) config('pbx3_recordings.gatekeeper_http_verify', true);
+            $response = Http::withOptions(['verify' => $verify])
+                ->withHeaders(['Range' => 'bytes=0-0'])
+                ->timeout(20)
+                ->get($presign['url']);
+
+            $status = $response->status();
+            if (in_array($status, [200, 206], true)) {
+                return true;
+            }
+            if ($status === 404) {
+                return false;
+            }
+
+            Log::debug('recording S3 existence unexpected status', [
+                'key' => $key,
+                'status' => $status,
+            ]);
+
+            // Fail-safe: unknown status → treat as present (do not drop rows).
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('recording S3 existence check failed', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fail-safe: do not remove catalog rows when gatekeeper/S3 is unreachable.
+            return true;
+        }
+    }
 }

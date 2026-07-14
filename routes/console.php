@@ -258,12 +258,23 @@ Artisan::command('pbx3:recordings-migrate-schema', function (\App\Services\Recor
     return 1;
 })->purpose('Apply sqlite_add_recordings_table.sql to the instance DB (R1.5)');
 
-Artisan::command('pbx3:recordings-reconcile {--tenant= : Limit to one tenant shortuid}', function (
+Artisan::command('pbx3:recordings-reconcile {--tenant= : Limit to one tenant shortuid} {--no-drift : Only backfill from archive (skip S3/local drift)}', function (
     \App\Services\Recordings\RecordingReconcileService $reconcile,
 ) {
     $tenant = $this->option('tenant');
-    $stats = $reconcile->run(is_string($tenant) && $tenant !== '' ? $tenant : null);
-    $this->info(sprintf('Reconcile: %d inserted, %d already indexed', $stats['inserted'], $stats['skipped']));
+    $drift = ! (bool) $this->option('no-drift');
+    $stats = $reconcile->run(
+        is_string($tenant) && $tenant !== '' ? $tenant : null,
+        $drift,
+    );
+    $this->info(sprintf(
+        'Reconcile: %d inserted, %d already indexed, %d repaired, %d removed, %d errors',
+        $stats['inserted'],
+        $stats['skipped'],
+        $stats['repaired'],
+        $stats['removed'],
+        $stats['errors']
+    ));
 
-    return 0;
-})->purpose('Backfill recordings table from local archive files (R1.5)');
+    return ($stats['errors'] ?? 0) > 0 ? 1 : 0;
+})->purpose('Backfill recordings index from archive and repair SQLite ↔ disk ↔ S3 drift (S7.10)');

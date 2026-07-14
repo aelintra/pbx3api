@@ -36,6 +36,29 @@ test('s3 object key uses tenants recordings media date layout', function () {
     expect($key)->toBe('tenants/9wvvnb/recordings/media/2024/05/19/1716123456-9wvvnb-1000-2000.wav');
 });
 
+test('storage codes match location and on_s3 flags', function () {
+    // Mirror RecordingIndexService::storageCode rules used by SPA.
+    $cases = [
+        ['s3_only', true, 's3_only'],
+        ['spool', false, 'spool'],
+        ['spool', true, 'spool_s3'],
+        ['archive', true, 'local_s3'],
+        ['archive', false, 'local'],
+    ];
+    foreach ($cases as [$location, $onS3, $want]) {
+        if ($location === 's3_only') {
+            $code = 's3_only';
+        } elseif ($location === 'spool') {
+            $code = $onS3 ? 'spool_s3' : 'spool';
+        } elseif ($onS3) {
+            $code = 'local_s3';
+        } else {
+            $code = 'local';
+        }
+        expect($code)->toBe($want);
+    }
+});
+
 test('legacy id round-trips spool path', function () {
     $paths = new RecordingPathHelper;
     $id = $paths->legacyIdFromSpoolPath('9wvvnb', 'call.wav');

@@ -49,5 +49,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('pbx3:recordings-retain')
             ->dailyAt('02:30')
             ->withoutOverlapping(60);
+
+        $schedule->command('pbx3:recordings-reconcile')
+            ->dailyAt('03:15')
+            ->withoutOverlapping(90);
     })
     ->create();
