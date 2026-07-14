@@ -273,10 +273,30 @@ class RecordingIndexService
             'is_queue' => $row->queue !== null,
             'location' => $location,
             'on_s3' => $onS3,
+            'storage' => $this->storageCode($location, $onS3),
             'archived' => $location === RecordingPathHelper::LOCATION_S3_ONLY,
             'filesize' => $filesize,
             'playable' => $playable,
         ];
+    }
+
+    /**
+     * Canonical storage code for SPA badges (S7).
+     * spool | local | local_s3 | s3_only
+     */
+    private function storageCode(string $location, bool $onS3): string
+    {
+        if ($location === RecordingPathHelper::LOCATION_S3_ONLY) {
+            return 's3_only';
+        }
+        if ($location === RecordingPathHelper::LOCATION_SPOOL) {
+            return $onS3 ? 'spool_s3' : 'spool';
+        }
+        if ($onS3) {
+            return 'local_s3';
+        }
+
+        return 'local';
     }
 
     /**
@@ -298,6 +318,7 @@ class RecordingIndexService
             'tenant_name' => $tenantNames[$tenant] ?? $tenant,
             'location' => RecordingPathHelper::LOCATION_SPOOL,
             'on_s3' => false,
+            'storage' => 'spool',
             'archived' => false,
             'filesize' => $filesize,
             'playable' => true,
