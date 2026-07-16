@@ -11,6 +11,23 @@ use App\Services\TenantDefaultBackfillService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
+Artisan::command('pbx3:ops-register-loops', function (\App\Services\Ops\RegisterLoopScanner $scanner) {
+    $result = $scanner->run();
+    $this->info(sprintf(
+        'scanned=%d matched=%d emitted=%d skipped_not_wl=%d errors=%d',
+        $result['scanned'],
+        $result['matched'],
+        $result['emitted'],
+        $result['skipped_not_whitelisted'],
+        count($result['errors'])
+    ));
+    foreach ($result['errors'] as $err) {
+        $this->warn($err);
+    }
+
+    return count($result['errors']) > 0 && $result['emitted'] === 0 ? 1 : 0;
+})->purpose('Scan Asterisk auth failures on Fail2ban whitelist; notify Gatekeeper');
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
