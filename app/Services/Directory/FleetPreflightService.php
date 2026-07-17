@@ -26,6 +26,7 @@ class FleetPreflightService
             $this->checkS3BackupsPrefix(),
             $this->checkNodeTenantPrefixDenied(),
             $this->checkEgressTrunk(),
+            $this->checkSiplogFleetOff(),
         ];
     }
 
@@ -274,6 +275,55 @@ class FleetPreflightService
             'name' => 'Egress trunk',
             'ok' => true,
             'detail' => "{$pkey} → ".((string) ($row->host ?? 'unset')),
+        ];
+    }
+
+    /**
+     * Fleet nodes should not run instance dumpcap (phones via SBC).
+     *
+     * @return FleetCheck
+     */
+    private function checkSiplogFleetOff(): array
+    {
+        $fleetMode = (bool) config('pbx3_fleet.mode');
+        if (! $fleetMode && ! config('pbx3_directory.org_bucket')) {
+            return [
+                'name' => 'sys-ua-siplog',
+                'ok' => true,
+                'detail' => 'skipped (solo node)',
+            ];
+        }
+        if (! $fleetMode) {
+            return [
+                'name' => 'sys-ua-siplog',
+                'ok' => true,
+                'detail' => 'PBX3_FLEET_MODE unset — siplog optional (solo/debug)',
+            ];
+        }
+
+        $status = @shell_exec('sv status sys-ua-siplog 2>/dev/null');
+        $status = is_string($status) ? trim($status) : '';
+        if ($status === '') {
+            return [
+                'name' => 'sys-ua-siplog',
+                'ok' => true,
+                'detail' => 'sv status unavailable — assume ok',
+            ];
+        }
+
+        // runit: "run: …" means up; "down: …" means stopped.
+        if (str_starts_with($status, 'run:')) {
+            return [
+                'name' => 'sys-ua-siplog',
+                'ok' => false,
+                'detail' => 'running on fleet node — disable: /opt/pbx3/scripts/siplog-set-mode.sh fleet',
+            ];
+        }
+
+        return [
+            'name' => 'sys-ua-siplog',
+            'ok' => true,
+            'detail' => $status !== '' ? $status : 'down',
         ];
     }
 }
