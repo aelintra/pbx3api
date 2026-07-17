@@ -4,13 +4,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Instance log ship to org bucket (Phase 1)
+    | Instance log ship to org bucket (Phase 1) + retention knobs (Phase 5)
     |--------------------------------------------------------------------------
     |
     | Rotated syslog / Asterisk messages / CDR CSV →
     | s3://{PBX3_ORG_BUCKET}/instances/{ksuid}/logs/{class}/{stamp}/…
     | Local rotation: /etc/logrotate.d/pbx3-asterisk-logs (+ system rsyslog).
     | Spec: FLEET_LOG_RETENTION_REQUIREMENTS.md
+    |
+    | Effective local_days / s3_maxage_days = env defaults merged with optional
+    | override file (SPA/API writable — not .env rewrites).
     |
     */
 
@@ -21,9 +24,15 @@ return [
     /** State file of already-shipped local paths (inode+mtime fingerprints). */
     'state_path' => env('PBX3_LOG_SHIP_STATE', '/opt/pbx3/var/log-ship/state.json'),
 
+    /** SPA/API override for retention knobs (merged over env). */
+    'retention_override_path' => env('PBX3_LOG_RETENTION_OVERRIDE', '/opt/pbx3/var/log-retention.json'),
+
+    /** Presigned GET TTL for S3 archive download (Phase 5). */
+    'presigned_ttl_minutes' => (int) env('PBX3_LOG_PRESIGNED_TTL_MINUTES', 15),
+
     /**
      * Local hot retain (days). logrotate rotate count should match.
-     * Syslog days are per-instance configurable via env for Phase 1 (SPA later).
+     * Overridable via retention_override_path.
      */
     'local_days' => [
         'syslog' => (int) env('PBX3_LOG_LOCAL_DAYS_SYSLOG', 7),

@@ -62,5 +62,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('pbx3:logs-s3-upload')
             ->dailyAt('06:45')
             ->withoutOverlapping(60);
+
+        $schedule->command('pbx3:cdr-prune')
+            ->dailyAt('04:15')
+            ->withoutOverlapping(30);
     })
     ->create();
