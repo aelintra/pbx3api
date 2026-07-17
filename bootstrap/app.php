@@ -57,5 +57,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('pbx3:ops-register-loops')
             ->everyMinute()
             ->withoutOverlapping(2);
+
+        // After typical daily logrotate (~06:25); needs read of /var/log (prefer root cron).
+        $schedule->command('pbx3:logs-s3-upload')
+            ->dailyAt('06:45')
+            ->withoutOverlapping(60);
     })
     ->create();

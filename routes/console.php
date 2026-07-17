@@ -295,3 +295,28 @@ Artisan::command('pbx3:recordings-reconcile {--tenant= : Limit to one tenant sho
 
     return ($stats['errors'] ?? 0) > 0 ? 1 : 0;
 })->purpose('Backfill recordings index from archive and repair SQLite ↔ disk ↔ S3 drift (S7.10)');
+
+Artisan::command('pbx3:logs-s3-upload {--limit= : Max files this run}', function (
+    \App\Services\Directory\InstanceLogDirectoryUpload $upload,
+) {
+    if (! $upload->isConfigured()) {
+        $this->warn('Log S3 upload not configured (set PBX3_ORG_BUCKET; PBX3_LOG_UPLOAD_ENABLED defaults true).');
+
+        return 0;
+    }
+
+    $limitOpt = $this->option('limit');
+    $limit = is_numeric($limitOpt) ? (int) $limitOpt : null;
+    $stats = $upload->run($limit);
+    $this->info(sprintf(
+        'Log ship: %d uploaded, %d skipped, %d errors',
+        $stats['uploaded'],
+        $stats['skipped'],
+        $stats['errors']
+    ));
+    foreach ($stats['details'] as $line) {
+        $this->line('  '.$line);
+    }
+
+    return $stats['errors'] > 0 ? 1 : 0;
+})->purpose('Upload rotated syslog / Asterisk messages / CDR CSV to org bucket logs/ (Phase 1)');

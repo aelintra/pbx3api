@@ -1,0 +1,15 @@
+# Instance log ship to org S3 (Phase 1 — FLEET_LOG_RETENTION_REQUIREMENTS.md).
+# Install: cp to /etc/cron.d/pbx3-logs and adjust paths.
+#
+# Prefer root so /var/log/syslog and Asterisk logs are readable.
+# Requires: PBX3_ORG_BUCKET in /opt/pbx3api/.env (solo nodes: omit / leave upload disabled).
+# Local rotation: /etc/logrotate.d/pbx3-asterisk-logs (+ system rsyslog for syslog).
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# After typical daily logrotate (~06:25)
+45 6 * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:logs-s3-upload >> /var/log/pbx3-logs-s3.log 2>&1
+
+# Alternative: Laravel scheduler (also registers pbx3:logs-s3-upload at 06:45):
+# * * * * * root cd /opt/pbx3api && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
