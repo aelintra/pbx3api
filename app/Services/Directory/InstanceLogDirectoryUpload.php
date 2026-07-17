@@ -47,7 +47,7 @@ class InstanceLogDirectoryUpload
             return $stats;
         }
 
-        $this->ensurePolicy($disk, $instanceId);
+        $this->writePolicy($disk, $instanceId, false);
 
         $state = $this->loadState();
         $candidates = $this->discoverCandidates();
@@ -179,19 +179,30 @@ class InstanceLogDirectoryUpload
         return true;
     }
 
-    private function ensurePolicy($disk, string $instanceId): void
+    /**
+     * Write or refresh instances/{id}/logs/policy.json from effective retention knobs.
+     *
+     * @param  mixed  $disk  Laravel filesystem disk
+     */
+    public function writePolicy($disk, string $instanceId, bool $force = false): void
     {
         $policyKey = "instances/{$instanceId}/logs/policy.json";
-        if ($disk->exists($policyKey)) {
+        if (! $force && $disk->exists($policyKey)) {
             return;
         }
-        $maxage = config('pbx3_logs.s3_maxage_days', []);
+        $maxage = app(LogRetentionService::class)->effectiveS3MaxageDays();
         $payload = [
             'schema_version' => 1,
-            'classes' => is_array($maxage) ? $maxage : [],
+            'classes' => $maxage,
             'updated_at' => gmdate('c'),
         ];
         $disk->put($policyKey, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    /** @deprecated use writePolicy */
+    private function ensurePolicy($disk, string $instanceId): void
+    {
+        $this->writePolicy($disk, $instanceId, false);
     }
 
     private function taggingForClass(string $class): ?string

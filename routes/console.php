@@ -320,3 +320,32 @@ Artisan::command('pbx3:logs-s3-upload {--limit= : Max files this run}', function
 
     return $stats['errors'] > 0 ? 1 : 0;
 })->purpose('Upload rotated syslog / Asterisk messages / CDR CSV to org bucket logs/ (Phase 1)');
+
+Artisan::command('pbx3:cdr-prune {--days= : Override local_days.cdr}', function (
+    \App\Services\Cdr\CdrRetentionService $retention,
+) {
+    $daysOpt = $this->option('days');
+    $days = is_numeric($daysOpt) ? (int) $daysOpt : null;
+    try {
+        $stats = $retention->prune($days);
+    } catch (\Throwable $e) {
+        $this->error('CDR prune failed: '.$e->getMessage());
+
+        return 1;
+    }
+
+    if (! $stats['available']) {
+        $this->warn('CDR SQLite not available at '.$stats['path']);
+
+        return 0;
+    }
+
+    $this->info(sprintf(
+        'CDR prune: deleted %d rows older than %s (local_days=%d)',
+        $stats['deleted'],
+        $stats['cutoff'],
+        $stats['local_days']
+    ));
+
+    return 0;
+})->purpose('Prune Asterisk master.db CDR rows older than local retention (Phase 6)');

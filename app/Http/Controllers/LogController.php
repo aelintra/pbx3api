@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Directory\InstanceLogArchiveService;
+use App\Services\Directory\LogRetentionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -277,5 +279,105 @@ class LogController extends Controller
 		shell_exec(" $cmd /var/log/asterisk/cdr-csv/Master.csv > $dname");
 
 		return Response::download($dname)->deleteFileAfterSend(true);
+	}
+
+	/**
+	 * Phase 5: effective retention knobs (local days + S3 maxage per class).
+	 */
+	public function retentionShow(LogRetentionService $retention)
+	{
+		return response()->json($retention->get(), 200);
+	}
+
+	/**
+	 * Phase 5: write override file + refresh S3 policy.json when bucket configured.
+	 */
+	public function retentionUpdate(Request $request, LogRetentionService $retention)
+	{
+		$validator = Validator::make($request->all(), [
+			'local_days' => 'sometimes|array',
+			'local_days.syslog' => 'sometimes|integer|min:1|max:365',
+			'local_days.asterisk-messages' => 'sometimes|integer|min:1|max:365',
+			'local_days.cdr' => 'sometimes|integer|min:1|max:365',
+			's3_maxage_days' => 'sometimes|array',
+			's3_maxage_days.syslog' => 'sometimes|integer|min:1|max:730',
+			's3_maxage_days.asterisk-messages' => 'sometimes|integer|min:1|max:730',
+			's3_maxage_days.cdr' => 'sometimes|integer|min:1|max:730',
+		]);
+		if ($validator->fails()) {
+			return response()->json($validator->errors(), 422);
+		}
+
+		try {
+			return response()->json($retention->put($request->only(['local_days', 's3_maxage_days'])), 200);
+		} catch (\InvalidArgumentException $e) {
+			return response()->json(['message' => $e->getMessage()], 422);
+		} catch (\Throwable $e) {
+			Log::error('log retention update failed', ['error' => $e->getMessage()]);
+
+			return response()->json(['message' => $e->getMessage()], 500);
+		}
+	}
+
+	/**
+	 * Phase 5: list shipped log objects on org bucket.
+	 */
+	public function archiveIndex(Request $request, InstanceLogArchiveService $archive)
+	{
+		$validator = Validator::make($request->all(), [
+			'class' => 'sometimes|string|in:syslog,asterisk-messages,cdr',
+			'from' => 'sometimes|string',
+			'to' => 'sometimes|string',
+		]);
+		if ($validator->fails()) {
+			return response()->json($validator->errors(), 422);
+		}
+
+		if (! $archive->isAvailable()) {
+			return response()->json(['objects' => [], 'available' => false], 200);
+		}
+
+		try {
+			$objects = $archive->list(
+				$request->input('class'),
+				$request->input('from'),
+				$request->input('to'),
+			);
+
+			return response()->json(['objects' => $objects, 'available' => true], 200);
+		} catch (\InvalidArgumentException $e) {
+			return response()->json(['message' => $e->getMessage()], 422);
+		} catch (\Throwable $e) {
+			Log::error('log archive list failed', ['error' => $e->getMessage()]);
+
+			return response()->json(['message' => $e->getMessage()], 500);
+		}
+	}
+
+	/**
+	 * Phase 5: temporary URL for one archive object (prefix-guarded).
+	 */
+	public function archiveDownloadUrl(Request $request, InstanceLogArchiveService $archive)
+	{
+		$validator = Validator::make($request->all(), [
+			'key' => 'required|string|max:1024',
+		]);
+		if ($validator->fails()) {
+			return response()->json($validator->errors(), 422);
+		}
+
+		try {
+			return response()->json($archive->presignedDownloadUrl($request->input('key')), 200);
+		} catch (\InvalidArgumentException $e) {
+			return response()->json(['message' => $e->getMessage()], 422);
+		} catch (\RuntimeException $e) {
+			$status = str_contains($e->getMessage(), 'not found') ? 404 : 500;
+
+			return response()->json(['message' => $e->getMessage()], $status);
+		} catch (\Throwable $e) {
+			Log::error('log archive download-url failed', ['error' => $e->getMessage()]);
+
+			return response()->json(['message' => $e->getMessage()], 500);
+		}
 	}
 }

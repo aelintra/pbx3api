@@ -27,6 +27,7 @@ use App\Http\Controllers\HolidayTimerController;
 use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\CdrController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RecordingController;
 use App\Http\Controllers\SnapShotController;
@@ -303,10 +304,19 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
      * Logs
      */
         Route::get('logs', [LogController::class, 'index']);
+        Route::get('logs/retention', [LogController::class, 'retentionShow']);
+        Route::put('logs/retention', [LogController::class, 'retentionUpdate']);
+        Route::get('logs/archive', [LogController::class, 'archiveIndex']);
+        Route::get('logs/archive/download-url', [LogController::class, 'archiveDownloadUrl']);
         Route::get('logs/cdrs{limit}', [LogController::class, 'showcdr']);
         // Use symbolic names (e.g., astmessages, astcdrs) instead of paths with slashes
         Route::get('logs/{logfile}/download', [LogController::class, 'download']);
         Route::get('logs/{logfile}', [LogController::class, 'show']);
+
+    /**
+     * Asterisk CDR search (Phase 6 — SQLite master.db HoR)
+     */
+        Route::get('cdr', [CdrController::class, 'index']);
 
     /**
      * Queues

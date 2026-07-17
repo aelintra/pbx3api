@@ -1,0 +1,7 @@
+# Asterisk CDR SQLite prune (Phase 6).
+# Installed by: pbx3api/scripts/installer.sh (→ /etc/cron.d/pbx3-cdr) when absent.
+#
+# Prefer root so /var/log/asterisk/master.db is writable for DELETE.
+# Alternative: Laravel scheduler (also registers pbx3:cdr-prune at 04:15).
+
+15 4 * * * root cd /opt/pbx3api && /usr/bin/php artisan pbx3:cdr-prune >> /var/log/pbx3-cdr-prune.log 2>&1
