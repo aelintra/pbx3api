@@ -307,7 +307,7 @@ install_cron_jobs() {
     app_root="${APP_ROOT:-${REPO_ROOT}}"
 
     # Only wire the app path if it differs from the packaged /opt/pbx3api default.
-    for job in pbx3-backup pbx3-recordings; do
+    for job in pbx3-backup pbx3-recordings pbx3-logs; do
         src="${cron_dir}/${job}.example"
         dst="/etc/cron.d/${job}"
         if [ ! -f "${src}" ]; then

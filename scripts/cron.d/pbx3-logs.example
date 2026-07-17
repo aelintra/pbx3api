@@ -1,5 +1,5 @@
 # Instance log ship to org S3 (Phase 1 — FLEET_LOG_RETENTION_REQUIREMENTS.md).
-# Install: cp to /etc/cron.d/pbx3-logs and adjust paths.
+# Installed by: pbx3api/scripts/installer.sh and fleet onboard (→ /etc/cron.d/pbx3-logs).
 #
 # Prefer root so /var/log/syslog and Asterisk logs are readable.
 # Requires: PBX3_ORG_BUCKET in /opt/pbx3api/.env (solo nodes: omit / leave upload disabled).
