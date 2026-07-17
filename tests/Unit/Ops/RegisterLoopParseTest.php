@@ -41,4 +41,13 @@ class RegisterLoopParseTest extends TestCase
         $this->assertTrue(IpAllowlist::contains($list, '203.0.113.50'));
         $this->assertFalse(IpAllowlist::contains($list, '198.51.100.1'));
     }
+
+    public function test_endpoint_resolve_unknown_passthrough(): void
+    {
+        // No DB row required: unknown auth id returns itself.
+        $r = \App\Services\Ops\EndpointUidResolver::resolve('no-such-uid');
+        $this->assertSame('no-such-uid', $r['extension']);
+        $this->assertSame('no-such-uid', $r['endpoint_uid']);
+        $this->assertSame('', $r['endpoint_name']);
+    }
 }

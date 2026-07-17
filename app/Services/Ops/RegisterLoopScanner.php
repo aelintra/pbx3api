@@ -159,12 +159,17 @@ final class RegisterLoopScanner
             }
 
             try {
+                $authId = (string) $b['extension'];
+                $resolved = EndpointUidResolver::resolve($authId);
                 $this->client->postEvent([
                     'type' => 'misconfig_register',
                     'instance_id' => $instanceId,
                     'instance_label' => $label,
                     'fqdn' => $fqdn,
-                    'extension' => $b['extension'],
+                    // Dialable ext when known; else Asterisk auth id (shortuid / legacy pkey).
+                    'extension' => $resolved['extension'],
+                    'endpoint_uid' => $resolved['endpoint_uid'],
+                    'endpoint_name' => $resolved['endpoint_name'],
                     'source_ip' => $b['source_ip'],
                     'count' => (int) $b['count'],
                     'window_seconds' => $windowSec,
