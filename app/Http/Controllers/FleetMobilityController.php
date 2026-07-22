@@ -26,6 +26,20 @@ class FleetMobilityController extends Controller
         ]);
     }
 
+    /** Gatekeeper fleet probe — AMI Egress qualify (Avail/Unavail). */
+    public function egressQualify(\App\Services\Fleet\FleetPostureService $posture): JsonResponse
+    {
+        $live = $posture->egressQualifyLive();
+
+        return response()->json([
+            'fleet' => $posture->isFleetNode(),
+            'egress_trunk' => (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress'),
+            'state' => (string) ($live['state'] ?? 'Unknown'),
+            'rtt_ms' => $live['rtt_ms'] ?? null,
+            'latency' => $live['latency'] ?? null,
+        ]);
+    }
+
     public function export(Request $request, string $tenant, TenantMobilityService $mobility): JsonResponse
     {
         $presignedUrl = (string) $request->input('presigned_put_url', '');
