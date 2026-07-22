@@ -26,6 +26,7 @@ class FleetPreflightService
             $this->checkS3BackupsPrefix(),
             $this->checkNodeTenantPrefixDenied(),
             $this->checkEgressTrunk(),
+            $this->checkEgressQualify(),
             $this->checkSiplogFleetOff(),
         ];
     }
@@ -275,6 +276,40 @@ class FleetPreflightService
             'name' => 'Egress trunk',
             'ok' => true,
             'detail' => "{$pkey} → ".((string) ($row->host ?? 'unset')),
+        ];
+    }
+
+    /** @return FleetCheck */
+    private function checkEgressQualify(): array
+    {
+        $posture = app(FleetPostureService::class);
+        if (! $posture->isFleetNode() && ! config('pbx3_directory.org_bucket')) {
+            return [
+                'name' => 'Egress qualify',
+                'ok' => true,
+                'detail' => 'skipped (solo node)',
+            ];
+        }
+
+        $live = $posture->egressQualifyLive();
+        $state = (string) ($live['state'] ?? 'Unknown');
+        if ($state === 'Avail') {
+            $rtt = $live['rtt_ms'];
+            $detail = $rtt !== null ? "Avail ({$rtt} ms)" : 'Avail';
+
+            return [
+                'name' => 'Egress qualify',
+                'ok' => true,
+                'detail' => $detail,
+            ];
+        }
+
+        return [
+            'name' => 'Egress qualify',
+            'ok' => false,
+            'detail' => $state === 'Unavail'
+                ? 'Unavail — SBC OPTIONS qualify failed (see FLEET_EGRESS_AVAILABILITY_REQUIREMENTS.md)'
+                : 'Unknown — AMI/qualify not available',
         ];
     }
 

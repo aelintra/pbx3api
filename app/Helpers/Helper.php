@@ -684,10 +684,10 @@ if (!function_exists('pjsip_endpoint_live')) {
      *
      * @param \App\CustomClasses\Ami $amiHandle Connected AMI handle
      * @param string $pkey Extension/endpoint pkey (e.g. 101)
-     * @return array{ip: string, latency: string} ip address and latency display (e.g. "OK (5 ms)" or "Unknown")
+     * @return array{ip: string, latency: string, qualify: string} ip, latency display, qualify Avail|Unavail|Unknown
      */
     function pjsip_endpoint_live($amiHandle, $pkey) {
-        $out = ['ip' => null, 'latency' => null];
+        $out = ['ip' => null, 'latency' => null, 'qualify' => 'Unknown'];
         try {
             // Full response required: ContactDetail (URI, RoundtripUsec) follows ListItems in AMI stream.
             // amiPjsipShowEndpointForLive stops at ListItems and discards later events — only some rows parsed OK.
@@ -696,6 +696,7 @@ if (!function_exists('pjsip_endpoint_live')) {
             Log::warning('PJSIPShowEndpoint failed', ['pkey' => $pkey, 'error' => $e->getMessage()]);
             $out['ip'] = 'Unknown';
             $out['latency'] = 'Unknown';
+            $out['qualify'] = 'Unknown';
             return $out;
         }
         // Parse multi-event response - collect ALL key-value pairs from all events (like old system)
@@ -748,11 +749,25 @@ if (!function_exists('pjsip_endpoint_live')) {
         if ($out['ip'] === null) {
             $out['ip'] = 'Unknown';
         }
+
+        // ContactStatusDetail.Status: Reachable|Unreachable (AMI); CLI shows Avail|Unavail
+        $statusRaw = strtolower((string) ($kv['Status'] ?? ''));
+        if (in_array($statusRaw, ['reachable', 'avail'], true)) {
+            $out['qualify'] = 'Avail';
+        } elseif (in_array($statusRaw, ['unreachable', 'unavail', 'unavailable'], true)) {
+            $out['qualify'] = 'Unavail';
+        } elseif (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
+            $out['qualify'] = 'Avail';
+        }
         
-        // Extract latency from RoundtripUsec
-        if (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
+        // Extract latency from RoundtripUsec; Unavail surfaces as latency for existing SPA chips
+        if ($out['qualify'] === 'Unavail') {
+            $out['latency'] = 'Unavail';
+        } elseif (!empty($kv['RoundtripUsec']) && is_numeric($kv['RoundtripUsec'])) {
             $ms = (int) round((float) $kv['RoundtripUsec'] / 1000);
             $out['latency'] = 'OK (' . $ms . ' ms)';
+        } elseif ($out['qualify'] === 'Avail') {
+            $out['latency'] = 'OK';
         } else {
             $out['latency'] = 'Unknown';
         }

@@ -29,7 +29,14 @@ class FleetPostureService
     }
 
     /**
-     * @return array{fleet: bool, egress_trunk: string, sbc_egress_host: string, sbc_egress_port: int, hide_route_paths: bool}
+     * @return array{
+     *   fleet: bool,
+     *   egress_trunk: string,
+     *   sbc_egress_host: string,
+     *   sbc_egress_port: int,
+     *   hide_route_paths: bool,
+     *   egress_qualify: array{state: string, rtt_ms: int|null, latency: string|null}
+     * }
      */
     public function toArray(): array
     {
@@ -41,6 +48,47 @@ class FleetPostureService
             'sbc_egress_host' => (string) config('pbx3_fleet.sbc_egress_host'),
             'sbc_egress_port' => (int) config('pbx3_fleet.sbc_egress_port'),
             'hide_route_paths' => $fleet,
+            'egress_qualify' => $this->egressQualifyLive(),
+        ];
+    }
+
+    /**
+     * Live PJSIP qualify for the fleet Egress trunk (AMI ContactStatusDetail).
+     *
+     * @return array{state: string, rtt_ms: int|null, latency: string|null}
+     */
+    public function egressQualifyLive(): array
+    {
+        $unknown = ['state' => 'Unknown', 'rtt_ms' => null, 'latency' => null];
+        if (! $this->isFleetNode()) {
+            return $unknown;
+        }
+        if (! function_exists('pbx_is_running') || ! pbx_is_running()) {
+            return $unknown;
+        }
+        if (! function_exists('get_ami_handle') || ! function_exists('pjsip_endpoint_live')) {
+            return $unknown;
+        }
+
+        $pkey = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
+        try {
+            $ami = get_ami_handle();
+            $live = pjsip_endpoint_live($ami, $pkey);
+            $ami->logout();
+        } catch (\Throwable) {
+            return $unknown;
+        }
+
+        $latency = is_string($live['latency'] ?? null) ? $live['latency'] : null;
+        $rtt = null;
+        if (is_string($latency) && preg_match('/(\d+)\s*ms\b/i', $latency, $m)) {
+            $rtt = (int) $m[1];
+        }
+
+        return [
+            'state' => (string) ($live['qualify'] ?? 'Unknown'),
+            'rtt_ms' => $rtt,
+            'latency' => $latency,
         ];
     }
 
