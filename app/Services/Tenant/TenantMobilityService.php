@@ -33,12 +33,12 @@ class TenantMobilityService
         'queue',
         'recordings',
         'route',
-        // users (Laravel auth) lives in instance SQL, not sqlite_create_tenant.sql — not exported
+        // Laravel `users` are not in sqlite_create_tenant.sql — packed as portable_users.json (P4).
     ];
 
     /**
-     * @param  array{include_recordings?: bool, output_path?: string|null}  $options
-     * @return array{zip_path: string, manifest: array<string, mixed>}
+     * @param  array{include_recordings?: bool, output_path?: string|null, detach_portable_users?: bool}  $options
+     * @return array{zip_path: string, manifest: array<string, mixed>, portable_users?: array{deleted: int, stripped: int}|null}
      */
     public function export(string $identifier, array $options = []): array
     {
@@ -60,9 +60,15 @@ class TenantMobilityService
             throw new \RuntimeException('Cannot create temp export directory');
         }
 
+        $detachResult = null;
         try {
             $miniDb = $workDir.'/tenant.sqlite.db';
             $rowCounts = $this->buildMiniDatabase($this->openPdo(), $cluster, $aliases, $miniDb);
+
+            $portable = app(PortableUserMobility::class);
+            $portableUsers = $portable->collectForTenant($shortuid);
+            $portable->writeExportFile($workDir, $shortuid, $portableUsers);
+            $rowCounts['portable_users'] = count($portableUsers);
 
             $mediaRoot = $workDir.'/media';
             $greetingBytes = $this->exportGreetingMedia($shortuid, $mediaRoot.'/greetings/'.$shortuid);
@@ -89,6 +95,7 @@ class TenantMobilityService
                     'recordings_bytes' => $recordingBytes,
                     'include_recordings' => ! empty($options['include_recordings']),
                 ],
+                'portable_users' => count($portableUsers),
             ];
             file_put_contents($workDir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
@@ -96,7 +103,15 @@ class TenantMobilityService
             $zipPath = $options['output_path'] ?? "{$exportDir}/{$zipName}";
             $this->createZip($workDir, $zipPath);
 
-            return ['zip_path' => $zipPath, 'manifest' => $manifest];
+            if (! empty($options['detach_portable_users'])) {
+                $detachResult = $portable->detachFromSource($shortuid);
+            }
+
+            return [
+                'zip_path' => $zipPath,
+                'manifest' => $manifest,
+                'portable_users_detach' => $detachResult,
+            ];
         } finally {
             $this->removeTree($workDir);
         }
@@ -157,6 +172,8 @@ class TenantMobilityService
                 if ($conflict !== null && ! empty($options['replace'])) {
                     $aliases = cluster_identifier_aliases($shortuid);
                     $this->removeTenantRows($pdo, $aliases, $clusterId);
+                    // Drop destination portable users for this tenant before re-import.
+                    app(PortableUserMobility::class)->removeOrStripForTenant($shortuid);
                 }
                 // mergeMiniDatabase opens a separate PDO to the mini-DB — SQLite forbids
                 // ATTACH DATABASE while this connection has an open transaction.
@@ -170,6 +187,8 @@ class TenantMobilityService
                 throw $e;
             }
 
+            $portableImport = app(PortableUserMobility::class)->importFromWorkDir($workDir, $shortuid);
+
             $mediaResult = ['greetings' => false, 'recordings' => false];
             if (empty($options['skip_media'])) {
                 $mediaResult = $this->installMedia($workDir, $shortuid, (string) ($tenant['pkey'] ?? ''));
@@ -182,6 +201,7 @@ class TenantMobilityService
             return [
                 'tenant' => $tenant,
                 'imported_rows' => $imported,
+                'portable_users' => $portableImport,
                 'media' => $mediaResult,
                 'manifest' => $manifest,
             ];

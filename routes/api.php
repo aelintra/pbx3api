@@ -47,20 +47,21 @@ Route::group(['prefix' => 'auth'], function () {
  */
     Route::post('login', [AuthController::class, 'login']);
 /**
- * logout and whoami are available to all logged in users
+ * logout, whoami, change-own-password — any authenticated user
  */
-    Route::group(['middleware' => 'auth:sanctum'], function() {
+    Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('logout', [AuthController::class, 'logout']);
         Route::get('whoami', [AuthController::class, 'user']);
+        Route::put('password', [AuthController::class, 'changePassword']);
     });
 
-    Route::group(['middleware' => ['auth:sanctum', 'validate.cluster']], function() {
+    Route::group(['middleware' => ['auth:sanctum', 'validate.cluster']], function () {
 /**
  * Stuff which has to be logged in but does not need admin privileges
  */
-    Route::put('astamis/DBput/srktwin/{key}/{value}', [AstAmiController::class, 'dbput']);
-    Route::delete('astamis/DBdel/srktwin/{key}', [AstAmiController::class, 'dbdel']);
-});
+        Route::put('astamis/DBput/srktwin/{key}/{value}', [AstAmiController::class, 'dbput']);
+        Route::delete('astamis/DBdel/srktwin/{key}', [AstAmiController::class, 'dbdel']);
+    });
 
 /**
  *  Only admins can create, delete and view users
@@ -71,6 +72,8 @@ Route::group(['prefix' => 'auth'], function () {
         Route::get('users/mail/{email}', [AuthController::class, 'userByEmail']);
         Route::get('users/name/{name}', [AuthController::class, 'userByName']);
         Route::get('users/endpoint/{endpoint}', [AuthController::class, 'userByEndpoint']);
+        Route::put('users/{id}', [AuthController::class, 'update']);
+        Route::put('users/{id}/password', [AuthController::class, 'forcePassword']);
         Route::delete('users/revoke/{id}', [AuthController::class, 'revoke']);
         Route::get('users/{id}', [AuthController::class, 'userById']);
         Route::delete('users/{id}', [AuthController::class, 'delete']);
@@ -98,333 +101,295 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     });
 });
 
-// Expansion: granular abilities and admin vs tenant route groups — see pbx3spa/workingdocs/ADMIN_PANELS_AND_PERMISSIONS.md.
+// Instance user privileges: admin | tenant | recordings — see INSTANCE_USER_PRIVILEGES_REQUIREMENTS.md
 
-Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
- * Everything in this group requires admin privileges (Sanctum abilities:admin).
+ * Tenant ops (ability:admin,tenant — CheckForAnyAbility). Cluster row-scope in controllers.
  */
-/**
- * Schema metadata (read_only, updateable, defaults) for admin panels
- */
+Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::get('schemas', [SchemaController::class, 'index']);
 
-/**
- * Agents
- */
-        Route::get('agents', [AgentController::class, 'index']);
-        Route::get('agents/export/pdf', [AgentController::class, 'exportPdf']);
-        Route::get('agents/{agent}', [AgentController::class, 'show']);
-        Route::post('agents', [AgentController::class, 'save']);
-        Route::put('agents/{agent}', [AgentController::class, 'update']);
-        Route::delete('agents/{agent}', [AgentController::class, 'delete']);
+    Route::get('agents', [AgentController::class, 'index']);
+    Route::get('agents/export/pdf', [AgentController::class, 'exportPdf']);
+    Route::get('agents/{agent}', [AgentController::class, 'show']);
+    Route::post('agents', [AgentController::class, 'save']);
+    Route::put('agents/{agent}', [AgentController::class, 'update']);
+    Route::delete('agents/{agent}', [AgentController::class, 'delete']);
 
+    Route::get('extensions', [ExtensionController::class, 'index']);
+    Route::get('extensions/live', [ExtensionController::class, 'indexLive']);
+    Route::get('extensions/export/pdf', [ExtensionController::class, 'exportPdf']);
+    Route::get('extensions/{extension}', [ExtensionController::class, 'show']);
+    Route::get('extensions/{extension}/runtime', [ExtensionController::class, 'showruntime']);
+    Route::get('extensions/{extension}/cos', [ExtensionController::class, 'showcos']);
+    Route::post('extensions', [ExtensionController::class, 'save']);
+    Route::put('extensions/{extension}', [ExtensionController::class, 'update']);
+    Route::put('extensions/{extension}/runtime', [ExtensionController::class, 'updateruntime']);
+    Route::put('extensions/{extension}/cos', [ExtensionController::class, 'updatecos']);
+    Route::post('extensions/{extension}/regenerate-sip-password', [ExtensionController::class, 'regenerateSipPassword']);
+    Route::delete('extensions/{extension}', [ExtensionController::class, 'delete']);
+
+    Route::get('conferences', [ConferenceController::class, 'index']);
+    Route::get('conferences/export/pdf', [ConferenceController::class, 'exportPdf']);
+    Route::get('conferences/{conference}', [ConferenceController::class, 'show']);
+    Route::post('conferences', [ConferenceController::class, 'save']);
+    Route::put('conferences/{conference}', [ConferenceController::class, 'update']);
+    Route::delete('conferences/{conference}', [ConferenceController::class, 'delete']);
+
+    Route::get('queues', [QueueController::class, 'index']);
+    Route::get('queues/export/pdf', [QueueController::class, 'exportPdf']);
+    Route::get('queues/{queue}', [QueueController::class, 'show']);
+    Route::post('queues', [QueueController::class, 'save']);
+    Route::put('queues/{queue}', [QueueController::class, 'update']);
+    Route::delete('queues/{queue}', [QueueController::class, 'delete']);
+
+    Route::get('ivrs', [IvrController::class, 'index']);
+    Route::get('ivrs/export/pdf', [IvrController::class, 'exportPdf']);
+    Route::get('ivrs/{ivr}', [IvrController::class, 'show']);
+    Route::post('ivrs', [IvrController::class, 'save']);
+    Route::put('ivrs/{ivr}', [IvrController::class, 'update']);
+    Route::delete('ivrs/{ivr}', [IvrController::class, 'delete']);
+
+    Route::get('inboundroutes', [InboundRouteController::class, 'index']);
+    Route::get('inboundroutes/export/pdf', [InboundRouteController::class, 'exportPdf']);
+    Route::get('inboundroutes/{inboundroute}', [InboundRouteController::class, 'show']);
+    Route::post('inboundroutes', [InboundRouteController::class, 'save']);
+    Route::put('inboundroutes/{inboundroute}', [InboundRouteController::class, 'update']);
+    Route::delete('inboundroutes/{inboundroute}', [InboundRouteController::class, 'delete']);
+
+    Route::get('daytimers', [DayTimerController::class, 'index']);
+    Route::get('daytimers/{daytimer}', [DayTimerController::class, 'show']);
+    Route::post('daytimers', [DayTimerController::class, 'save']);
+    Route::put('daytimers/{daytimer}', [DayTimerController::class, 'update']);
+    Route::delete('daytimers/{daytimer}', [DayTimerController::class, 'delete']);
+
+    Route::get('holidaytimers', [HolidayTimerController::class, 'index']);
+    Route::get('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'show']);
+    Route::post('holidaytimers', [HolidayTimerController::class, 'save']);
+    Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
+    Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
+
+    Route::get('coscloses', [CosCloseController::class, 'index']);
+    Route::get('coscloses/{cosclose}', [CosCloseController::class, 'show']);
+    Route::post('coscloses', [CosCloseController::class, 'save']);
+    Route::put('coscloses/{cosclose}', [CosCloseController::class, 'update']);
+    Route::delete('coscloses/{cosclose}', [CosCloseController::class, 'delete']);
+
+    Route::get('cosopens', [CosOpenController::class, 'index']);
+    Route::get('cosopens/{cosopen}', [CosOpenController::class, 'show']);
+    Route::post('cosopens', [CosOpenController::class, 'save']);
+    Route::put('cosopens/{cosopen}', [CosOpenController::class, 'update']);
+    Route::delete('cosopens/{cosopen}', [CosOpenController::class, 'delete']);
+
+    Route::get('cosrules', [ClassOfServiceController::class, 'index']);
+    Route::get('cosrules/{classofservice}', [ClassOfServiceController::class, 'show']);
+    Route::post('cosrules', [ClassOfServiceController::class, 'save']);
+    Route::put('cosrules/{classofservice}', [ClassOfServiceController::class, 'update']);
+    Route::delete('cosrules/{classofservice}', [ClassOfServiceController::class, 'delete']);
+
+    Route::get('greetings', [GreetingController::class, 'index']);
+    Route::get('greetings/{greeting}', [GreetingController::class, 'download']);
+    Route::post('greetings', [GreetingController::class, 'save']);
+    Route::delete('greetings/{greeting}', [GreetingController::class, 'delete']);
+
+    Route::get('greetingrecords', [GreetingRecordController::class, 'index']);
+    Route::get('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'show']);
+    Route::get('greetingrecords/{greetingrecord}/download', [GreetingRecordController::class, 'download']);
+    Route::post('greetingrecords', [GreetingRecordController::class, 'save']);
+    Route::put('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'update']);
+    Route::post('greetingrecords/{greetingrecord}/replace', [GreetingRecordController::class, 'replace']);
+    Route::delete('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'delete']);
+
+    Route::get('destinations', [DestinationController::class, 'index']);
+
+    Route::get('cdr', [CdrController::class, 'index']);
+
+    Route::get('helpcore', [HelpCoreController::class, 'index']);
+    Route::get('helpcore/{helpcore}', [HelpCoreController::class, 'show']);
+
+    Route::get('syscommands/commitstatus', [SysCommandController::class, 'commitstatus']);
+    Route::get('syscommands/commit', [SysCommandController::class, 'commit']);
+    Route::get('syscommands/pbxrunstate', [SysCommandController::class, 'pbxrunstate']);
+    Route::get('syscommands/sysnotes', [SysCommandController::class, 'sysnotes']);
+
+    // Home chip / read-only instance label (PUT stays admin-only below)
+    Route::get('sysglobals', [SysglobalController::class, 'index']);
+});
+
+/**
+ * Recordings listen/download (ability:admin,recordings).
+ */
+Route::middleware(['auth:sanctum', 'ability:admin,recordings'])->group(function () {
+    Route::get('recordings', [RecordingController::class, 'index']);
+    Route::get('recordings/{recording}/stream', [RecordingController::class, 'stream']);
+    Route::get('recordings/{recording}/download', [RecordingController::class, 'download']);
+});
+
+/**
+ * Admin-only: trunks, routes, tenants, devices, system, AMI, user-adjacent help write, etc.
+ */
+Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
  *  Asterisk AMI
  */
-        Route::get('astamis', [AstAmiController::class, 'index']);
-        Route::get('astamis/CoreSettings', [AstAmiController::class, 'coresettings']);
-        Route::get('astamis/CoreStatus', [AstAmiController::class, 'corestatus']);
+    Route::get('astamis', [AstAmiController::class, 'index']);
+    Route::get('astamis/CoreSettings', [AstAmiController::class, 'coresettings']);
+    Route::get('astamis/CoreStatus', [AstAmiController::class, 'corestatus']);
 
-        Route::get('astamis/ExtensionState/{id}{context?}', [AstAmiController::class, 'extensionstate']);
-        Route::get('astamis/MailboxCount/{id}', [AstAmiController::class, 'mailboxcount']);
-        Route::get('astamis/MailboxStatus/{id}', [AstAmiController::class, 'mailboxstatus']);
-        Route::get('astamis/QueueStatus/{id}', [AstAmiController::class, 'queuestatus']);
-        Route::get('astamis/QueueSummary/{id}', [AstAmiController::class, 'queuesummary']);
-        Route::get('astamis/Reload', [AstAmiController::class, 'reload']);
-//        Route::get('astamis/SIPshowpeer/{id}', [AstAmiController::class, 'sipshowpeer']);
-        Route::post('astamis/originate', [AstAmiController::class, 'originate']);
-        Route::get('astamis/DBget/{id}/{key}', [AstAmiController::class, 'dbget']);
-        Route::put('astamis/DBput/{id}/{key}/{value}', [AstAmiController::class, 'dbput']);
-        Route::delete('astamis/DBdel/{id}/{key}', [AstAmiController::class, 'dbdel']);
-        Route::delete('astamis/Hangup/{id}/{key}', [AstAmiController::class, 'hangup']);
-        Route::get('astamis/{action}/{id?}', [AstAmiController::class, 'getlist']);
+    Route::get('astamis/ExtensionState/{id}{context?}', [AstAmiController::class, 'extensionstate']);
+    Route::get('astamis/MailboxCount/{id}', [AstAmiController::class, 'mailboxcount']);
+    Route::get('astamis/MailboxStatus/{id}', [AstAmiController::class, 'mailboxstatus']);
+    Route::get('astamis/QueueStatus/{id}', [AstAmiController::class, 'queuestatus']);
+    Route::get('astamis/QueueSummary/{id}', [AstAmiController::class, 'queuesummary']);
+    Route::get('astamis/Reload', [AstAmiController::class, 'reload']);
+    Route::post('astamis/originate', [AstAmiController::class, 'originate']);
+    Route::get('astamis/DBget/{id}/{key}', [AstAmiController::class, 'dbget']);
+    Route::put('astamis/DBput/{id}/{key}/{value}', [AstAmiController::class, 'dbput']);
+    Route::delete('astamis/DBdel/{id}/{key}', [AstAmiController::class, 'dbdel']);
+    Route::delete('astamis/Hangup/{id}/{key}', [AstAmiController::class, 'hangup']);
+    Route::get('astamis/{action}/{id?}', [AstAmiController::class, 'getlist']);
 
 /**
  * Backups
  */
-        Route::get('backups', [BackupController::class, 'index']);
-        Route::get('backups/new', [BackupController::class, 'new']);
-        Route::get('backups/archive/{backup_stamp}/download-url', [BackupController::class, 'downloadArchiveUrl'])
-            ->where('backup_stamp', '\d{8}T\d{6}Z');
-        Route::post('backups/restore-from-archive', [BackupController::class, 'restoreFromArchive']);
-        Route::get('backups/{backup}', [BackupController::class, 'download']);
-        Route::post('backups', [BackupController::class, 'save']);
-        Route::put('backups/{backup}', [BackupController::class, 'update']);
-        Route::delete('backups/{backup}', [BackupController::class, 'delete']);
+    Route::get('backups', [BackupController::class, 'index']);
+    Route::get('backups/new', [BackupController::class, 'new']);
+    Route::get('backups/archive/{backup_stamp}/download-url', [BackupController::class, 'downloadArchiveUrl'])
+        ->where('backup_stamp', '\d{8}T\d{6}Z');
+    Route::post('backups/restore-from-archive', [BackupController::class, 'restoreFromArchive']);
+    Route::get('backups/{backup}', [BackupController::class, 'download']);
+    Route::post('backups', [BackupController::class, 'save']);
+    Route::put('backups/{backup}', [BackupController::class, 'update']);
+    Route::delete('backups/{backup}', [BackupController::class, 'delete']);
 
 /**
- * Closed CoS
+ * Custom Apps
  */
-        Route::get('coscloses', [CosCloseController::class, 'index']);
-        Route::get('coscloses/{cosclose}', [CosCloseController::class, 'show']);
-        Route::post('coscloses', [CosCloseController::class, 'save']);
-        Route::put('coscloses/{cosclose}', [CosCloseController::class, 'update']);
-        Route::delete('coscloses/{cosclose}', [CosCloseController::class, 'delete']);
+    Route::get('customapps', [CustomAppController::class, 'index']);
+    Route::get('customapps/{customapp}', [CustomAppController::class, 'show']);
+    Route::post('customapps', [CustomAppController::class, 'save']);
+    Route::put('customapps/{customapp}', [CustomAppController::class, 'update']);
+    Route::delete('customapps/{customapp}', [CustomAppController::class, 'delete']);
 
-    /**
-     * Open CoS
-     */
-        Route::get('cosopens', [CosOpenController::class, 'index']);
-        Route::get('cosopens/{cosopen}', [CosOpenController::class, 'show']);
-        Route::post('cosopens', [CosOpenController::class, 'save']);
-        Route::put('cosopens/{cosopen}', [CosOpenController::class, 'update']);
-        Route::delete('cosopens/{cosopen}', [CosOpenController::class, 'delete']);
+/**
+ * Devices (provisioning templates; instance-scoped, pkey-only)
+ */
+    Route::get('devices', [DeviceController::class, 'index']);
+    Route::get('devices/{device}', [DeviceController::class, 'show']);
+    Route::post('devices', [DeviceController::class, 'save']);
+    Route::put('devices/{device}', [DeviceController::class, 'update']);
+    Route::delete('devices/{device}', [DeviceController::class, 'delete']);
 
-    /**
-     * Class of Service
-     */
-        Route::get('cosrules', [ClassOfServiceController::class, 'index']);
-        Route::get('cosrules/{classofservice}', [ClassOfServiceController::class, 'show']);
-        Route::post('cosrules', [ClassOfServiceController::class, 'save']);
-        Route::put('cosrules/{classofservice}', [ClassOfServiceController::class, 'update']);
-        Route::delete('cosrules/{classofservice}', [ClassOfServiceController::class, 'delete']);
-    /**
-     * Custom Apps
-     */
-        Route::get('customapps', [CustomAppController::class, 'index']);
-        Route::get('customapps/{customapp}', [CustomAppController::class, 'show']);
-        Route::post('customapps', [CustomAppController::class, 'save']);
-        Route::put('customapps/{customapp}', [CustomAppController::class, 'update']);
-        Route::delete('customapps/{customapp}', [CustomAppController::class, 'delete']);
+/**
+ * Help messages write (GET is under tenant group)
+ */
+    Route::post('helpcore', [HelpCoreController::class, 'save']);
+    Route::put('helpcore/{helpcore}', [HelpCoreController::class, 'update']);
+    Route::delete('helpcore/{helpcore}', [HelpCoreController::class, 'delete']);
 
-    /**
-     * Devices (provisioning templates; instance-scoped, pkey-only)
-     */
-        Route::get('devices', [DeviceController::class, 'index']);
-        Route::get('devices/{device}', [DeviceController::class, 'show']);
-        Route::post('devices', [DeviceController::class, 'save']);
-        Route::put('devices/{device}', [DeviceController::class, 'update']);
-        Route::delete('devices/{device}', [DeviceController::class, 'delete']);
+/**
+ * Firewall
+ */
+    Route::get('firewalls/ipv4', [FirewallController::class, 'ipv4']);
+    Route::get('firewalls/ipv6', [FirewallController::class, 'ipv6']);
+    Route::post('firewalls/ipv4', [FirewallController::class, 'ipv4save']);
+    Route::post('firewalls/ipv6', [FirewallController::class, 'ipv6save']);
+    Route::put('firewalls/ipv4', [FirewallController::class, 'ipv4restart']);
+    Route::put('firewalls/ipv6', [FirewallController::class, 'ipv6restart']);
 
-    /**
-     * Help messages (tt_help_core; instance-scoped, pkey-only)
-     */
-        Route::get('helpcore', [HelpCoreController::class, 'index']);
-        Route::get('helpcore/{helpcore}', [HelpCoreController::class, 'show']);
-        Route::post('helpcore', [HelpCoreController::class, 'save']);
-        Route::put('helpcore/{helpcore}', [HelpCoreController::class, 'update']);
-        Route::delete('helpcore/{helpcore}', [HelpCoreController::class, 'delete']);
+/**
+ * Asterisk config files (/etc/asterisk)
+ */
+    Route::get('astfiles', [AsteriskFileController::class, 'index']);
+    Route::get('astfiles/{filename}', [AsteriskFileController::class, 'show']);
+    Route::put('astfiles/{filename}', [AsteriskFileController::class, 'update']);
 
-    /**
-     * Day Timers
-     */
-        Route::get('daytimers', [DayTimerController::class, 'index']);
-        Route::get('daytimers/{daytimer}', [DayTimerController::class, 'show']);
-        Route::post('daytimers', [DayTimerController::class, 'save']);
-        Route::put('daytimers/{daytimer}', [DayTimerController::class, 'update']);
-        Route::delete('daytimers/{daytimer}', [DayTimerController::class, 'delete']);
+/**
+ * Logs
+ */
+    Route::get('logs', [LogController::class, 'index']);
+    Route::get('logs/retention', [LogController::class, 'retentionShow']);
+    Route::put('logs/retention', [LogController::class, 'retentionUpdate']);
+    Route::get('logs/archive', [LogController::class, 'archiveIndex']);
+    Route::get('logs/archive/download-url', [LogController::class, 'archiveDownloadUrl']);
+    Route::get('logs/cdrs{limit}', [LogController::class, 'showcdr']);
+    Route::get('logs/{logfile}/download', [LogController::class, 'download']);
+    Route::get('logs/{logfile}', [LogController::class, 'show']);
 
-    /**
-     * Destinations
-     */
-        Route::get('destinations', [DestinationController::class, 'index']);
+/**
+ * Snapshots
+ */
+    Route::get('snapshots', [SnapShotController::class, 'index']);
+    Route::get('snapshots/new', [SnapShotController::class, 'new']);
+    Route::get('snapshots/{snapshot}', [SnapShotController::class, 'download']);
+    Route::post('snapshots', [SnapShotController::class, 'save']);
+    Route::put('snapshots/{snapshot}', [SnapShotController::class, 'update']);
+    Route::delete('snapshots/{snapshot}', [SnapShotController::class, 'delete']);
 
-    /**
-     * Extensions
-     */
-        Route::get('extensions', [ExtensionController::class, 'index']);
-        Route::get('extensions/live', [ExtensionController::class, 'indexLive']);
-        Route::get('extensions/export/pdf', [ExtensionController::class, 'exportPdf']);
-        Route::get('extensions/{extension}', [ExtensionController::class, 'show']);
-        Route::get('extensions/{extension}/runtime', [ExtensionController::class, 'showruntime']);
-        Route::get('extensions/{extension}/cos', [ExtensionController::class, 'showcos']);
-        Route::post('extensions', [ExtensionController::class, 'save']);
-        Route::put('extensions/{extension}', [ExtensionController::class, 'update']);
-        Route::put('extensions/{extension}/runtime', [ExtensionController::class, 'updateruntime']);
-        Route::put('extensions/{extension}/cos', [ExtensionController::class, 'updatecos']);
-        Route::post('extensions/{extension}/regenerate-sip-password', [ExtensionController::class, 'regenerateSipPassword']);
-        Route::delete('extensions/{extension}', [ExtensionController::class, 'delete']);
+/**
+ * Routes (outbound)
+ */
+    Route::get('routes', [RouteController::class, 'index']);
+    Route::get('routes/export/pdf', [RouteController::class, 'exportPdf']);
+    Route::get('routes/{route}', [RouteController::class, 'show']);
+    Route::post('routes', [RouteController::class, 'save']);
+    Route::put('routes/{route}', [RouteController::class, 'update']);
+    Route::delete('routes/{route}', [RouteController::class, 'delete']);
 
-    /**
-     * Firewall
-     */
-        Route::get('firewalls/ipv4', [FirewallController::class, 'ipv4']);
-        Route::get('firewalls/ipv6', [FirewallController::class, 'ipv6']);
-        Route::post('firewalls/ipv4', [FirewallController::class, 'ipv4save']);
-        Route::post('firewalls/ipv6', [FirewallController::class, 'ipv6save']);
-        Route::put('firewalls/ipv4', [FirewallController::class, 'ipv4restart']);
-        Route::put('firewalls/ipv6', [FirewallController::class, 'ipv6restart']);
+/**
+ * Certificates
+ */
+    Route::get('certificates/active', [CertificateController::class, 'active']);
+    Route::get('certificates/letsencrypt', [CertificateController::class, 'letsencrypt']);
+    Route::post('certificates/letsencrypt/setup', [CertificateController::class, 'setup']);
+    Route::post('certificates/letsencrypt/sync', [CertificateController::class, 'sync']);
+    Route::post('certificates/letsencrypt/renew', [CertificateController::class, 'renew']);
+    Route::get('certificates/custom', [CertificateController::class, 'customIndex']);
+    Route::post('certificates/custom', [CertificateController::class, 'customStore']);
+    Route::delete('certificates/custom', [CertificateController::class, 'customDestroy']);
 
-    /**
-     * Asterisk config files (/etc/asterisk): list, view, edit (some files read-only).
-     */
-        Route::get('astfiles', [AsteriskFileController::class, 'index']);
-        Route::get('astfiles/{filename}', [AsteriskFileController::class, 'show']);
-        Route::put('astfiles/{filename}', [AsteriskFileController::class, 'update']);
+/**
+ * System Commands (except commit / commitstatus / pbxrunstate — tenant group)
+ */
+    Route::get('syscommands', [SysCommandController::class, 'index']);
+    Route::get('syscommands/reboot', [SysCommandController::class, 'reboot']);
+    Route::get('syscommands/start', [SysCommandController::class, 'start']);
+    Route::get('syscommands/stop', [SysCommandController::class, 'stop']);
+    Route::put('syscommands/hostname', [SysCommandController::class, 'sethostname']);
+    Route::put('syscommands/dns', [SysCommandController::class, 'setdns']);
+    Route::put('syscommands/smtp', [SysCommandController::class, 'setsmtp']);
+    Route::get('syscommands/timezones', [SysCommandController::class, 'timezones']);
+    Route::put('syscommands/timezone', [SysCommandController::class, 'settimezone']);
+    Route::put('syscommands/icmp', [SysCommandController::class, 'seticmp']);
 
-    /**
-     * Greetings
-     */
-        Route::get('greetings', [GreetingController::class, 'index']);
-        Route::get('greetings/{greeting}', [GreetingController::class, 'download']);
-        Route::post('greetings', [GreetingController::class, 'save']);
-        Route::delete('greetings/{greeting}', [GreetingController::class, 'delete']);
+/**
+ * System Globals write
+ */
+    Route::put('sysglobals', [SysglobalController::class, 'update']);
 
-    /**
-     * Greeting records (DB-backed greetings; tenant-scoped)
-     */
-        Route::get('greetingrecords', [GreetingRecordController::class, 'index']);
-        Route::get('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'show']);
-        Route::get('greetingrecords/{greetingrecord}/download', [GreetingRecordController::class, 'download']);
-        Route::post('greetingrecords', [GreetingRecordController::class, 'save']);
-        Route::put('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'update']);
-        Route::post('greetingrecords/{greetingrecord}/replace', [GreetingRecordController::class, 'replace']);
-        Route::delete('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'delete']);
+/**
+ * Tenants
+ */
+    Route::get('tenants', [TenantController::class, 'index']);
+    Route::get('tenants/export/pdf', [TenantController::class, 'exportPdf']);
+    Route::get('tenants/{tenant}', [TenantController::class, 'show']);
+    Route::post('tenants', [TenantController::class, 'save']);
+    Route::put('tenants/{tenant}', [TenantController::class, 'update']);
+    Route::delete('tenants/{tenant}', [TenantController::class, 'delete']);
 
-    /**
-     * Holiday Timers
-     */
-        Route::get('holidaytimers', [HolidayTimerController::class, 'index']);
-        Route::get('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'show']);
-        Route::post('holidaytimers', [HolidayTimerController::class, 'save']);
-        Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
-        Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
-
-    /**
-     * Inbound Routes
-     */
-        Route::get('inboundroutes', [InboundRouteController::class, 'index']);
-        Route::get('inboundroutes/export/pdf', [InboundRouteController::class, 'exportPdf']);
-        Route::get('inboundroutes/{inboundroute}', [InboundRouteController::class, 'show']);
-        Route::post('inboundroutes', [InboundRouteController::class, 'save']);
-        Route::put('inboundroutes/{inboundroute}', [InboundRouteController::class, 'update']);
-        Route::delete('inboundroutes/{inboundroute}', [InboundRouteController::class, 'delete']);
-
-    /**
-     * IVR menus
-     */
-        Route::get('ivrs', [IvrController::class, 'index']);
-        Route::get('ivrs/export/pdf', [IvrController::class, 'exportPdf']);
-        Route::get('ivrs/{ivr}', [IvrController::class, 'show']);
-        Route::post('ivrs', [IvrController::class, 'save']);
-        Route::put('ivrs/{ivr}', [IvrController::class, 'update']);
-        Route::delete('ivrs/{ivr}', [IvrController::class, 'delete']);
-
-    /**
-     * Logs
-     */
-        Route::get('logs', [LogController::class, 'index']);
-        Route::get('logs/retention', [LogController::class, 'retentionShow']);
-        Route::put('logs/retention', [LogController::class, 'retentionUpdate']);
-        Route::get('logs/archive', [LogController::class, 'archiveIndex']);
-        Route::get('logs/archive/download-url', [LogController::class, 'archiveDownloadUrl']);
-        Route::get('logs/cdrs{limit}', [LogController::class, 'showcdr']);
-        // Use symbolic names (e.g., astmessages, astcdrs) instead of paths with slashes
-        Route::get('logs/{logfile}/download', [LogController::class, 'download']);
-        Route::get('logs/{logfile}', [LogController::class, 'show']);
-
-    /**
-     * Asterisk CDR search (Phase 6 — SQLite master.db HoR)
-     */
-        Route::get('cdr', [CdrController::class, 'index']);
-
-    /**
-     * Queues
-     */
-        Route::get('queues', [QueueController::class, 'index']);
-        Route::get('queues/export/pdf', [QueueController::class, 'exportPdf']);
-        Route::get('queues/{queue}', [QueueController::class, 'show']);
-        Route::post('queues', [QueueController::class, 'save']);
-        Route::put('queues/{queue}', [QueueController::class, 'update']);
-        Route::delete('queues/{queue}', [QueueController::class, 'delete']);
-
-    /**
-     * Conferences (meetme; tenant-scoped)
-     */
-        Route::get('conferences', [ConferenceController::class, 'index']);
-        Route::get('conferences/export/pdf', [ConferenceController::class, 'exportPdf']);
-        Route::get('conferences/{conference}', [ConferenceController::class, 'show']);
-        Route::post('conferences', [ConferenceController::class, 'save']);
-        Route::put('conferences/{conference}', [ConferenceController::class, 'update']);
-        Route::delete('conferences/{conference}', [ConferenceController::class, 'delete']);
-
-    /**
-     * Call recordings (Phase R1 — local-first; filesystem-backed, read-only)
-     */
-        Route::get('recordings', [RecordingController::class, 'index']);
-        Route::get('recordings/{recording}/stream', [RecordingController::class, 'stream']);
-        Route::get('recordings/{recording}/download', [RecordingController::class, 'download']);
-
-    /**
-     * Snapshots
-     */
-        Route::get('snapshots', [SnapShotController::class, 'index']);
-        Route::get('snapshots/new', [SnapShotController::class, 'new']);
-        Route::get('snapshots/{snapshot}', [SnapShotController::class, 'download']);
-        Route::post('snapshots', [SnapShotController::class, 'save']);
-        Route::put('snapshots/{snapshot}', [SnapShotController::class, 'update']);
-        Route::delete('snapshots/{snapshot}', [SnapShotController::class, 'delete']);
-
-    /**
-     * Routes
-     */
-        Route::get('routes', [RouteController::class, 'index']);
-        Route::get('routes/export/pdf', [RouteController::class, 'exportPdf']);
-        Route::get('routes/{route}', [RouteController::class, 'show']);
-        Route::post('routes', [RouteController::class, 'save']);
-        Route::put('routes/{route}', [RouteController::class, 'update']);
-        Route::delete('routes/{route}', [RouteController::class, 'delete']);
-
-    /**
-     * Certificates (active source, Let's Encrypt status/renew, custom cert install/remove)
-     */
-        Route::get('certificates/active', [CertificateController::class, 'active']);
-        Route::get('certificates/letsencrypt', [CertificateController::class, 'letsencrypt']);
-        Route::post('certificates/letsencrypt/setup', [CertificateController::class, 'setup']);
-        Route::post('certificates/letsencrypt/sync', [CertificateController::class, 'sync']);
-        Route::post('certificates/letsencrypt/renew', [CertificateController::class, 'renew']);
-        Route::get('certificates/custom', [CertificateController::class, 'customIndex']);
-        Route::post('certificates/custom', [CertificateController::class, 'customStore']);
-        Route::delete('certificates/custom', [CertificateController::class, 'customDestroy']);
-
-    /**
-     * System Commands
-     */
-        Route::get('syscommands', [SysCommandController::class, 'index']);
-        Route::get('syscommands/sysnotes', [SysCommandController::class, 'sysnotes']);
-        Route::get('syscommands/commitstatus', [SysCommandController::class, 'commitstatus']);
-        Route::get('syscommands/commit', [SysCommandController::class, 'commit']);
-        Route::get('syscommands/reboot', [SysCommandController::class, 'reboot']);
-        Route::get('syscommands/pbxrunstate', [SysCommandController::class, 'pbxrunstate']);
-        Route::get('syscommands/start', [SysCommandController::class, 'start']);
-        Route::get('syscommands/stop', [SysCommandController::class, 'stop']);
-        Route::put('syscommands/hostname', [SysCommandController::class, 'sethostname']);
-        Route::put('syscommands/dns', [SysCommandController::class, 'setdns']);
-        Route::put('syscommands/smtp', [SysCommandController::class, 'setsmtp']);
-        Route::get('syscommands/timezones', [SysCommandController::class, 'timezones']);
-        Route::put('syscommands/timezone', [SysCommandController::class, 'settimezone']);
-        Route::put('syscommands/icmp', [SysCommandController::class, 'seticmp']);
-
-    /**
-     * System Globals
-     */
-        Route::get('sysglobals', [SysglobalController::class, 'index']);
-        Route::put('sysglobals', [SysglobalController::class, 'update']);
-
-    /**
-     *  Tenants
-     */
-        Route::get('tenants', [TenantController::class, 'index']);
-        Route::get('tenants/export/pdf', [TenantController::class, 'exportPdf']);
-        Route::get('tenants/{tenant}', [TenantController::class, 'show']);
-        Route::post('tenants', [TenantController::class, 'save']);
-        Route::put('tenants/{tenant}', [TenantController::class, 'update']);
-        Route::delete('tenants/{tenant}', [TenantController::class, 'delete']);
-
-    /**
-     * Trunks
-     */
-        Route::get('trunks', [TrunkController::class, 'index']);
-        Route::get('trunks/live', [TrunkController::class, 'indexLive']);
-        Route::get('trunks/export/pdf', [TrunkController::class, 'exportPdf']);
-        Route::get('trunks/{trunk}', [TrunkController::class, 'show']);
-        Route::post('trunks', [TrunkController::class, 'save']);
-        Route::put('trunks/{trunk}', [TrunkController::class, 'update']);
+/**
+ * Trunks
+ */
+    Route::get('trunks', [TrunkController::class, 'index']);
+    Route::get('trunks/live', [TrunkController::class, 'indexLive']);
+    Route::get('trunks/export/pdf', [TrunkController::class, 'exportPdf']);
+    Route::get('trunks/{trunk}', [TrunkController::class, 'show']);
+    Route::post('trunks', [TrunkController::class, 'save']);
+    Route::put('trunks/{trunk}', [TrunkController::class, 'update']);
     Route::delete('trunks/{trunk}', [TrunkController::class, 'delete']);
 });
 
-Route::fallback(function(){
+Route::fallback(function () {
     return response()->json([
         'message' => 'Unauthorised/Page Not Found'], 404);
 });

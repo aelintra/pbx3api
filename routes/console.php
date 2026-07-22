@@ -148,10 +148,11 @@ Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {-
     return 1;
 })->purpose('Upload a local /opt/pbx3/bkup zip to instances/{ksuid}/backups/ on PBX3_ORG_BUCKET');
 
-Artisan::command('tenant:export {tenant : cluster id, shortuid, or pkey} {--include-recordings : Bundle on-node recording files} {--output= : Override output zip path}', function (TenantMobilityService $mobility) {
+Artisan::command('tenant:export {tenant : cluster id, shortuid, or pkey} {--include-recordings : Bundle on-node recording files} {--detach-users : Remove/strip portable users from this instance after packing (move)} {--output= : Override output zip path}', function (TenantMobilityService $mobility) {
     try {
         $result = $mobility->export($this->argument('tenant'), [
             'include_recordings' => (bool) $this->option('include-recordings'),
+            'detach_portable_users' => (bool) $this->option('detach-users'),
             'output_path' => $this->option('output') ?: null,
         ]);
     } catch (\Throwable $e) {
@@ -168,6 +169,10 @@ Artisan::command('tenant:export {tenant : cluster id, shortuid, or pkey} {--incl
         if ($count > 0) {
             $this->line("  {$table}: {$count}");
         }
+    }
+    $detach = $result['portable_users_detach'] ?? null;
+    if (is_array($detach)) {
+        $this->line('Portable users detached: deleted='.$detach['deleted'].' stripped='.$detach['stripped']);
     }
 
     return 0;
@@ -191,6 +196,13 @@ Artisan::command('tenant:import {zip : Path to export zip} {--replace : Overwrit
         if ($count > 0) {
             $this->line("  {$table}: +{$count}");
         }
+    }
+    $pu = $result['portable_users'] ?? [];
+    if (! empty($pu['count'])) {
+        $this->line('Portable users: created='.($pu['created'] ?? 0).' updated='.($pu['updated'] ?? 0));
+    }
+    foreach ($pu['skipped'] ?? [] as $skip) {
+        $this->warn('  skipped user: '.$skip);
     }
     $media = $result['media'] ?? [];
     if (! empty($media['greetings'])) {

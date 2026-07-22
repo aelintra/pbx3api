@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\InboundRoute;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 
 class InboundRouteController extends Controller
 {
+    use EnforcesClusterScope;
+
     /** Asterisk dialplan extension format: literal digits, pattern _[XZN.!]+, or special s|i|t */
     private const PKEY_EXTENSION_REGEX = '/^(\d+|_[XZN.!]+|[sit])$/';
 
@@ -55,13 +58,13 @@ class InboundRouteController extends Controller
  */
     public function index () {
 
-    	return InboundRoute::orderBy('pkey','asc')->get();
+    	return $this->applyClusterScope(InboundRoute::query())->orderBy('pkey','asc')->get();
     }
 
     /** Export inbound routes list as PDF. Same dataset as index with tenant_pkey resolved. */
     public function exportPdf()
     {
-        $inboundroutes = InboundRoute::orderBy('pkey', 'asc')->get();
+        $inboundroutes = $this->applyClusterScope(InboundRoute::query())->orderBy('pkey', 'asc')->get();
         attach_tenant_pkey_to_collection($inboundroutes);
         return Pdf::loadView('exports.inboundroutes-pdf', ['inboundroutes' => $inboundroutes])
             ->setPaper('a4', 'landscape')
@@ -76,6 +79,7 @@ class InboundRouteController extends Controller
  */
     public function show (InboundRoute $inboundroute) {
 
+    	$this->assertModelClusterAllowed($inboundroute);
     	return response()->json($inboundroute, 200);
     }
 
@@ -91,6 +95,7 @@ class InboundRouteController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $this->normalizeInboundRouteRouteJsonScalars($request);
 
@@ -164,6 +169,7 @@ class InboundRouteController extends Controller
  * @return json response
  */
     public function update(Request $request, InboundRoute $inboundroute) {
+        $this->assertModelClusterAllowed($inboundroute);
 
         $this->normalizeInboundRouteRouteJsonScalars($request);
 
@@ -175,6 +181,7 @@ class InboundRouteController extends Controller
                 $clusterShortuid = $inboundroute->cluster;
                 if (cluster_identifier_to_shortuid($request->input('cluster')) !== null) {
                     $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+                    $this->assertClusterAllowed($clusterShortuid);
                 }
                 if (InboundRoute::where('pkey', $newPkey)->where('cluster', $clusterShortuid)->where('id', '!=', $inboundroute->id)->exists()) {
                     $validator->errors()->add('pkey', 'Duplicate number in this tenant.');
@@ -195,6 +202,7 @@ class InboundRouteController extends Controller
         move_request_to_model($request, $inboundroute, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $inboundroute->cluster = $clusterShortuid;
         }
         if ($request->has('technology')) {
@@ -238,6 +246,7 @@ class InboundRouteController extends Controller
  * @return 204
  */
     public function delete(InboundRoute $inboundroute) {
+        $this->assertModelClusterAllowed($inboundroute);
         $inboundroute->delete();
 
         return response()->json(null, 204);

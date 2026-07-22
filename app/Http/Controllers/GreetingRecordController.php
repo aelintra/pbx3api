@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Greeting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Storage;
 
 class GreetingRecordController extends Controller
 {
+    use EnforcesClusterScope;
+
     /**
      * greeting table (sqlite_create_tenant.sql). Tenant-scoped.
      *
@@ -55,17 +58,19 @@ class GreetingRecordController extends Controller
 
     public function index(Greeting $greeting)
     {
-        return Greeting::orderBy('pkey', 'asc')->get();
+        return $this->applyClusterScope(Greeting::query())->orderBy('pkey', 'asc')->get();
     }
 
     public function show(Greeting $greetingrecord)
     {
+        $this->assertModelClusterAllowed($greetingrecord);
         return response()->json($greetingrecord, 200);
     }
 
     /** Download greeting audio for this DB row. */
     public function download(Greeting $greetingrecord)
     {
+        $this->assertModelClusterAllowed($greetingrecord);
         $clusterShortuid = $greetingrecord->cluster;
         $pkey = $greetingrecord->pkey;
         $type = $greetingrecord->type;
@@ -92,6 +97,7 @@ class GreetingRecordController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         // Create rules: require pkey + file; pkey treated as integer.
         $rules = array_merge($this->updateableColumns, [
@@ -170,6 +176,7 @@ class GreetingRecordController extends Controller
     /** Update metadata and optionally replace audio. */
     public function update(Request $request, Greeting $greetingrecord)
     {
+        $this->assertModelClusterAllowed($greetingrecord);
         $rules = array_merge($this->updateableColumns, [
             'cluster' => 'exists:cluster,pkey',
             'greeting' => 'file|mimes:wav,mp3',
@@ -196,6 +203,7 @@ class GreetingRecordController extends Controller
         move_request_to_model($request, $greetingrecord, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $greetingrecord->cluster = $clusterShortuid;
         }
 
@@ -249,6 +257,7 @@ class GreetingRecordController extends Controller
      */
     public function replace(Request $request, Greeting $greetingrecord)
     {
+        $this->assertModelClusterAllowed($greetingrecord);
         $rules = array_merge($this->updateableColumns, [
             'cluster' => 'exists:cluster,pkey',
             'greeting' => 'required|file|mimes:wav,mp3',
@@ -273,6 +282,7 @@ class GreetingRecordController extends Controller
         move_request_to_model($request, $greetingrecord, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $greetingrecord->cluster = $clusterShortuid;
         }
 
@@ -319,6 +329,7 @@ class GreetingRecordController extends Controller
 
     public function delete(Greeting $greetingrecord)
     {
+        $this->assertModelClusterAllowed($greetingrecord);
         // Best-effort delete of audio file (derived from row)
         try {
             $cluster = $greetingrecord->cluster;

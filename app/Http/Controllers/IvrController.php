@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Ivr;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 
 class IvrController extends Controller
 {
+    use EnforcesClusterScope;
+
     //
 	// ivrmenu table (sqlite_create_tenant.sql). pkey = IVR number 3-5 digits, unique per cluster. Exclude id, shortuid, z_*, name (deprecated).
     	private $updateableColumns = [
@@ -72,13 +75,13 @@ class IvrController extends Controller
  */
     public function index ()
     {
-        return Ivr::orderBy('pkey', 'asc')->get();
+        return $this->applyClusterScope(Ivr::query())->orderBy('pkey', 'asc')->get();
     }
 
     /** Export IVRs list as PDF. Same dataset as index with tenant_pkey resolved. */
     public function exportPdf()
     {
-        $ivrs = Ivr::orderBy('pkey', 'asc')->get();
+        $ivrs = $this->applyClusterScope(Ivr::query())->orderBy('pkey', 'asc')->get();
         attach_tenant_pkey_to_collection($ivrs);
         return Pdf::loadView('exports.ivrs-pdf', ['ivrs' => $ivrs])
             ->setPaper('a4', 'landscape')
@@ -93,6 +96,7 @@ class IvrController extends Controller
  */
     public function show (Ivr $ivr)
     {
+        $this->assertModelClusterAllowed($ivr);
         return $ivr;
     }
 
@@ -108,6 +112,7 @@ class IvrController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $createRules = array_merge($this->updateableColumns, [
             'pkey' => 'required|string|regex:/^\d{3,5}$/',
@@ -159,6 +164,7 @@ class IvrController extends Controller
  * @return json response
  */
     public function update(Request $request, Ivr $ivr) {
+        $this->assertModelClusterAllowed($ivr);
 
         $validator = Validator::make($request->all(), $this->updateableColumns, [
             'pkey.regex' => 'IVR number must be 3-5 digits.',
@@ -182,6 +188,7 @@ class IvrController extends Controller
         move_request_to_model($request, $ivr, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $ivr->cluster = $clusterShortuid;
         }
         $this->check_options($request, $ivr);
@@ -212,6 +219,7 @@ class IvrController extends Controller
  * @return NULL
  */
     public function delete(Ivr $ivr) {
+        $this->assertModelClusterAllowed($ivr);
         $ivr->delete();
 
         return response()->json(null, 204);

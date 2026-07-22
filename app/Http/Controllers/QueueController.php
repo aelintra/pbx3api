@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Queue;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class QueueController extends Controller
 {
+    use EnforcesClusterScope;
+
     //
 
     // queue table (sqlite_create_tenant.sql). Exclude id, shortuid, z_*, name (deprecated). pkey = queue dial, 3-5 digits, unique per tenant.
@@ -47,13 +50,13 @@ class QueueController extends Controller
  */
     public function index (Queue $queue) {
 
-    	return Queue::orderBy('pkey','asc')->get();
+    	return $this->applyClusterScope(Queue::query())->orderBy('pkey','asc')->get();
     }
 
     /** Export queues list as PDF. Same dataset as index with tenant_pkey resolved. */
     public function exportPdf()
     {
-        $queues = Queue::orderBy('pkey', 'asc')->get();
+        $queues = $this->applyClusterScope(Queue::query())->orderBy('pkey', 'asc')->get();
         attach_tenant_pkey_to_collection($queues);
         return Pdf::loadView('exports.queues-pdf', ['queues' => $queues])
             ->setPaper('a4', 'landscape')
@@ -68,6 +71,7 @@ class QueueController extends Controller
  */
     public function show (Queue $queue) {
 
+    	$this->assertModelClusterAllowed($queue);
     	return response()->json($queue, 200);
     }
 
@@ -83,6 +87,7 @@ class QueueController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
 // validate — pkey = queue number: 3-5 digits, unique per tenant
         $this->updateableColumns['pkey'] = 'required|string|regex:/^\d{3,5}$/';
@@ -131,6 +136,7 @@ class QueueController extends Controller
  */
     public function update(Request $request, Queue $queue) {
 
+        $this->assertModelClusterAllowed($queue);
 // Validate — pkey when present must be 3-5 digits (updateableColumns); uniqueness in after()
         $validator = Validator::make($request->all(), $this->updateableColumns, [
             'pkey.regex' => 'Queue number must be 3-5 digits.',
@@ -154,6 +160,7 @@ class QueueController extends Controller
         move_request_to_model($request, $queue, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $queue->cluster = $clusterShortuid;
         }
 
@@ -184,6 +191,7 @@ class QueueController extends Controller
  * @return 204
  */
     public function delete(Queue $queue) {
+        $this->assertModelClusterAllowed($queue);
         $pkey = (string) $queue->getAttribute('pkey');
         $queue->delete();
         pbx3_delete_queue_asterisk_instances($pkey);

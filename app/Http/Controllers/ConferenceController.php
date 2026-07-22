@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Conference;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ConferenceController extends Controller
 {
+    use EnforcesClusterScope;
+
     // meetme table (sqlite_create_tenant.sql). pkey = room number (integer), unique per cluster.
     private $updateableColumns = [
         'pkey' => 'nullable|integer',
@@ -30,13 +33,13 @@ class ConferenceController extends Controller
 
     public function index(Conference $conference)
     {
-        return Conference::orderBy('pkey', 'asc')->get();
+        return $this->applyClusterScope(Conference::query())->orderBy('pkey', 'asc')->get();
     }
 
     /** Export conferences list as PDF. Same dataset as index with tenant_pkey resolved. */
     public function exportPdf()
     {
-        $conferences = Conference::orderBy('pkey', 'asc')->get();
+        $conferences = $this->applyClusterScope(Conference::query())->orderBy('pkey', 'asc')->get();
         attach_tenant_pkey_to_collection($conferences);
         return Pdf::loadView('exports.conferences-pdf', ['conferences' => $conferences])
             ->setPaper('a4', 'landscape')
@@ -45,6 +48,7 @@ class ConferenceController extends Controller
 
     public function show(Conference $conference)
     {
+        $this->assertModelClusterAllowed($conference);
         return response()->json($conference, 200);
     }
 
@@ -54,6 +58,7 @@ class ConferenceController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $this->updateableColumns['pkey'] = 'required|integer';
         $this->updateableColumns['cluster'] = 'required|exists:cluster,pkey';
@@ -97,6 +102,7 @@ class ConferenceController extends Controller
 
     public function update(Request $request, Conference $conference)
     {
+        $this->assertModelClusterAllowed($conference);
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
         $validator->after(function ($validator) use ($request, $conference) {
@@ -117,6 +123,7 @@ class ConferenceController extends Controller
 
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $conference->cluster = $clusterShortuid;
         }
 
@@ -146,6 +153,7 @@ class ConferenceController extends Controller
 
     public function delete(Conference $conference)
     {
+        $this->assertModelClusterAllowed($conference);
         $conference->delete();
         return response()->json(null, 204);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Agent;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class AgentController extends Controller
 {
+    use EnforcesClusterScope;
+
     //
 
     // agent table (sqlite_create_tenant.sql). pkey = agent number 1000–9999, unique per tenant. Exclude id, shortuid, z_*, name (deprecated).
@@ -41,13 +44,13 @@ class AgentController extends Controller
  */
     public function index (Agent $agent) {
 
-    	return Agent::orderBy('pkey','asc')->get();
+    	return $this->applyClusterScope(Agent::query())->orderBy('pkey','asc')->get();
     }
 
     /** Export agents list as PDF. Same dataset as index with tenant_pkey resolved. */
     public function exportPdf()
     {
-        $agents = Agent::orderBy('pkey', 'asc')->get();
+        $agents = $this->applyClusterScope(Agent::query())->orderBy('pkey', 'asc')->get();
         attach_tenant_pkey_to_collection($agents);
         return Pdf::loadView('exports.agents-pdf', ['agents' => $agents])
             ->setPaper('a4', 'landscape')
@@ -62,6 +65,7 @@ class AgentController extends Controller
  */
     public function show (Agent $agent) {
 
+    	$this->assertModelClusterAllowed($agent);
     	return response()->json($agent, 200);
     }
 
@@ -77,6 +81,7 @@ class AgentController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $createRules = array_merge($this->updateableColumns, [
             'pkey' => 'required|integer|min:1000|max:9999',
@@ -121,6 +126,7 @@ class AgentController extends Controller
  */
     public function update(Request $request, Agent $agent) {
 
+        $this->assertModelClusterAllowed($agent);
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
         $validator->after(function ($validator) use ($request, $agent) {
@@ -140,6 +146,7 @@ class AgentController extends Controller
         move_request_to_model($request, $agent, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $agent->cluster = $clusterShortuid;
         }
 
@@ -167,6 +174,7 @@ class AgentController extends Controller
  * @return 204
  */
     public function delete(Agent $agent) {
+        $this->assertModelClusterAllowed($agent);
         $agent->delete();
 
         return response()->json(null, 204);

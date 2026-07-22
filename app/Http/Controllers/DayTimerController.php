@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\DayTimer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Validator;
 
 class DayTimerController extends Controller
 {
+    use EnforcesClusterScope;
+
     // dateseg table. pkey = INTEGER UNIQUE, system-generated on create. cluster stored as shortuid.
     private $updateableColumns = [
         'active' => 'in:YES,NO',
@@ -31,7 +34,7 @@ class DayTimerController extends Controller
 
     public function index(DayTimer $daytimer)
     {
-        return DayTimer::orderBy('cluster')->orderBy('dayofweek')->orderBy('id')->get();
+        return $this->applyClusterScope(DayTimer::query())->orderBy('cluster')->orderBy('dayofweek')->orderBy('id')->get();
     }
 
     /**
@@ -42,6 +45,7 @@ class DayTimerController extends Controller
      */
     public function show(DayTimer $daytimer)
     {
+        $this->assertModelClusterAllowed($daytimer);
         return response()->json($daytimer, 200);
     }
 
@@ -56,6 +60,7 @@ class DayTimerController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $rules = array_merge($this->updateableColumns, [
             'cluster' => 'required|exists:cluster,pkey',
@@ -90,6 +95,7 @@ class DayTimerController extends Controller
      */
     public function update(Request $request, DayTimer $daytimer)
     {
+        $this->assertModelClusterAllowed($daytimer);
         $validator = Validator::make($request->all(), $this->updateableColumns);
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
@@ -98,6 +104,7 @@ class DayTimerController extends Controller
         move_request_to_model($request, $daytimer, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $daytimer->cluster = $clusterShortuid;
         }
 
@@ -120,6 +127,7 @@ class DayTimerController extends Controller
 
     public function delete(DayTimer $daytimer)
     {
+        $this->assertModelClusterAllowed($daytimer);
         $daytimer->delete();
         return response()->json(null, 204);
     }

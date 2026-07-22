@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Services\Directory\FleetPreflightService;
+use App\Services\Tenant\PortableUserMobility;
 use App\Services\Tenant\TenantMobilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,8 @@ class FleetMobilityController extends Controller
         try {
             $result = $mobility->export($tenant, [
                 'include_recordings' => (bool) $request->boolean('include_recordings'),
+                // Fleet move: detach portable users from source after packing (import recreates).
+                'detach_portable_users' => $request->boolean('detach_portable_users', true),
             ]);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -112,7 +115,7 @@ class FleetMobilityController extends Controller
         return $certs->sync($request);
     }
 
-    public function destroyTenant(string $tenant): JsonResponse
+    public function destroyTenant(string $tenant, PortableUserMobility $portableUsers): JsonResponse
     {
         $model = (new Tenant)->resolveRouteBinding($tenant);
         if ($model === null) {
@@ -123,10 +126,16 @@ class FleetMobilityController extends Controller
         }
 
         $id = $model->id;
+        $shortuid = (string) $model->shortuid;
         $model->delete();
+        $usersRemoved = $portableUsers->removeOrStripForTenant($shortuid);
         pbx3_update_fqdn_inline_optional();
 
-        return response()->json(['ok' => true, 'deleted' => $id]);
+        return response()->json([
+            'ok' => true,
+            'deleted' => $id,
+            'portable_users' => $usersRemoved,
+        ]);
     }
 
     private function uploadFile(string $url, string $path): void

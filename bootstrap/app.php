@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
+            'validate.cluster' => \App\Http\Middleware\ValidateClusterAccess::class,
             'fleet.token' => \App\Http\Middleware\AuthenticateFleetServiceToken::class,
         ]);
 

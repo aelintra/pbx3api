@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\HolidayTimer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 
 class HolidayTimerController extends Controller
 {
+    use EnforcesClusterScope;
+
     // holiday table. pkey = system-generated text. cluster stored as shortuid. stime/etime = epoch.
     private $updateableColumns = [
         'cluster' => 'exists:cluster,pkey',
@@ -28,11 +31,12 @@ class HolidayTimerController extends Controller
 
     public function index(HolidayTimer $holidaytimer)
     {
-        return HolidayTimer::orderBy('stime')->orderBy('id')->get();
+        return $this->applyClusterScope(HolidayTimer::query())->orderBy('stime')->orderBy('id')->get();
     }
 
     public function show(HolidayTimer $holidaytimer)
     {
+        $this->assertModelClusterAllowed($holidaytimer);
         return response()->json($holidaytimer, 200);
     }
 
@@ -42,6 +46,7 @@ class HolidayTimerController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $rules = array_merge($this->updateableColumns, [
             'cluster' => 'required|exists:cluster,pkey',
@@ -95,6 +100,7 @@ class HolidayTimerController extends Controller
 
     public function update(Request $request, HolidayTimer $holidaytimer)
     {
+        $this->assertModelClusterAllowed($holidaytimer);
         $validator = Validator::make($request->all(), $this->updateableColumns);
         $validator->after(function ($validator) use ($request, $holidaytimer) {
             $stime = $this->stimeFromRequest($request) ?? $holidaytimer->stime;
@@ -105,6 +111,9 @@ class HolidayTimerController extends Controller
             $cluster = $holidaytimer->cluster;
             if ($request->has('cluster')) {
                 $resolved = cluster_identifier_to_shortuid($request->input('cluster'));
+                if ($resolved !== null) {
+                    $this->assertClusterAllowed($resolved);
+                }
                 if ($resolved !== null) {
                     $cluster = $resolved;
                 }
@@ -152,6 +161,7 @@ class HolidayTimerController extends Controller
 
     public function delete(HolidayTimer $holidaytimer)
     {
+        $this->assertModelClusterAllowed($holidaytimer);
         $holidaytimer->delete();
         return response()->json(null, 204);
     }

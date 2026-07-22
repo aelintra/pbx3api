@@ -21,7 +21,7 @@ class RecordingIndexService
     ) {}
 
     /**
-     * @param  array{tenant?:?string, from?:?int, to?:?int, search?:?string}  $filters
+     * @param  array{tenant?:?string, tenants?:?list<string>, from?:?int, to?:?int, search?:?string}  $filters
      * @return array<int, array<string, mixed>>
      */
     public function list(array $filters = []): array
@@ -117,6 +117,28 @@ class RecordingIndexService
         return $row !== null ? (string) $row->filename : null;
     }
 
+    /**
+     * Cluster/tenant shortuid (or spool dir name) for a recording id, for scope checks.
+     */
+    public function clusterFromId(string $id): ?string
+    {
+        if ($this->paths->isKsuidId($id) && $this->schema->tableExists()) {
+            $row = DB::table('recordings')->where('id', $id)->whereNull('deleted_at')->first();
+            if ($row !== null && isset($row->cluster) && (string) $row->cluster !== '') {
+                return (string) $row->cluster;
+            }
+        }
+
+        $rel = $this->relativePathFromLegacyId($id);
+        if ($rel === null) {
+            return null;
+        }
+
+        $parts = explode('/', $rel, 2);
+
+        return $parts[0] !== '' ? $parts[0] : null;
+    }
+
     /** @deprecated Use absolutePathFromId */
     public function relativePathFromId(string $id): ?string
     {
@@ -143,9 +165,12 @@ class RecordingIndexService
     {
         $query = DB::table('recordings')->whereNull('deleted_at');
 
-        $tenantFilter = $filters['tenant'] ?? null;
-        if ($tenantFilter !== null && $tenantFilter !== '') {
-            $query->where('cluster', $tenantFilter);
+        $tenants = $this->normalizeTenantFilters($filters);
+        if ($tenants !== null) {
+            if ($tenants === []) {
+                return [];
+            }
+            $query->whereIn('cluster', $tenants);
         }
 
         $from = $filters['from'] ?? null;
@@ -188,14 +213,19 @@ class RecordingIndexService
         $disk = Storage::disk(self::SPOOL_DISK);
         $rows = [];
 
-        $tenantFilter = $filters['tenant'] ?? null;
+        $tenants = $this->normalizeTenantFilters($filters);
+        $tenantAllow = $tenants !== null ? array_fill_keys($tenants, true) : null;
         $from = $filters['from'] ?? null;
         $to = $filters['to'] ?? null;
         $search = isset($filters['search']) ? strtolower(trim((string) $filters['search'])) : null;
 
+        if ($tenantAllow !== null && $tenantAllow === []) {
+            return [];
+        }
+
         foreach ($disk->directories() as $dir) {
             $tenant = basename($dir);
-            if ($tenantFilter !== null && $tenant !== $tenantFilter) {
+            if ($tenantAllow !== null && ! isset($tenantAllow[$tenant])) {
                 continue;
             }
 
@@ -384,6 +414,38 @@ class RecordingIndexService
         }
 
         return $map;
+    }
+
+    /**
+     * Normalize tenant / tenants filters into an IN list.
+     *
+     * @param  array{tenant?:?string, tenants?:?list<string>}  $filters
+     * @return list<string>|null  null = no filter; [] = match nothing; else IN list
+     */
+    private function normalizeTenantFilters(array $filters): ?array
+    {
+        $set = [];
+        $hasTenantsKey = array_key_exists('tenants', $filters);
+
+        if ($hasTenantsKey && is_array($filters['tenants'])) {
+            foreach ($filters['tenants'] as $t) {
+                $t = trim((string) $t);
+                if ($t !== '') {
+                    $set[$t] = true;
+                }
+            }
+        }
+
+        $single = isset($filters['tenant']) ? trim((string) $filters['tenant']) : '';
+        if ($single !== '') {
+            $set[$single] = true;
+        }
+
+        if (! $hasTenantsKey && $single === '') {
+            return null;
+        }
+
+        return array_keys($set);
     }
 
     private function matchesSearch(array $row, string $needle): bool

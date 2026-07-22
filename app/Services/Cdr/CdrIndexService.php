@@ -28,6 +28,7 @@ class CdrIndexService
      *   to?: string|null,
      *   search?: string|null,
      *   accountcode?: string|null,
+     *   accountcodes?: list<string>|null,
      *   disposition?: string|null,
      *   limit?: int|null,
      *   offset?: int|null
@@ -155,10 +156,32 @@ class CdrIndexService
             $params['to'] = $this->normalizeBound($to, true);
         }
 
+        $accountcodes = [];
+        if (isset($filters['accountcodes']) && is_array($filters['accountcodes'])) {
+            foreach ($filters['accountcodes'] as $code) {
+                $code = trim((string) $code);
+                if ($code !== '') {
+                    $accountcodes[$code] = true;
+                }
+            }
+        }
         $account = isset($filters['accountcode']) ? trim((string) $filters['accountcode']) : '';
         if ($account !== '') {
+            $accountcodes[$account] = true;
+        }
+        $accountcodes = array_keys($accountcodes);
+
+        if (count($accountcodes) === 1) {
             $clauses[] = 'accountcode = :accountcode';
-            $params['accountcode'] = $account;
+            $params['accountcode'] = $accountcodes[0];
+        } elseif (count($accountcodes) > 1) {
+            $placeholders = [];
+            foreach ($accountcodes as $i => $code) {
+                $key = 'ac'.$i;
+                $placeholders[] = ':'.$key;
+                $params[$key] = $code;
+            }
+            $clauses[] = 'accountcode IN ('.implode(', ', $placeholders).')';
         }
 
         $disp = isset($filters['disposition']) ? trim((string) $filters['disposition']) : '';

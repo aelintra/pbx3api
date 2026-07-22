@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\ClassOfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ClassOfServiceController extends Controller
 {
+    use EnforcesClusterScope;
+
     // cos table (sqlite_create_tenant.sql). pkey = identity-only (not updateable). orideopen/orideclosed not updateable.
     private $updateableColumns = [
         'active' => 'in:YES,NO',
@@ -28,11 +31,12 @@ class ClassOfServiceController extends Controller
 
     public function index(ClassOfService $classofservice)
     {
-        return ClassOfService::orderBy('pkey', 'asc')->get();
+        return $this->applyClusterScope(ClassOfService::query())->orderBy('pkey', 'asc')->get();
     }
 
     public function show(ClassOfService $classofservice)
     {
+        $this->assertModelClusterAllowed($classofservice);
         return response()->json($classofservice, 200);
     }
 
@@ -42,6 +46,7 @@ class ClassOfServiceController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
+        $this->assertClusterAllowed($clusterShortuid);
 
         $rules = array_merge($this->updateableColumns, [
             'pkey' => 'required|alpha_dash',
@@ -78,6 +83,7 @@ class ClassOfServiceController extends Controller
 
     public function update(Request $request, ClassOfService $classofservice)
     {
+        $this->assertModelClusterAllowed($classofservice);
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
         $validator->after(function ($validator) use ($request, $classofservice) {
@@ -98,6 +104,7 @@ class ClassOfServiceController extends Controller
         move_request_to_model($request, $classofservice, $this->updateableColumns);
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
+            $this->assertClusterAllowed($clusterShortuid);
             $classofservice->cluster = $clusterShortuid;
         }
 
@@ -120,6 +127,7 @@ class ClassOfServiceController extends Controller
 
     public function delete(ClassOfService $classofservice)
     {
+        $this->assertModelClusterAllowed($classofservice);
         $classofservice->delete();
         return response()->json(null, 204);
     }

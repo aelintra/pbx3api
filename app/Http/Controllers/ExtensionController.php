@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Extension;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -13,8 +14,11 @@ use App\Models\IpPhoneCosOpen;
 use App\Models\IpPhoneCosClosed;
 use App\Models\ClassOfService;
 use App\CustomClasses\Ami;
+
 class ExtensionController extends Controller
 {
+	use EnforcesClusterScope;
+
 
 	// ipphone table (full_schema.sql). Exclude id, shortuid, z_*. Model guarded: abstimeout, basemacaddr, devicemodel, passwd, etc.
 	private $updateableColumns = [
@@ -57,7 +61,7 @@ class ExtensionController extends Controller
  */
     public function index () {
 
-    	$extensions = Extension::orderBy('pkey','asc')->get();
+    	$extensions = $this->applyClusterScope(Extension::query())->orderBy('pkey','asc')->get();
 
     	// Build cluster id/shortuid/pkey -> tenant pkey map (id = KSUID, shortuid = 8-char, pkey = human-facing)
     	$clusterToPkey = [];
@@ -129,7 +133,8 @@ class ExtensionController extends Controller
         if (!function_exists('pbx_is_running') || !pbx_is_running()) {
             return Response::json(['message' => 'PBX not running'], 503);
         }
-        $extensions = Extension::where('technology', 'SIP')
+        $extensions = $this->applyClusterScope(Extension::query())
+            ->where('technology', 'SIP')
             ->where(function ($q) {
                 $q->whereNull('active')->orWhere('active', '<>', 'NO');
             })
@@ -212,7 +217,7 @@ class ExtensionController extends Controller
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
-        $desc = $request->input('desc');
+        $this->assertClusterAllowed($clusterShortuid);
         $extensionType = $request->input('extensionType') ?: $extensionTypeInput;
         $macaddr = $request->input('macaddr');
         $macaddr = $macaddr !== null && $macaddr !== '' ? preg_replace('/[^0-9a-fA-F]/', '', $macaddr) : null;
@@ -352,6 +357,7 @@ class ExtensionController extends Controller
  */
     public function show (Extension $extension) {
 
+    	$this->assertModelClusterAllowed($extension);
     	$cluster = $extension->cluster ?? null;
     	if ($cluster !== null && $cluster !== '') {
     		$row = DB::table('cluster')->where('pkey', $cluster)->orWhere('shortuid', $cluster)->orWhere('id', $cluster)->first(['pkey']);
@@ -371,6 +377,7 @@ class ExtensionController extends Controller
  */
     public function showruntime (Extension $extension) {
 
+        $this->assertModelClusterAllowed($extension);
         $amiHandle = get_ami_handle();
         $key = $this->runtimeAstdbKey($extension);
         $legacyPkey = (string) ($extension->pkey ?? '');
@@ -398,6 +405,7 @@ class ExtensionController extends Controller
  */
     public function showcos(Extension $extension)
     {
+        $this->assertModelClusterAllowed($extension);
         // Legacy rows may store cluster as pkey; new rows store shortuid. Match either.
         $aliases = cluster_identifier_aliases($extension->cluster);
         if ($aliases === []) {
@@ -433,6 +441,7 @@ class ExtensionController extends Controller
  */
     public function updatecos(Request $request, Extension $extension)
     {
+        $this->assertModelClusterAllowed($extension);
         $validator = Validator::make($request->all(), [
             'open' => 'present|array',
             'open.*' => 'string',
@@ -748,6 +757,7 @@ class ExtensionController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, Extension $extension) {
+        $this->assertModelClusterAllowed($extension);
         // Validation: merge updateableColumns with required pkey/cluster and rules that match former ExtensionRequest
         $rules = array_merge($this->updateableColumns, [
             'pkey' => 'required',
@@ -777,7 +787,9 @@ class ExtensionController extends Controller
         foreach ($request->all() as $key => $value) {
             if (array_key_exists($key, $this->updateableColumns)) {
                 if ($key === 'cluster') {
-                    $extension->cluster = cluster_identifier_to_shortuid($value) ?? trim((string) $value);
+                    $resolved = cluster_identifier_to_shortuid($value) ?? trim((string) $value);
+                    $this->assertClusterAllowed($resolved !== '' ? $resolved : null);
+                    $extension->cluster = $resolved;
                 } else {
                     $extension->$key = is_string($value) ? trim($value) : $value;
                 }
@@ -856,6 +868,7 @@ class ExtensionController extends Controller
  */
     public function regenerateSipPassword(Extension $extension)
     {
+        $this->assertModelClusterAllowed($extension);
         $id = $extension->id;
         if ($id === null || $id === '') {
             return response()->json(['Error' => 'Extension id is missing'], 409);
@@ -888,6 +901,7 @@ class ExtensionController extends Controller
  */
     public function updateruntime (Request $request, Extension $extension) {
 
+        $this->assertModelClusterAllowed($extension);
         // nullable must be in the same rule list as regex (bare ['nullable'] entries were ignored).
         $validator = Validator::make($request->all(), [
             'cfim' => ['nullable', 'regex:/^\+?\d+$/'],
@@ -933,6 +947,7 @@ class ExtensionController extends Controller
  */
     public function delete(Extension $extension) {
 
+        $this->assertModelClusterAllowed($extension);
         // Delete related rows only if tables exist; missing tables must not block extension delete
         $aliases = cluster_identifier_aliases($extension->cluster);
         if ($aliases === []) {
