@@ -28,6 +28,24 @@ Artisan::command('pbx3:ops-register-loops', function (\App\Services\Ops\Register
     return count($result['errors']) > 0 && $result['emitted'] === 0 ? 1 : 0;
 })->purpose('Scan Asterisk auth failures on Fail2ban whitelist; notify Gatekeeper');
 
+Artisan::command('pbx3:ops-egress-qualify', function (\App\Services\Ops\EgressQualifyNotifyScanner $scanner) {
+    $result = $scanner->run();
+    $this->info(sprintf(
+        'checked=%s qualify=%s transition=%s emitted=%s seeded=%s errors=%d',
+        $result['checked'] ? 'yes' : 'no',
+        $result['qualify'],
+        $result['transition'] ?? '-',
+        $result['emitted'] ? 'yes' : 'no',
+        $result['seeded'] ? 'yes' : 'no',
+        count($result['errors'])
+    ));
+    foreach ($result['errors'] as $err) {
+        $this->warn($err);
+    }
+
+    return count($result['errors']) > 0 && $result['emitted'] === 0 ? 1 : 0;
+})->purpose('Poll Egress PJSIP qualify; notify Gatekeeper on Unavail/cleared');
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();

@@ -58,6 +58,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ->everyMinute()
             ->withoutOverlapping(2);
 
+        $schedule->command('pbx3:ops-egress-qualify')
+            ->everyMinute()
+            ->withoutOverlapping(2);
+
         // After typical daily logrotate (~06:25); needs read of /var/log (prefer root cron).
         $schedule->command('pbx3:logs-s3-upload')
             ->dailyAt('06:45')

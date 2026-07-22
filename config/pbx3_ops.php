@@ -44,4 +44,24 @@ return [
         FILTER_VALIDATE_BOOL
     ),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fleet ops — Egress Unavail (PJSIP qualify)
+    |--------------------------------------------------------------------------
+    |
+    | Polls AMI ContactStatusDetail via FleetPostureService. Emits Gatekeeper
+    | ops-events on Avail↔Unavail (hysteresis; first run seeds without mail).
+    |
+    */
+
+    'egress_unavail_notify_enabled' => filter_var(
+        env('PBX3_OPS_EGRESS_UNAVAIL_NOTIFY', false),
+        FILTER_VALIDATE_BOOL
+    ),
+
+    'egress_state_path' => env('PBX3_OPS_EGRESS_STATE', storage_path('app/ops-egress-qualify.json')),
+
+    /** Consecutive Unavail ticks before down notify (mirror Gatekeeper /up misses). */
+    'egress_miss_threshold' => (int) env('PBX3_OPS_EGRESS_MISS_THRESHOLD', 2),
+
 ];
