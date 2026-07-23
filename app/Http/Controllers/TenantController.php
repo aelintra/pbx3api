@@ -241,12 +241,13 @@ class TenantController extends Controller
            return Response::json(['Error - Cannot delete default tenant!'],409); 
         }
 
+        $id = $tenant->id;
         $shortuid = (string) $tenant->shortuid;
-        $tenant->delete();
+        app(\App\Services\Tenant\TenantMobilityService::class)->destroyTenantData($tenant);
         app(\App\Services\Tenant\PortableUserMobility::class)->removeOrStripForTenant($shortuid);
         pbx3_update_fqdn_inline_optional();
 
-        return response()->json(['tenant ' .$tenant->id .' deleted'],200);
+        return response()->json(['tenant ' .$id .' deleted'],200);
     }
     //
 }

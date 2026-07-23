@@ -115,7 +115,7 @@ class FleetMobilityController extends Controller
         return $certs->sync($request);
     }
 
-    public function destroyTenant(string $tenant, PortableUserMobility $portableUsers): JsonResponse
+    public function destroyTenant(string $tenant, TenantMobilityService $mobility, PortableUserMobility $portableUsers): JsonResponse
     {
         $model = (new Tenant)->resolveRouteBinding($tenant);
         if ($model === null) {
@@ -127,7 +127,7 @@ class FleetMobilityController extends Controller
 
         $id = $model->id;
         $shortuid = (string) $model->shortuid;
-        $model->delete();
+        $mobility->destroyTenantData($model);
         $usersRemoved = $portableUsers->removeOrStripForTenant($shortuid);
         pbx3_update_fqdn_inline_optional();
 

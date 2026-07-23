@@ -211,6 +211,42 @@ class TenantMobilityService
     }
 
     /**
+     * Full tenant wipe: all TENANT_DATA_TABLES rows for cluster aliases + cluster row.
+     * Matches import --replace cascade. Does not touch greeting/recording media trees (v1).
+     * Portable users are stripped by the caller via PortableUserMobility.
+     *
+     * @param  object{id: string, shortuid: string, pkey?: string}  $tenant
+     */
+    public function destroyTenantData(object $tenant): void
+    {
+        $pkey = (string) ($tenant->pkey ?? '');
+        if ($pkey === 'default') {
+            throw new \InvalidArgumentException('Cannot delete default tenant');
+        }
+
+        $clusterId = (string) ($tenant->id ?? '');
+        $shortuid = (string) ($tenant->shortuid ?? '');
+        if ($clusterId === '' || $shortuid === '') {
+            throw new \RuntimeException('Tenant id and shortuid are required to destroy');
+        }
+
+        $aliases = cluster_identifier_aliases($shortuid);
+        if ($aliases === []) {
+            $aliases = [$shortuid, $clusterId];
+        }
+
+        $pdo = $this->openPdo();
+        $pdo->beginTransaction();
+        try {
+            $this->removeTenantRows($pdo, $aliases, $clusterId);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * @return object{id: string, shortuid: string, pkey: string, fqdn?: string|null}
      */
     public function resolveClusterRow(string $identifier): object
