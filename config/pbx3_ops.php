@@ -66,10 +66,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Fleet ops — toll fraud / velocity (V1 data plane; V2 scanner later)
+    | Fleet ops — toll fraud / velocity (V1–V2; V5 auto-block later)
     |--------------------------------------------------------------------------
     |
     | Query helper reads Phase 6 master.db. Lab fixture uses prefix 00900…
+    | Scanner: pbx3:ops-velocity → Gatekeeper velocity_irsf.
     | Spec: FLEET_TOLL_FRAUD_VELOCITY_REQUIREMENTS.md
     |
     */
@@ -87,5 +88,11 @@ return [
 
     /** Comma-separated high-cost destination prefixes (lab default matches fixture). */
     'velocity_prefixes' => env('PBX3_OPS_VELOCITY_PREFIXES', '00900'),
+
+    'velocity_state_path' => env('PBX3_OPS_VELOCITY_STATE', storage_path('app/ops-velocity.json')),
+
+    /** Optional lab/test overrides (else Sysglobal id/fqdn). */
+    'velocity_instance_id' => env('PBX3_OPS_VELOCITY_INSTANCE_ID', ''),
+    'velocity_instance_fqdn' => env('PBX3_OPS_VELOCITY_INSTANCE_FQDN', ''),
 
 ];

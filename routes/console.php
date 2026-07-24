@@ -46,6 +46,25 @@ Artisan::command('pbx3:ops-egress-qualify', function (\App\Services\Ops\EgressQu
     return count($result['errors']) > 0 && $result['emitted'] === 0 ? 1 : 0;
 })->purpose('Poll Egress PJSIP qualify; notify Gatekeeper on Unavail/cleared');
 
+Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityIrsfScanner $scanner) {
+    $result = $scanner->run();
+    $this->info(sprintf(
+        'scanned=%s candidates=%d over=%d emitted=%d cleared=%d skipped_hyst=%d errors=%d',
+        $result['scanned'] ? 'yes' : 'no',
+        $result['candidates'],
+        $result['over_threshold'],
+        $result['emitted'],
+        $result['cleared'],
+        $result['skipped_hysteresis'],
+        count($result['errors'])
+    ));
+    foreach ($result['errors'] as $err) {
+        $this->warn($err);
+    }
+
+    return count($result['errors']) > 0 && $result['emitted'] === 0 && $result['cleared'] === 0 ? 1 : 0;
+})->purpose('Scan CDR for IRSF destination surge; notify Gatekeeper (velocity V2)');
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
