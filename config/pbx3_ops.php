@@ -95,4 +95,13 @@ return [
     'velocity_instance_id' => env('PBX3_OPS_VELOCITY_INSTANCE_ID', ''),
     'velocity_instance_fqdn' => env('PBX3_OPS_VELOCITY_INSTANCE_FQDN', ''),
 
+    /** V5: flip ipphone.active=NO + clear CF + hangup + genAst when attributed. */
+    'velocity_act_enabled' => filter_var(env('PBX3_OPS_VELOCITY_ACT', false), FILTER_VALIDATE_BOOL),
+
+    /** Comma-separated pkey/shortuid that never auto-deactivate. */
+    'velocity_allowlist' => env('PBX3_OPS_VELOCITY_ALLOWLIST', ''),
+
+    /** Unit tests: skip asterisk CLI / genAst (DB act still runs). */
+    'velocity_skip_asterisk' => filter_var(env('PBX3_OPS_VELOCITY_SKIP_ASTERISK', false), FILTER_VALIDATE_BOOL),
+
 ];

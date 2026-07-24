@@ -7,15 +7,16 @@ use App\Services\Cdr\VelocityCdrQuery;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Velocity V2 — IRSF destination surge → Gatekeeper velocity_irsf ops-event.
+ * Velocity V2/V5 — IRSF destination surge → Gatekeeper velocity_irsf (+ optional auto-block).
  *
- * Spec: FLEET_TOLL_FRAUD_VELOCITY_REQUIREMENTS.md § V2.
+ * Spec: FLEET_TOLL_FRAUD_VELOCITY_REQUIREMENTS.md § V2 / V5.
  */
 final class VelocityIrsfScanner
 {
     public function __construct(
         private readonly GatekeeperOpsClient $client,
         private readonly VelocityCdrQuery $query,
+        private readonly VelocityPhoneActuator $actuator,
     ) {
     }
 
@@ -27,6 +28,7 @@ final class VelocityIrsfScanner
      *   emitted:int,
      *   cleared:int,
      *   skipped_hysteresis:int,
+     *   acted:int,
      *   errors:list<string>
      * }
      */
@@ -39,6 +41,7 @@ final class VelocityIrsfScanner
             'emitted' => 0,
             'cleared' => 0,
             'skipped_hysteresis' => 0,
+            'acted' => 0,
             'errors' => [],
         ];
 
@@ -116,6 +119,19 @@ final class VelocityIrsfScanner
                     continue;
                 }
 
+                $rows = $rowsBySrc[$src] ?? [];
+                $act = $this->actuator->actOnSurge(
+                    $src,
+                    $rows,
+                    $this->primaryAccountcode($rows)
+                );
+                if ($act['applied']) {
+                    $out['acted']++;
+                }
+                foreach ($act['errors'] as $err) {
+                    $out['errors'][] = $err;
+                }
+
                 $payload = $this->buildPayload(
                     $instanceId,
                     $label,
@@ -123,8 +139,9 @@ final class VelocityIrsfScanner
                     $src,
                     $count,
                     $t,
-                    $rowsBySrc[$src] ?? [],
-                    'down'
+                    $rows,
+                    'down',
+                    $act
                 );
 
                 try {
@@ -222,6 +239,7 @@ final class VelocityIrsfScanner
 
     /**
      * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, mixed>|null  $act
      * @return array<string, mixed>
      */
     private function buildPayload(
@@ -233,6 +251,7 @@ final class VelocityIrsfScanner
         int $windowMinutes,
         array $rows,
         string $transition,
+        ?array $act = null,
     ): array {
         $accountcodes = [];
         $masked = [];
@@ -258,7 +277,7 @@ final class VelocityIrsfScanner
             }
         }
 
-        return [
+        $payload = [
             'type' => 'velocity_irsf',
             'transition' => $transition,
             'rule' => 'irsf',
@@ -273,7 +292,43 @@ final class VelocityIrsfScanner
             'masked_prefixes' => array_keys($masked),
             'first_calldate' => $first,
             'last_calldate' => $last,
+            'auto_block' => false,
+            'forwards_cleared' => false,
+            'hung_up_count' => 0,
+            'act_skipped_reason' => '',
+            'attribution_reason' => '',
+            'extension_pkey' => '',
+            'extension_shortuid' => '',
         ];
+
+        if (is_array($act)) {
+            $payload['auto_block'] = (bool) ($act['applied'] ?? false);
+            $payload['forwards_cleared'] = (bool) ($act['forwards_cleared'] ?? false);
+            $payload['hung_up_count'] = is_array($act['hung_up'] ?? null) ? count($act['hung_up']) : 0;
+            $payload['act_skipped_reason'] = (string) ($act['skipped_reason'] ?? '');
+            $payload['attribution_reason'] = (string) ($act['attribution_reason'] ?? '');
+            $payload['extension_pkey'] = (string) ($act['extension_pkey'] ?? '');
+            $payload['extension_shortuid'] = (string) ($act['extension_shortuid'] ?? '');
+            if ($payload['extension_pkey'] !== '') {
+                $payload['extension'] = $payload['extension_pkey'];
+            }
+        }
+
+        return $payload;
+    }
+
+    /** @param  list<array<string, mixed>>  $rows */
+    private function primaryAccountcode(array $rows): string
+    {
+        $codes = [];
+        foreach ($rows as $row) {
+            $ac = trim((string) ($row['accountcode'] ?? ''));
+            if ($ac !== '') {
+                $codes[$ac] = true;
+            }
+        }
+
+        return count($codes) === 1 ? (string) array_key_first($codes) : '';
     }
 
     /** Mask full dest digits; keep a short prefix for ops context. */

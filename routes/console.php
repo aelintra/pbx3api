@@ -49,12 +49,13 @@ Artisan::command('pbx3:ops-egress-qualify', function (\App\Services\Ops\EgressQu
 Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityIrsfScanner $scanner) {
     $result = $scanner->run();
     $this->info(sprintf(
-        'scanned=%s candidates=%d over=%d emitted=%d cleared=%d skipped_hyst=%d errors=%d',
+        'scanned=%s candidates=%d over=%d emitted=%d cleared=%d acted=%d skipped_hyst=%d errors=%d',
         $result['scanned'] ? 'yes' : 'no',
         $result['candidates'],
         $result['over_threshold'],
         $result['emitted'],
         $result['cleared'],
+        $result['acted'],
         $result['skipped_hysteresis'],
         count($result['errors'])
     ));
@@ -63,7 +64,7 @@ Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityIrsfSc
     }
 
     return count($result['errors']) > 0 && $result['emitted'] === 0 && $result['cleared'] === 0 ? 1 : 0;
-})->purpose('Scan CDR for IRSF destination surge; notify Gatekeeper (velocity V2)');
+})->purpose('Scan CDR for IRSF destination surge; notify Gatekeeper (velocity V2/V5)');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
