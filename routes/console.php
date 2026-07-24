@@ -429,6 +429,69 @@ Artisan::command('pbx3:cdr-fixture
     return 0;
 })->purpose('Seed lab CDR rows into a path-safe master.db copy (velocity V1)');
 
+Artisan::command('pbx3:cdr-import-csv
+    {--file= : Asterisk Master.csv (or .gz / accountcode.csv)}
+    {--path= : Lab SQLite path (preferred; refuses live master.db)}
+    {--truncate : DELETE FROM cdr before import}
+    {--limit= : Max rows to insert}
+    {--force : Allow when APP_ENV=production or set PBX3_CDR_FIXTURE=1}
+    {--allow-live : Explicitly permit writing /var/log/asterisk/master.db}
+    {--probe : Run VelocityCdrQuery after import}', function (
+    \App\Services\Cdr\CdrCsvImportService $importer,
+    \App\Services\Cdr\VelocityCdrQuery $query,
+) {
+    $file = $this->option('file');
+    if (! is_string($file) || trim($file) === '') {
+        $this->error('Required: --file=/path/to/Master.csv');
+
+        return 1;
+    }
+    $pathOpt = $this->option('path');
+    $limitOpt = $this->option('limit');
+    try {
+        $result = $importer->import([
+            'file' => trim($file),
+            'path' => is_string($pathOpt) && $pathOpt !== '' ? $pathOpt : null,
+            'truncate' => (bool) $this->option('truncate'),
+            'limit' => is_numeric($limitOpt) ? (int) $limitOpt : null,
+            'force' => (bool) $this->option('force'),
+            'allow_live' => (bool) $this->option('allow-live'),
+        ]);
+    } catch (\Throwable $e) {
+        $this->error('CDR CSV import failed: '.$e->getMessage());
+
+        return 1;
+    }
+
+    config(['pbx3_cdr.sqlite_path' => $result['path']]);
+    $this->info(sprintf(
+        'CDR CSV import: read=%d inserted=%d skipped=%d truncated=%s created=%s csv=%s path=%s',
+        $result['read'],
+        $result['inserted'],
+        $result['skipped'],
+        $result['truncated'] ? 'yes' : 'no',
+        $result['created'] ? 'yes' : 'no',
+        $result['csv'],
+        $result['path']
+    ));
+
+    if ($this->option('probe')) {
+        $probe = $query->candidates();
+        $this->info(sprintf(
+            'Velocity probe: available=%s total=%d window=%dm prefixes=%s',
+            $probe['available'] ? 'yes' : 'no',
+            $probe['total'],
+            $probe['window_minutes'],
+            implode(',', $probe['prefixes'])
+        ));
+        foreach ($probe['by_src'] as $src => $n) {
+            $this->line("  src={$src} count={$n}");
+        }
+    }
+
+    return 0;
+})->purpose('Import Asterisk Master.csv into a path-safe lab master.db');
+
 Artisan::command('pbx3:cdr-velocity-query
     {--window= : Override T minutes}
     {--prefixes= : Comma-separated high-cost prefixes}', function (

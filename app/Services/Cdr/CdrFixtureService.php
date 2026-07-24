@@ -117,7 +117,7 @@ final class CdrFixtureService
         return $real === $live || $path === self::LIVE_DEFAULT_PATH;
     }
 
-    private function assertWritable(string $path, bool $allowLive, bool $force): void
+    public function assertWritable(string $path, bool $allowLive, bool $force): void
     {
         if ($this->isLivePath($path) && ! $allowLive) {
             throw new RuntimeException(
@@ -128,7 +128,7 @@ final class CdrFixtureService
 
         if (! $force && ! $allowLive && app()->environment('production')) {
             throw new RuntimeException(
-                'CDR fixture blocked in production. Set PBX3_CDR_FIXTURE=1 or pass --force,'
+                'CDR write blocked in production. Set PBX3_CDR_FIXTURE=1 or pass --force,'
                 .' and prefer a non-live --path=.'
             );
         }
