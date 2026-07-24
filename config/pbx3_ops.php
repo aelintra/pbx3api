@@ -64,4 +64,28 @@ return [
     /** Consecutive Unavail ticks before down notify (mirror Gatekeeper /up misses). */
     'egress_miss_threshold' => (int) env('PBX3_OPS_EGRESS_MISS_THRESHOLD', 2),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fleet ops — toll fraud / velocity (V1 data plane; V2 scanner later)
+    |--------------------------------------------------------------------------
+    |
+    | Query helper reads Phase 6 master.db. Lab fixture uses prefix 00900…
+    | Spec: FLEET_TOLL_FRAUD_VELOCITY_REQUIREMENTS.md
+    |
+    */
+
+    'velocity_enabled' => filter_var(env('PBX3_OPS_VELOCITY_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+    /** Count threshold N (V2). */
+    'velocity_threshold' => (int) env('PBX3_OPS_VELOCITY_N', 10),
+
+    /** Window minutes T. */
+    'velocity_window_minutes' => (int) env('PBX3_OPS_VELOCITY_T', 5),
+
+    /** Quiet / hysteresis minutes Q (V2). */
+    'velocity_quiet_minutes' => (int) env('PBX3_OPS_VELOCITY_Q', 30),
+
+    /** Comma-separated high-cost destination prefixes (lab default matches fixture). */
+    'velocity_prefixes' => env('PBX3_OPS_VELOCITY_PREFIXES', '00900'),
+
 ];

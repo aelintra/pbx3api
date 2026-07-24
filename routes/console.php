@@ -351,6 +351,98 @@ Artisan::command('pbx3:logs-s3-upload {--limit= : Max files this run}', function
     return $stats['errors'] > 0 ? 1 : 0;
 })->purpose('Upload rotated syslog / Asterisk messages / CDR CSV to org bucket logs/ (Phase 1)');
 
+Artisan::command('pbx3:cdr-fixture
+    {--deck=irsf : irsf|failed-scan|internal-noise|mixed}
+    {--count=12 : Rows to insert}
+    {--src=1001 : Extension / src}
+    {--accountcode=labtenant : CDR accountcode}
+    {--path= : Override SQLite path (preferred for lab)}
+    {--force : Allow when APP_ENV=production or set PBX3_CDR_FIXTURE=1}
+    {--allow-live : Explicitly permit writing /var/log/asterisk/master.db}
+    {--probe : Run VelocityCdrQuery after seed and print counts}', function (
+    \App\Services\Cdr\CdrFixtureService $fixture,
+    \App\Services\Cdr\VelocityCdrQuery $query,
+) {
+    $pathOpt = $this->option('path');
+    try {
+        $result = $fixture->seed([
+            'path' => is_string($pathOpt) && $pathOpt !== '' ? $pathOpt : null,
+            'deck' => (string) $this->option('deck'),
+            'count' => (int) $this->option('count'),
+            'src' => (string) $this->option('src'),
+            'accountcode' => (string) $this->option('accountcode'),
+            'force' => (bool) $this->option('force'),
+            'allow_live' => (bool) $this->option('allow-live'),
+        ]);
+    } catch (\Throwable $e) {
+        $this->error('CDR fixture failed: '.$e->getMessage());
+
+        return 1;
+    }
+
+    // Point config at the path we wrote so --probe sees the same DB.
+    config(['pbx3_cdr.sqlite_path' => $result['path']]);
+
+    $this->info(sprintf(
+        'CDR fixture: deck=%s inserted=%d created=%s path=%s',
+        $result['deck'],
+        $result['inserted'],
+        $result['created'] ? 'yes' : 'no',
+        $result['path']
+    ));
+
+    if ($this->option('probe')) {
+        $probe = $query->candidates();
+        $this->info(sprintf(
+            'Velocity probe: available=%s total=%d window=%dm prefixes=%s from=%s',
+            $probe['available'] ? 'yes' : 'no',
+            $probe['total'],
+            $probe['window_minutes'],
+            implode(',', $probe['prefixes']),
+            $probe['from']
+        ));
+        foreach ($probe['by_src'] as $src => $n) {
+            $this->line("  src={$src} count={$n}");
+        }
+    }
+
+    return 0;
+})->purpose('Seed lab CDR rows into a path-safe master.db copy (velocity V1)');
+
+Artisan::command('pbx3:cdr-velocity-query
+    {--window= : Override T minutes}
+    {--prefixes= : Comma-separated high-cost prefixes}', function (
+    \App\Services\Cdr\VelocityCdrQuery $query,
+) {
+    $windowOpt = $this->option('window');
+    $window = is_numeric($windowOpt) ? (int) $windowOpt : null;
+    $prefixesOpt = $this->option('prefixes');
+    $prefixes = null;
+    if (is_string($prefixesOpt) && trim($prefixesOpt) !== '') {
+        $prefixes = preg_split('/\s*,\s*/', trim($prefixesOpt)) ?: [];
+    }
+
+    $result = $query->candidates($window, $prefixes);
+    if (! $result['available']) {
+        $this->warn('CDR SQLite not available (or empty prefix list) at '.$result['path']);
+
+        return 0;
+    }
+
+    $this->info(sprintf(
+        'Velocity candidates: total=%d window=%dm from=%s path=%s',
+        $result['total'],
+        $result['window_minutes'],
+        $result['from'],
+        $result['path']
+    ));
+    foreach ($result['by_src'] as $src => $n) {
+        $this->line("  src={$src} count={$n}");
+    }
+
+    return 0;
+})->purpose('Query recent high-cost outbound CDR candidates (velocity V1)');
+
 Artisan::command('pbx3:cdr-prune {--days= : Override local_days.cdr}', function (
     \App\Services\Cdr\CdrRetentionService $retention,
 ) {
