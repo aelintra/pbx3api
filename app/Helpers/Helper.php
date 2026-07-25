@@ -318,6 +318,7 @@ if (!function_exists('pbx3_delete_extension_asterisk_instances')) {
             $root . '/endpoints/' . $k . '_phone.conf',
             $root . '/endpoints/' . $k . '_phone.overlay.conf',
             $root . '/endpoints/' . $k . '_webrtc.conf',
+            $root . '/endpoints/' . $k . '_webrtc.overlay.conf',
         ]);
     }
 }
