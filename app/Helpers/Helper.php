@@ -301,6 +301,7 @@ if (!function_exists('pbx3_delete_trunk_asterisk_instances')) {
         $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
         pbx3_delete_asterisk_instance_files([
             $root . '/trunks/' . $k . '_trunk.conf',
+            $root . '/trunks/' . $k . '_trunk.overlay.conf',
             $root . '/iax_trunks/' . $k . '_trunk.conf',
         ]);
     }
@@ -331,7 +332,25 @@ if (!function_exists('pbx3_delete_queue_asterisk_instances')) {
             return;
         }
         $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
-        pbx3_delete_asterisk_instance_files([$root . '/queues/' . $k . '_queue.conf']);
+        pbx3_delete_asterisk_instance_files([
+            $root . '/queues/' . $k . '_queue.conf',
+            $root . '/queues/' . $k . '_queue.overlay.conf',
+        ]);
+    }
+}
+
+if (!function_exists('pbx3_delete_park_asterisk_instances')) {
+    function pbx3_delete_park_asterisk_instances(string $shortuid): void
+    {
+        $k = pbx3_ast_instance_safe_key($shortuid);
+        if ($k === null) {
+            return;
+        }
+        $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
+        pbx3_delete_asterisk_instance_files([
+            $root . '/callparks/' . $k . '_parking.conf',
+            $root . '/callparks/' . $k . '_parking.overlay.conf',
+        ]);
     }
 }
 

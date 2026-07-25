@@ -42,6 +42,7 @@ class TrunkController extends Controller
 			'transport' => 'in:udp,tcp,tls,wss',
 			'trunkname' => 'string|nullable',
 			'username' => 'string|nullable',
+			'pjsip_overlay' => 'nullable|string|max:16384',
     	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -237,6 +238,10 @@ class TrunkController extends Controller
 
 // Move post variables to the model   
 		move_request_to_model($request,$trunk,$this->updateableColumns);
+		if ($request->has('pjsip_overlay')) {
+			$ov = $request->input('pjsip_overlay');
+			$trunk->pjsip_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
+		}
 		$clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
 		if ($clusterShortuid !== null) {
 			$trunk->cluster = $clusterShortuid;

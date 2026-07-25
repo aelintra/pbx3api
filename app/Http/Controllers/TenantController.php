@@ -80,6 +80,7 @@ class TenantController extends Controller
 			'vmail_age' => 'integer',
 			'voice_instr' => 'integer|nullable',
 			'voip_max' => 'integer',
+			'park_overlay' => 'nullable|string|max:16384',
 	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -210,7 +211,11 @@ class TenantController extends Controller
 
 // Move post variables to the model  
 
-		move_request_to_model($request,$tenant,$this->updateableColumns);  	
+		move_request_to_model($request,$tenant,$this->updateableColumns);
+		if ($request->has('park_overlay')) {
+			$ov = $request->input('park_overlay');
+			$tenant->park_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
+		}
 
 // store the model if it has changed
     	try {
@@ -243,6 +248,7 @@ class TenantController extends Controller
 
         $id = $tenant->id;
         $shortuid = (string) $tenant->shortuid;
+        pbx3_delete_park_asterisk_instances($shortuid);
         app(\App\Services\Tenant\TenantMobilityService::class)->destroyTenantData($tenant);
         app(\App\Services\Tenant\PortableUserMobility::class)->removeOrStripForTenant($shortuid);
         pbx3_update_fqdn_inline_optional();

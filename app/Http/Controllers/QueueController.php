@@ -36,6 +36,7 @@ class QueueController extends Controller
         'outcome' => 'string|nullable',
         'strategy' => 'in:ringall,roundrobin,leastrecent,fewestcalls,random,rrmemory',
         'timeout' => 'integer|nullable',
+        'queue_overlay' => 'nullable|string|max:16384',
     ];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -158,6 +159,10 @@ class QueueController extends Controller
 
 // Move post variables to the model
         move_request_to_model($request, $queue, $this->updateableColumns);
+        if ($request->has('queue_overlay')) {
+            $ov = $request->input('queue_overlay');
+            $queue->queue_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
+        }
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $this->assertClusterAllowed($clusterShortuid);

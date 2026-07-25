@@ -132,6 +132,7 @@ class Tenant extends Model
         'vmail_age',
         'voice_instr',
         'voip_max',
+        'park_overlay',
     ];
 
     /**

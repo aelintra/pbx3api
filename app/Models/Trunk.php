@@ -59,6 +59,7 @@ class Trunk extends Model
         'transport',
         'trunkname',
         'username',
+        'pjsip_overlay',
     ];
 
     /** Attributes excluded from array/JSON. Empty; trunks has no redundant fields to hide. */

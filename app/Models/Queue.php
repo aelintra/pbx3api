@@ -45,6 +45,7 @@ class Queue extends Model
         'outcome',
         'strategy',
         'timeout',
+        'queue_overlay',
     ];
 
     /** name is deprecated (use cname); hide from array/JSON. */
