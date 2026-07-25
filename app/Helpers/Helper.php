@@ -316,6 +316,7 @@ if (!function_exists('pbx3_delete_extension_asterisk_instances')) {
         $root = rtrim((string) env('PBX3_AST_ETC', '/opt/pbx3/etc/asterisk'), '/');
         pbx3_delete_asterisk_instance_files([
             $root . '/endpoints/' . $k . '_phone.conf',
+            $root . '/endpoints/' . $k . '_phone.overlay.conf',
             $root . '/endpoints/' . $k . '_webrtc.conf',
         ]);
     }
