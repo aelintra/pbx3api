@@ -45,6 +45,7 @@ class ExtensionController extends Controller
 		'technology' => 'string|nullable',
 		'transport' => 'in:udp,tcp,tls,wss',
 		'vmailfwd' => 'email|nullable',
+		'pjsip_overlay' => 'nullable|string|max:16384',
 	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -790,6 +791,12 @@ class ExtensionController extends Controller
                     $resolved = cluster_identifier_to_shortuid($value) ?? trim((string) $value);
                     $this->assertClusterAllowed($resolved !== '' ? $resolved : null);
                     $extension->cluster = $resolved;
+                } elseif ($key === 'pjsip_overlay') {
+                    if ($value === null || (is_string($value) && trim($value) === '')) {
+                        $extension->pjsip_overlay = null;
+                    } else {
+                        $extension->pjsip_overlay = is_string($value) ? trim($value) : $value;
+                    }
                 } else {
                     $extension->$key = is_string($value) ? trim($value) : $value;
                 }

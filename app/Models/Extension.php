@@ -66,6 +66,7 @@ class Extension extends Model
         'technology',
         'transport',
         'vmailfwd',
+        'pjsip_overlay',
     ];
 
     /** Attributes excluded from array/JSON (e.g. passwd). */
