@@ -13,8 +13,9 @@ class InboundRouteController extends Controller
 {
     use EnforcesClusterScope;
 
-    /** Asterisk dialplan extension format: literal digits, pattern _[XZN.!]+, or special s|i|t */
-    private const PKEY_EXTENSION_REGEX = '/^(\d+|_[XZN.!]+|[sit])$/';
+    /** DiD/CLiD number: digits, optional leading +, Asterisk pattern _[XZN.!]+, or special s|i|t.
+     *  Lab/fleet inbound often stores +E.164 after SBC normalize (see EGRESS_PLUS_E164_WIRE.md). */
+    private const PKEY_EXTENSION_REGEX = '/^(\+?\d+|_[XZN.!]+|[sit])$/';
 
     /** Technology / DDI type: DiD, CLiD, Class (dropdown). */
     private const TECHNOLOGY_VALUES = 'DiD,CLiD,Class';
@@ -111,7 +112,7 @@ class InboundRouteController extends Controller
         $inboundroute->closeroute = 'None';
 
         $messages = [
-            'pkey.regex' => 'Number must be a valid Asterisk extension: digits only, pattern _XZN.! (e.g. _2XXX), or special s/i/t.',
+            'pkey.regex' => 'Number must be digits (optional leading + for E.164), pattern _XZN.! (e.g. _2XXX), or special s/i/t.',
         ];
         $validator = Validator::make($request->all(), $rules, $messages);
         $validator->setAttributeNames(['pkey' => 'Number (DiD/CLiD)']);
@@ -173,7 +174,10 @@ class InboundRouteController extends Controller
 
         $this->normalizeInboundRouteRouteJsonScalars($request);
 
-        $validator = Validator::make($request->all(), $this->updateableColumns);
+        $validator = Validator::make($request->all(), $this->updateableColumns, [
+            'pkey.regex' => 'Number must be digits (optional leading + for E.164), pattern _XZN.! (e.g. _2XXX), or special s/i/t.',
+        ]);
+        $validator->setAttributeNames(['pkey' => 'Number (DiD/CLiD)']);
 
         $validator->after(function ($validator) use ($request, $inboundroute) {
             $newPkey = $request->has('pkey') ? trim((string) $request->input('pkey', '')) : null;
