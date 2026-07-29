@@ -250,8 +250,16 @@ class ExtensionController extends Controller
         }
         $attrs['provisionwith'] = $provisionwith;
 
+        // SPA "Name" → ipphone.desc; default Ext{pkey} when blank (legacy SARK-style)
+        $desc = $request->input('desc');
+        $attrs['desc'] = ($desc !== null && trim((string) $desc) !== '')
+            ? trim((string) $desc)
+            : ('Ext' . $pkey);
+        if ($request->filled('description')) {
+            $attrs['description'] = $request->input('description');
+        }
+
         if ($extensionType === 'SIP') {
-            $attrs['desc'] = $desc ?: ('Ext' . $pkey);
             $attrs['transport'] = $request->input('transport', 'udp');
             $attrs['protocol'] = $protocolInput;
 
@@ -282,7 +290,6 @@ class ExtensionController extends Controller
                 $attrs['provision'] = null;
             }
         } else {
-            $attrs['desc'] = $desc ?: ('Ext' . $pkey);
             $attrs['device'] = 'WebRTC';
             $attrs['transport'] = $request->input('transport', 'wss');
             $attrs['protocol'] = $protocolInput;
