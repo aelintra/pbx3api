@@ -48,7 +48,7 @@ class TenantController extends Controller
 			'ldapuser' => 'string|nullable',
 			'ldappass' => 'nullable|string',
 			'ldaptls' => 'in:on,off',
-			'localarea' => 'numeric|nullable',
+			'localarea' => 'nullable|string|regex:/^\d*$/',
 			'localdplan' => ['regex:/^_X+$/', 'nullable'],
 			'lterm' => 'integer|nullable',
 			'leasedhdtime' => 'integer|nullable',
