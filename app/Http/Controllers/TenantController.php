@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\Fleet\FleetPostureService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,13 @@ class TenantController extends Controller
  */
     public function save (Request $request) {
 
+        // Fleet-first: Sanctum Create is locked on fleet nodes; Gatekeeper uses POST /fleet/tenants.
+        if ($request->user() !== null && app(FleetPostureService::class)->isFleetNode()) {
+            return response()->json([
+                'message' => 'Fleet mode: create tenants via Fleet → Tenants (not on-node Create)',
+            ], 403);
+        }
+
         $createRules = array_merge($this->updateableColumns, [
             'pkey' => 'required|string',
             'description' => 'string|required',
@@ -244,6 +252,13 @@ class TenantController extends Controller
 
         if ($tenant->pkey == 'default') {
            return Response::json(['Error - Cannot delete default tenant!'],409); 
+        }
+
+        // Fleet-first: Sanctum Delete locked on fleet nodes (Fleet Delete orchestrator is follow-on).
+        if (request()->user() !== null && app(FleetPostureService::class)->isFleetNode()) {
+            return response()->json([
+                'message' => 'Fleet mode: delete tenants via Fleet (not on-node Delete)',
+            ], 403);
         }
 
         $id = $tenant->id;

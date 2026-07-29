@@ -115,6 +115,15 @@ class FleetMobilityController extends Controller
         return $certs->sync($request);
     }
 
+    /**
+     * Fleet-first tenant create — Gatekeeper pushes cluster create onto the home node.
+     * Shares TenantController::save (shortuid/FQDN assignment). Auth: fleet.token.
+     */
+    public function storeTenant(Request $request, TenantController $tenants)
+    {
+        return $tenants->save($request);
+    }
+
     public function destroyTenant(string $tenant, TenantMobilityService $mobility, PortableUserMobility $portableUsers): JsonResponse
     {
         $model = (new Tenant)->resolveRouteBinding($tenant);
