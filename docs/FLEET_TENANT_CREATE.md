@@ -1,7 +1,7 @@
 # Fleet-first tenant create (node API)
 
 **Spec:** `pbx3/workingdocs/FLEET_TENANT_CREATE_REQUIREMENTS.md`  
-**Branch:** `fleet-first-tenant-create`
+**Branch:** merged to **`main`** (2026-07-30)
 
 ## Endpoints
 
