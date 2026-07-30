@@ -28,6 +28,7 @@ use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\CdrController;
+use App\Http\Controllers\HomePulseController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RecordingController;
 use App\Http\Controllers\SnapShotController;
@@ -204,6 +205,7 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::get('destinations', [DestinationController::class, 'index']);
 
     Route::get('cdr', [CdrController::class, 'index']);
+    Route::get('home/pulse', [HomePulseController::class, 'show']);
 
     Route::get('helpcore', [HelpCoreController::class, 'index']);
     Route::get('helpcore/{helpcore}', [HelpCoreController::class, 'show']);

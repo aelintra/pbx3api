@@ -82,6 +82,151 @@ class CdrIndexService
     }
 
     /**
+     * Hourly call volume for the last 24 hours (Home pulse).
+     *
+     * @param  array{
+     *   accountcode?: string|null,
+     *   accountcodes?: list<string>|null
+     * }  $filters
+     * @return array{available: bool, labels: list<string>, answered: list<int>, other: list<int>}
+     */
+    public function volumeLast24h(array $filters = []): array
+    {
+        $empty = [
+            'available' => false,
+            'labels' => [],
+            'answered' => [],
+            'other' => [],
+        ];
+
+        if (! $this->isAvailable()) {
+            return $empty;
+        }
+
+        $now = new \DateTimeImmutable('now');
+        $startHour = $now->setTime((int) $now->format('H'), 0, 0)->modify('-23 hours');
+        $startBound = $startHour->format('Y-m-d H:i:s');
+
+        $aggFilters = array_merge($filters, [
+            'from' => $startBound,
+        ]);
+
+        $pdo = $this->openReadOnly();
+        [$whereSql, $params] = $this->buildWhere($aggFilters);
+
+        $sql = 'SELECT strftime(\'%Y-%m-%d %H:00:00\', calldate) AS bucket,'
+            .' SUM(CASE WHEN UPPER(disposition) = \'ANSWERED\' THEN 1 ELSE 0 END) AS answered,'
+            .' SUM(CASE WHEN UPPER(disposition) != \'ANSWERED\' OR disposition IS NULL THEN 1 ELSE 0 END) AS other'
+            .' FROM cdr'.$whereSql
+            .' GROUP BY bucket'
+            .' ORDER BY bucket';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $byBucket = [];
+        foreach ($rows as $row) {
+            $byBucket[(string) $row['bucket']] = [
+                'answered' => (int) ($row['answered'] ?? 0),
+                'other' => (int) ($row['other'] ?? 0),
+            ];
+        }
+
+        $labels = [];
+        $answered = [];
+        $other = [];
+        for ($i = 0; $i < 24; $i++) {
+            $hour = $startHour->modify('+'.$i.' hours');
+            $key = $hour->format('Y-m-d H:00:00');
+            $labels[] = $hour->format('H:00');
+            $answered[] = (int) ($byBucket[$key]['answered'] ?? 0);
+            $other[] = (int) ($byBucket[$key]['other'] ?? 0);
+        }
+
+        return [
+            'available' => true,
+            'labels' => $labels,
+            'answered' => $answered,
+            'other' => $other,
+        ];
+    }
+
+    /**
+     * Disposition buckets for calls since local midnight (Home pulse).
+     *
+     * @param  array{
+     *   accountcode?: string|null,
+     *   accountcodes?: list<string>|null
+     * }  $filters
+     * @return array{
+     *   available: bool,
+     *   answered: int,
+     *   no_answer: int,
+     *   busy: int,
+     *   failed: int,
+     *   other: int
+     * }
+     */
+    public function outcomeToday(array $filters = []): array
+    {
+        $empty = [
+            'available' => false,
+            'answered' => 0,
+            'no_answer' => 0,
+            'busy' => 0,
+            'failed' => 0,
+            'other' => 0,
+        ];
+
+        if (! $this->isAvailable()) {
+            return $empty;
+        }
+
+        $todayStart = (new \DateTimeImmutable('today'))->format('Y-m-d H:i:s');
+        $aggFilters = array_merge($filters, [
+            'from' => $todayStart,
+        ]);
+
+        $pdo = $this->openReadOnly();
+        [$whereSql, $params] = $this->buildWhere($aggFilters);
+
+        $sql = 'SELECT UPPER(COALESCE(disposition, \'\')) AS disposition, COUNT(*) AS c'
+            .' FROM cdr'.$whereSql
+            .' GROUP BY UPPER(COALESCE(disposition, \'\'))';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $out = [
+            'available' => true,
+            'answered' => 0,
+            'no_answer' => 0,
+            'busy' => 0,
+            'failed' => 0,
+            'other' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $count = (int) ($row['c'] ?? 0);
+            $disp = (string) ($row['disposition'] ?? '');
+            if ($disp === 'ANSWERED') {
+                $out['answered'] += $count;
+            } elseif ($disp === 'NO ANSWER') {
+                $out['no_answer'] += $count;
+            } elseif ($disp === 'BUSY') {
+                $out['busy'] += $count;
+            } elseif ($disp === 'FAILED' || $disp === 'CONGESTION') {
+                $out['failed'] += $count;
+            } else {
+                $out['other'] += $count;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Create helpful indexes (safe while Asterisk holds the writer; run from prune).
      */
     public function ensureIndexes(): void
