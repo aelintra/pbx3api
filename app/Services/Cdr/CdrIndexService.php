@@ -2,11 +2,15 @@
 
 namespace App\Services\Cdr;
 
+use App\Support\SiteTimezone;
+use DateTimeImmutable;
+use DateTimeZone;
 use PDO;
 use PDOException;
 
 /**
  * Phase 6: read Asterisk cdr_sqlite3_custom master.db (search HoR).
+ * calldate is UTC at rest; day buckets / date filters use site TZ.
  */
 class CdrIndexService
 {
@@ -33,11 +37,20 @@ class CdrIndexService
      *   limit?: int|null,
      *   offset?: int|null
      * }  $filters
-     * @return array{available: bool, path: string, total: int, limit: int, offset: int, rows: list<array<string, mixed>>}
+     * @return array{
+     *   available: bool,
+     *   path: string,
+     *   timezone: string,
+     *   total: int,
+     *   limit: int,
+     *   offset: int,
+     *   rows: list<array<string, mixed>>
+     * }
      */
     public function list(array $filters = []): array
     {
         $path = $this->path();
+        $timezone = SiteTimezone::id();
         $limit = max(1, min(
             (int) ($filters['limit'] ?? config('pbx3_cdr.default_limit', 100)),
             (int) config('pbx3_cdr.max_limit', 500)
@@ -48,6 +61,7 @@ class CdrIndexService
             return [
                 'available' => false,
                 'path' => $path,
+                'timezone' => $timezone,
                 'total' => 0,
                 'limit' => $limit,
                 'offset' => $offset,
@@ -74,6 +88,7 @@ class CdrIndexService
         return [
             'available' => true,
             'path' => $path,
+            'timezone' => $timezone,
             'total' => $total,
             'limit' => $limit,
             'offset' => $offset,
@@ -88,12 +103,20 @@ class CdrIndexService
      *   accountcode?: string|null,
      *   accountcodes?: list<string>|null
      * }  $filters
-     * @return array{available: bool, labels: list<string>, answered: list<int>, other: list<int>}
+     * @return array{
+     *   available: bool,
+     *   timezone: string,
+     *   labels: list<string>,
+     *   answered: list<int>,
+     *   other: list<int>
+     * }
      */
     public function volumeLast24h(array $filters = []): array
     {
+        $timezone = SiteTimezone::id();
         $empty = [
             'available' => false,
+            'timezone' => $timezone,
             'labels' => [],
             'answered' => [],
             'other' => [],
@@ -103,7 +126,9 @@ class CdrIndexService
             return $empty;
         }
 
-        $now = new \DateTimeImmutable('now');
+        $utc = new DateTimeZone('UTC');
+        $site = SiteTimezone::zone();
+        $now = new DateTimeImmutable('now', $utc);
         $startHour = $now->setTime((int) $now->format('H'), 0, 0)->modify('-23 hours');
         $startBound = $startHour->format('Y-m-d H:i:s');
 
@@ -138,13 +163,14 @@ class CdrIndexService
         for ($i = 0; $i < 24; $i++) {
             $hour = $startHour->modify('+'.$i.' hours');
             $key = $hour->format('Y-m-d H:00:00');
-            $labels[] = $hour->format('H:00');
+            $labels[] = $hour->setTimezone($site)->format('H:00');
             $answered[] = (int) ($byBucket[$key]['answered'] ?? 0);
             $other[] = (int) ($byBucket[$key]['other'] ?? 0);
         }
 
         return [
             'available' => true,
+            'timezone' => $timezone,
             'labels' => $labels,
             'answered' => $answered,
             'other' => $other,
@@ -152,7 +178,8 @@ class CdrIndexService
     }
 
     /**
-     * Disposition buckets for calls since local midnight (Home pulse).
+     * Disposition buckets for calls since site-local midnight (Home pulse).
+     * Compared against UTC calldate strings.
      *
      * @param  array{
      *   accountcode?: string|null,
@@ -160,6 +187,7 @@ class CdrIndexService
      * }  $filters
      * @return array{
      *   available: bool,
+     *   timezone: string,
      *   answered: int,
      *   no_answer: int,
      *   busy: int,
@@ -169,8 +197,10 @@ class CdrIndexService
      */
     public function outcomeToday(array $filters = []): array
     {
+        $timezone = SiteTimezone::id();
         $empty = [
             'available' => false,
+            'timezone' => $timezone,
             'answered' => 0,
             'no_answer' => 0,
             'busy' => 0,
@@ -182,9 +212,8 @@ class CdrIndexService
             return $empty;
         }
 
-        $todayStart = (new \DateTimeImmutable('today'))->format('Y-m-d H:i:s');
         $aggFilters = array_merge($filters, [
-            'from' => $todayStart,
+            'from' => SiteTimezone::todayStartUtc(),
         ]);
 
         $pdo = $this->openReadOnly();
@@ -200,6 +229,7 @@ class CdrIndexService
 
         $out = [
             'available' => true,
+            'timezone' => $timezone,
             'answered' => 0,
             'no_answer' => 0,
             'busy' => 0,
@@ -352,7 +382,7 @@ class CdrIndexService
     private function normalizeBound(string $raw, bool $endOfDay): string
     {
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
-            return $endOfDay ? $raw.' 23:59:59' : $raw.' 00:00:00';
+            return SiteTimezone::calendarDayBoundUtc($raw, $endOfDay);
         }
 
         return $raw;

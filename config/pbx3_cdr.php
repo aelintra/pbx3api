@@ -20,4 +20,12 @@ return [
     /** Hard cap on page size */
     'max_limit' => (int) env('PBX3_CDR_MAX_LIMIT', 500),
 
+    /**
+     * Optional IANA override for tests / break-glass.
+     * Empty → read timezone_file (node OS TZ from Network panel).
+     */
+    'site_timezone' => env('PBX3_CDR_SITE_TIMEZONE', ''),
+
+    'timezone_file' => env('PBX3_CDR_TIMEZONE_FILE', '/etc/timezone'),
+
 ];

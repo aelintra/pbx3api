@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Services\Cdr\CdrIndexService;
+use App\Support\SiteTimezone;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -66,6 +67,7 @@ class HomePulseService
                 Log::warning('home pulse cdr failed', ['error' => $e->getMessage()]);
                 $out['cdr'] = [
                     'available' => false,
+                    'timezone' => SiteTimezone::id(),
                     'volume_24h' => ['labels' => [], 'answered' => [], 'other' => []],
                     'outcome_today' => [
                         'answered' => 0,
@@ -384,14 +386,17 @@ class HomePulseService
         if ($scopeKey === '') {
             $scopeKey = 'all';
         }
+        $scopeKey .= '|tz:'.SiteTimezone::id();
 
         return $this->rememberOrCompute('home_pulse:cdr:'.$scopeKey, self::TTL_CDR, function () use ($filters) {
             $volume = $this->cdr->volumeLast24h($filters);
             $outcome = $this->cdr->outcomeToday($filters);
             $available = ($volume['available'] ?? false) && ($outcome['available'] ?? false);
+            $timezone = (string) ($volume['timezone'] ?? $outcome['timezone'] ?? SiteTimezone::id());
 
             return [
                 'available' => $available,
+                'timezone' => $timezone,
                 'volume_24h' => [
                     'labels' => $volume['labels'] ?? [],
                     'answered' => $volume['answered'] ?? [],

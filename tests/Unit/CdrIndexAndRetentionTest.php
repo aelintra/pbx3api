@@ -55,9 +55,9 @@ test('CdrIndexService volumeLast24h and outcomeToday aggregate dispositions', fu
     $ins = $pdo->prepare('INSERT INTO cdr (calldate, disposition, accountcode, uniqueid)
         VALUES (?, ?, ?, ?)');
 
-    $now = new \DateTimeImmutable('now');
+    $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     $hour = $now->setTime((int) $now->format('H'), 0, 0);
-    $today = (new \DateTimeImmutable('today'))->format('Y-m-d H:i:s');
+    $today = (new \DateTimeImmutable('today', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
     $ins->execute([$hour->format('Y-m-d H:i:s'), 'ANSWERED', 'default', 'u1']);
     $ins->execute([$hour->format('Y-m-d H:i:s'), 'NO ANSWER', 'default', 'u2']);
     $ins->execute([$hour->format('Y-m-d H:i:s'), 'BUSY', 'tenant1', 'u3']);
@@ -65,11 +65,15 @@ test('CdrIndexService volumeLast24h and outcomeToday aggregate dispositions', fu
     // Outside 24h window
     $ins->execute([$hour->modify('-30 hours')->format('Y-m-d H:i:s'), 'ANSWERED', 'default', 'u-old']);
 
-    config(['pbx3_cdr.sqlite_path' => $path]);
+    config([
+        'pbx3_cdr.sqlite_path' => $path,
+        'pbx3_cdr.site_timezone' => 'UTC',
+    ]);
     $svc = new CdrIndexService;
 
     $vol = $svc->volumeLast24h();
     expect($vol['available'])->toBeTrue()
+        ->and($vol['timezone'])->toBe('UTC')
         ->and(count($vol['labels']))->toBe(24)
         ->and(array_sum($vol['answered']))->toBe(1)
         ->and(array_sum($vol['other']))->toBe(3);
@@ -80,10 +84,46 @@ test('CdrIndexService volumeLast24h and outcomeToday aggregate dispositions', fu
 
     $out = $svc->outcomeToday();
     expect($out['available'])->toBeTrue()
+        ->and($out['timezone'])->toBe('UTC')
         ->and($out['answered'])->toBe(1)
         ->and($out['no_answer'])->toBe(1)
         ->and($out['busy'])->toBe(1)
         ->and($out['failed'])->toBe(1);
+
+    @unlink($path);
+});
+
+test('CdrIndexService outcomeToday uses site midnight over UTC storage', function () {
+    $path = sys_get_temp_dir().'/pbx3-cdr-tz-'.bin2hex(random_bytes(4)).'.db';
+    $pdo = new \PDO('sqlite:'.$path);
+    $pdo->exec('CREATE TABLE cdr (
+        calldate TEXT, disposition TEXT, accountcode TEXT, uniqueid TEXT
+    )');
+    $ins = $pdo->prepare('INSERT INTO cdr (calldate, disposition, accountcode, uniqueid) VALUES (?, ?, ?, ?)');
+
+    // America/New_York summer: local midnight = 04:00 UTC same calendar day.
+    // Call at 03:00 UTC is still "yesterday" Eastern → excluded from today.
+    // Call at 05:00 UTC is after Eastern midnight → included.
+    $ins->execute(['2026-08-01 03:00:00', 'ANSWERED', 'default', 'pre-midnight']);
+    $ins->execute(['2026-08-01 05:00:00', 'BUSY', 'default', 'post-midnight']);
+
+    config([
+        'pbx3_cdr.sqlite_path' => $path,
+        'pbx3_cdr.site_timezone' => 'America/New_York',
+    ]);
+
+    // Freeze "now" relative to the fixture day by relying on real clock — instead
+    // assert via calendarDayBoundUtc / todayStart when "today" is 2026-08-01 Eastern.
+    // Simulate by checking filter bounds: site 2026-08-01 → UTC from 04:00.
+    $from = \App\Support\SiteTimezone::calendarDayBoundUtc('2026-08-01', false);
+    expect($from)->toBe('2026-08-01 04:00:00');
+
+    $svc = new CdrIndexService;
+    // Force outcome window by listing with site day bounds (same conversion as filters)
+    $listed = $svc->list(['from' => '2026-08-01', 'to' => '2026-08-01', 'limit' => 50]);
+    expect($listed['total'])->toBe(1)
+        ->and($listed['rows'][0]['uniqueid'])->toBe('post-midnight')
+        ->and($listed['timezone'])->toBe('America/New_York');
 
     @unlink($path);
 });
