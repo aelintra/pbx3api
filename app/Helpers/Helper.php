@@ -666,8 +666,19 @@ function restore_from_backup($request) {
     shell_exec("/bin/rm -rf $tempDname");
     Log::info("Temporary work files deleted");
 
-    // After Asterisk tree restore, donor pjsip_transport.conf still has the old public IP.
-    // Refresh externip + full Asterisk restart (Mode 4 / rebuild lesson 2026-08-01).
+    // After Asterisk tree restore: genAst into ASTLOCALCONF (sqlite HoR), then refresh
+    // externip + Asterisk restart. Matches restore-backup-zip / postinst ≥ 0.0.4-3.
+    if ($request->boolean('restoreasterisk') && is_executable('/opt/pbx3/scripts/genAst.sh')) {
+        Log::info('Regenerating Asterisk from DB (genAst) after restore');
+        [$resp, $err] = pbx3_request_syscmd('/opt/pbx3/scripts/genAst.sh', 180);
+        if ($err !== null) {
+            Log::warning('genAst via syshelper failed after restore', [
+                'error' => $err,
+                'response' => $resp,
+            ]);
+        }
+    }
+
     if ($request->boolean('restoreasterisk') && is_executable('/opt/pbx3/scripts/refresh-pjsip-externip.sh')) {
         Log::info('Refreshing PJSIP externip and restarting Asterisk');
         [$resp, $err] = pbx3_request_syscmd('/bin/sh /opt/pbx3/scripts/refresh-pjsip-externip.sh', 120);

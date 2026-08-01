@@ -53,7 +53,8 @@ Daemon runs as privileged user (runit); no password, no sudo in PHP.
 | Asterisk version| `{asterisk} -rx 'core show version' 2>/dev/null`| via daemon |
 | **LE first issue (multi-SAN)** | `/opt/pbx3/scripts/le-first-cert-multi.sh …` (long timeout: `pbx3_request_syscmd(..., 120)`) | CertificateController |
 | **LE SAN sync** | `/opt/pbx3/scripts/le-sync-cert-sans.sh …` | CertificateController |
-| **PJSIP externip after Asterisk restore** | `/opt/pbx3/scripts/refresh-pjsip-externip.sh` (120s; rewrites `external_*` + `systemctl restart asterisk`) | `Helper.php` restore path; also CLI `restore-backup-zip.sh` |
+| **PJSIP externip after Asterisk restore** | `/opt/pbx3/scripts/refresh-pjsip-externip.sh` (120s; rewrites `external_*` + `systemctl restart asterisk`) | `Helper.php` restore path; also CLI `restore-backup-zip.sh` / postinst |
+| **genAst after Asterisk restore / apt** | `/opt/pbx3/scripts/genAst.sh` (180s) | `Helper.php` restore; `restore-backup-zip.sh`; debian postinst (≥ 0.0.4-3) |
 | **FQDN inline + Shorewall** | `/opt/pbx3/scripts/update-fqdn-inline.sh` | TenantController / SysglobalController / FirewallController `ipv4restart` |
 | **Backup rehydrate (S3→bkup)** | `/bin/mv /tmp/pbx3bak.*.zip /opt/pbx3/bkup/…` + chown/chmod | `BackupArchiveService::rehydrateToLocal` (stages in `/tmp`, same pattern as `create_new_backup`) |
 | **Backup delete / local prune** | `/bin/rm -f /opt/pbx3/bkup/…` | `BackupController`, `LocalBackupRetention` |
