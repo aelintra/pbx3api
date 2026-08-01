@@ -665,8 +665,23 @@ function restore_from_backup($request) {
     
     shell_exec("/bin/rm -rf $tempDname");
     Log::info("Temporary work files deleted");
-    Log::info("Requesting Asterisk reload");
-    shell_exec("/bin/sh /opt/pbx3/scripts/srkreload");
+
+    // After Asterisk tree restore, donor pjsip_transport.conf still has the old public IP.
+    // Refresh externip + full Asterisk restart (Mode 4 / rebuild lesson 2026-08-01).
+    if ($request->boolean('restoreasterisk') && is_executable('/opt/pbx3/scripts/refresh-pjsip-externip.sh')) {
+        Log::info('Refreshing PJSIP externip and restarting Asterisk');
+        [$resp, $err] = pbx3_request_syscmd('/bin/sh /opt/pbx3/scripts/refresh-pjsip-externip.sh', 120);
+        if ($err !== null) {
+            Log::warning('refresh-pjsip-externip via syshelper failed; falling back to srkreload', [
+                'error' => $err,
+                'response' => $resp,
+            ]);
+            shell_exec('/bin/sh /opt/pbx3/scripts/srkreload');
+        }
+    } else {
+        Log::info('Requesting Asterisk reload');
+        shell_exec('/bin/sh /opt/pbx3/scripts/srkreload');
+    }
     Log::info("System Regen complete");
 
     return 200; 
