@@ -101,8 +101,10 @@ class RouteController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        move_request_to_model($request, $route, $this->updateableColumns);
+        move_request_to_model($request, $route, $createRules);
         $route->cluster = $clusterShortuid;
+        // pkey is create-only (not in $updateableColumns) — must still land on the model
+        $route->pkey = trim((string) $request->input('pkey'));
 
         $route->id = generate_ksuid();
         $route->shortuid = generate_shortuid();
