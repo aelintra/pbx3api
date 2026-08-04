@@ -17,6 +17,7 @@ use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\DialAliasController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\HelpCoreController;
 use App\Http\Controllers\ExtensionController;
@@ -170,6 +171,12 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::post('holidaytimers', [HolidayTimerController::class, 'save']);
     Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
     Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
+
+    Route::get('dialaliases', [DialAliasController::class, 'index']);
+    Route::get('dialaliases/{dialalias}', [DialAliasController::class, 'show']);
+    Route::post('dialaliases', [DialAliasController::class, 'save']);
+    Route::put('dialaliases/{dialalias}', [DialAliasController::class, 'update']);
+    Route::delete('dialaliases/{dialalias}', [DialAliasController::class, 'delete']);
 
     Route::get('coscloses', [CosCloseController::class, 'index']);
     Route::get('coscloses/{cosclose}', [CosCloseController::class, 'show']);

@@ -33,6 +33,7 @@ class TenantMobilityService
         'queue',
         'recordings',
         'route',
+        'dialalias',
         // Laravel `users` are not in sqlite_create_tenant.sql — packed as portable_users.json (P4).
     ];
 
