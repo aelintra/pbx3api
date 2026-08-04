@@ -17,6 +17,7 @@ use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\DialAliasController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\HelpCoreController;
 use App\Http\Controllers\ExtensionController;
@@ -338,6 +339,15 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::post('routes', [RouteController::class, 'save']);
     Route::put('routes/{route}', [RouteController::class, 'update']);
     Route::delete('routes/{route}', [RouteController::class, 'delete']);
+
+/**
+ * Dial prefixes (tenant short dial) — instance admin only (no tenant admin / no CRM customer grouping).
+ */
+    Route::get('dialaliases', [DialAliasController::class, 'index']);
+    Route::get('dialaliases/{dialalias}', [DialAliasController::class, 'show']);
+    Route::post('dialaliases', [DialAliasController::class, 'save']);
+    Route::put('dialaliases/{dialalias}', [DialAliasController::class, 'update']);
+    Route::delete('dialaliases/{dialalias}', [DialAliasController::class, 'delete']);
 
 /**
  * Certificates
