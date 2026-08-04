@@ -34,6 +34,8 @@ class TenantMobilityService
         'recordings',
         'route',
         'dialalias',
+        'route_profile',
+        'route_profile_line',
         // Laravel `users` are not in sqlite_create_tenant.sql — packed as portable_users.json (P4).
     ];
 
