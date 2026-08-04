@@ -34,6 +34,7 @@ use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RecordingController;
 use App\Http\Controllers\SnapShotController;
 use App\Http\Controllers\RouteController;
+use App\Http\Controllers\RouteProfileController;
 use App\Http\Controllers\SchemaController;
 use App\Http\Controllers\SysCommandController;
 use App\Http\Controllers\SysglobalController;
@@ -171,6 +172,12 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::post('holidaytimers', [HolidayTimerController::class, 'save']);
     Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
     Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
+
+    Route::get('routeprofiles', [RouteProfileController::class, 'index']);
+    Route::get('routeprofiles/{routeprofile}', [RouteProfileController::class, 'show']);
+    Route::post('routeprofiles', [RouteProfileController::class, 'save']);
+    Route::put('routeprofiles/{routeprofile}', [RouteProfileController::class, 'update']);
+    Route::delete('routeprofiles/{routeprofile}', [RouteProfileController::class, 'delete']);
 
     Route::get('coscloses', [CosCloseController::class, 'index']);
     Route::get('coscloses/{cosclose}', [CosCloseController::class, 'show']);

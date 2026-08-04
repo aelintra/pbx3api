@@ -19,6 +19,8 @@ class DayTimer extends Model
         'dayofweek' => '*',
         'description' => '*NEW RULE*',
         'month' => '*',
+        'mode' => 'closed',
+        'priority' => 0,
         'state' => 'IDLE',
         'timespan' => '*',
     ];
@@ -34,6 +36,8 @@ class DayTimer extends Model
         'dayofweek',
         'description',
         'month',
+        'mode',
+        'priority',
         'timespan',
     ];
 
