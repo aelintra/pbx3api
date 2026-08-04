@@ -5,8 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Per-calling-tenant dial prefix (short dial). Schema: dialalias in sqlite_create_tenant.sql.
- * Product: **prefix** (pkey = 2–4 digits). Optional target_cluster; target later = tenant FQDN (Q14).
+ * Per-calling-tenant dial prefix (short dial A′). Schema: dialalias.
+ * Product: **prefix** (pkey = 2–4 digits). Dial target: target_fqdn (tenant FQDN).
+ * target_cluster is optional shortuid label pin only.
  */
 class DialAlias extends Model
 {
@@ -30,6 +31,7 @@ class DialAlias extends Model
         'active',
         'cluster',
         'target_cluster',
+        'target_fqdn',
         'cname',
         'description',
     ];

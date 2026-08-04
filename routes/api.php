@@ -172,12 +172,6 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
     Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
 
-    Route::get('dialaliases', [DialAliasController::class, 'index']);
-    Route::get('dialaliases/{dialalias}', [DialAliasController::class, 'show']);
-    Route::post('dialaliases', [DialAliasController::class, 'save']);
-    Route::put('dialaliases/{dialalias}', [DialAliasController::class, 'update']);
-    Route::delete('dialaliases/{dialalias}', [DialAliasController::class, 'delete']);
-
     Route::get('coscloses', [CosCloseController::class, 'index']);
     Route::get('coscloses/{cosclose}', [CosCloseController::class, 'show']);
     Route::post('coscloses', [CosCloseController::class, 'save']);
@@ -345,6 +339,15 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::post('routes', [RouteController::class, 'save']);
     Route::put('routes/{route}', [RouteController::class, 'update']);
     Route::delete('routes/{route}', [RouteController::class, 'delete']);
+
+/**
+ * Dial prefixes (tenant short dial) — instance admin only (no tenant admin / no CRM customer grouping).
+ */
+    Route::get('dialaliases', [DialAliasController::class, 'index']);
+    Route::get('dialaliases/{dialalias}', [DialAliasController::class, 'show']);
+    Route::post('dialaliases', [DialAliasController::class, 'save']);
+    Route::put('dialaliases/{dialalias}', [DialAliasController::class, 'update']);
+    Route::delete('dialaliases/{dialalias}', [DialAliasController::class, 'delete']);
 
 /**
  * Certificates

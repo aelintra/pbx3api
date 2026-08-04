@@ -10,18 +10,24 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * Dial prefixes (tenant short dial slice A): CRUD only — no GenAst/CAGI/SBC yet.
+ * Dial prefixes (tenant short dial A′ Q14): target is tenant FQDN (not local cluster shortuid-only).
  * Product name: dial prefix; table/resource: dialalias / dialaliases.
+ * Instance admin only (abilities:admin). Tenant panel users cannot manage cross-tenant wiring.
+ * No GenAst/CAGI/SBC yet.
  */
 class DialAliasController extends Controller
 {
     use EnforcesClusterScope;
 
+    /** FQDN: lowercase labels + TLD; requires at least one dot (rejects bare shortuid). */
+    private const TARGET_FQDN_REGEX = '/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/';
+
     private $updateableColumns = [
         'pkey' => 'regex:/^\d{2,4}$/',
         'active' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
-        'target_cluster' => 'string',
+        'target_fqdn' => 'string',
+        'target_cluster' => 'nullable|string',
         'cname' => 'string|nullable',
         'description' => 'string|nullable',
     ];
@@ -38,7 +44,7 @@ class DialAliasController extends Controller
             ->orderBy('pkey')
             ->get();
         attach_tenant_pkey_to_collection($rows);
-        $this->attachTargetTenantPkey($rows);
+        $this->attachTargetMeta($rows);
 
         return $rows;
     }
@@ -47,7 +53,7 @@ class DialAliasController extends Controller
     {
         $this->assertModelClusterAllowed($dialalias);
         attach_tenant_pkey_to_collection(collect([$dialalias]));
-        $this->attachTargetTenantPkey(collect([$dialalias]));
+        $this->attachTargetMeta(collect([$dialalias]));
 
         return response()->json($dialalias, 200);
     }
@@ -60,27 +66,33 @@ class DialAliasController extends Controller
         }
         $this->assertClusterAllowed($clusterShortuid);
 
-        $targetShortuid = cluster_identifier_to_shortuid($request->input('target_cluster'));
-        if ($targetShortuid === null) {
-            return response()->json(['target_cluster' => ['Invalid or missing target tenant.']], 422);
+        $targetFqdn = $this->normalizeTenantFqdn($request->input('target_fqdn'));
+        if ($targetFqdn === null) {
+            return response()->json([
+                'target_fqdn' => ['Target must be a full tenant FQDN (e.g. sister.pbx3.com), not a shortuid or instance host.'],
+            ], 422);
         }
-        $this->assertClusterAllowed($targetShortuid);
 
         $createRules = array_merge($this->updateableColumns, [
             'pkey' => ['required', 'regex:/^\d{2,4}$/'],
             'cluster' => 'required|exists:cluster,pkey',
-            'target_cluster' => 'required|string',
+            'target_fqdn' => 'required|string',
         ]);
 
         $validator = Validator::make($request->all(), $createRules);
 
-        $validator->after(function ($validator) use ($request, $clusterShortuid, $targetShortuid) {
+        $validator->after(function ($validator) use ($request, $clusterShortuid, $targetFqdn) {
             $alias = trim((string) $request->input('pkey', ''));
             if ($alias !== '' && DialAlias::where('pkey', $alias)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('pkey', 'That dial prefix is already in use in this tenant.');
             }
-            if ($targetShortuid !== null && $targetShortuid === $clusterShortuid) {
-                $validator->errors()->add('target_cluster', 'Target tenant must be different from the calling tenant.');
+            $selfErr = $this->targetSelfConflictMessage($clusterShortuid, $targetFqdn);
+            if ($selfErr !== null) {
+                $validator->errors()->add('target_fqdn', $selfErr);
+            }
+            $instErr = $this->instanceFqdnConflictMessage($targetFqdn);
+            if ($instErr !== null) {
+                $validator->errors()->add('target_fqdn', $instErr);
             }
         });
 
@@ -91,7 +103,11 @@ class DialAliasController extends Controller
         $row = new DialAlias;
         move_request_to_model($request, $row, $createRules);
         $row->cluster = $clusterShortuid;
-        $row->target_cluster = $targetShortuid;
+        $row->target_fqdn = $targetFqdn;
+        $row->target_cluster = $this->resolveOptionalTargetCluster(
+            $request->input('target_cluster'),
+            $targetFqdn
+        );
         $row->pkey = trim((string) $request->input('pkey'));
         $row->id = generate_ksuid();
         $row->shortuid = generate_shortuid();
@@ -103,7 +119,7 @@ class DialAliasController extends Controller
         }
 
         attach_tenant_pkey_to_collection(collect([$row]));
-        $this->attachTargetTenantPkey(collect([$row]));
+        $this->attachTargetMeta(collect([$row]));
 
         return $row;
     }
@@ -130,18 +146,29 @@ class DialAliasController extends Controller
                 }
             }
 
-            $targetShortuid = $dialalias->target_cluster;
-            if ($request->filled('target_cluster')) {
-                $resolvedTarget = cluster_identifier_to_shortuid($request->input('target_cluster'));
-                if ($resolvedTarget === null) {
-                    $validator->errors()->add('target_cluster', 'Invalid target tenant.');
+            $targetFqdn = $dialalias->target_fqdn;
+            if ($request->has('target_fqdn')) {
+                $normalized = $this->normalizeTenantFqdn($request->input('target_fqdn'));
+                if ($normalized === null) {
+                    $validator->errors()->add(
+                        'target_fqdn',
+                        'Target must be a full tenant FQDN (e.g. sister.pbx3.com), not a shortuid or instance host.'
+                    );
+                    $targetFqdn = null;
                 } else {
-                    $targetShortuid = $resolvedTarget;
+                    $targetFqdn = $normalized;
                 }
             }
 
-            if ($targetShortuid !== null && $clusterShortuid !== null && $targetShortuid === $clusterShortuid) {
-                $validator->errors()->add('target_cluster', 'Target tenant must be different from the calling tenant.');
+            if ($targetFqdn !== null && $clusterShortuid !== null) {
+                $selfErr = $this->targetSelfConflictMessage($clusterShortuid, $targetFqdn);
+                if ($selfErr !== null) {
+                    $validator->errors()->add('target_fqdn', $selfErr);
+                }
+                $instErr = $this->instanceFqdnConflictMessage($targetFqdn);
+                if ($instErr !== null) {
+                    $validator->errors()->add('target_fqdn', $instErr);
+                }
             }
         });
 
@@ -160,13 +187,24 @@ class DialAliasController extends Controller
             $dialalias->cluster = $clusterShortuid;
         }
 
-        if ($request->filled('target_cluster')) {
-            $targetShortuid = cluster_identifier_to_shortuid($request->input('target_cluster'));
-            if ($targetShortuid === null) {
-                return response()->json(['target_cluster' => ['Invalid target tenant.']], 422);
+        if ($request->has('target_fqdn')) {
+            $normalized = $this->normalizeTenantFqdn($request->input('target_fqdn'));
+            if ($normalized === null) {
+                return response()->json([
+                    'target_fqdn' => ['Target must be a full tenant FQDN (e.g. sister.pbx3.com).'],
+                ], 422);
             }
-            $this->assertClusterAllowed($targetShortuid);
-            $dialalias->target_cluster = $targetShortuid;
+            $dialalias->target_fqdn = $normalized;
+        }
+
+        if ($request->has('target_cluster') || $request->has('target_fqdn')) {
+            $pin = $request->has('target_cluster')
+                ? $request->input('target_cluster')
+                : $dialalias->target_cluster;
+            $dialalias->target_cluster = $this->resolveOptionalTargetCluster(
+                $pin,
+                (string) $dialalias->target_fqdn
+            );
         }
 
         if ($request->has('pkey')) {
@@ -188,7 +226,7 @@ class DialAliasController extends Controller
 
         $fresh = $dialalias->fresh();
         attach_tenant_pkey_to_collection(collect([$fresh]));
-        $this->attachTargetTenantPkey(collect([$fresh]));
+        $this->attachTargetMeta(collect([$fresh]));
 
         return response()->json($fresh, 200);
     }
@@ -202,21 +240,135 @@ class DialAliasController extends Controller
     }
 
     /**
+     * Strip paste junk → lowercase host; null if not a multi-label FQDN.
+     */
+    private function normalizeTenantFqdn($raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $s = strtolower(trim((string) $raw));
+        $s = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $s) ?? $s;
+        if ($s === '') {
+            return null;
+        }
+
+        if (str_contains($s, '://')) {
+            $host = parse_url($s, PHP_URL_HOST);
+            $s = is_string($host) && $host !== '' ? $host : preg_replace('#^[a-z][a-z0-9+.-]*://#', '', $s);
+            $s = strtolower(explode('/', (string) $s)[0] ?? '');
+        } elseif (str_contains($s, '/') && ! str_contains($s, ' ')) {
+            $s = strtolower(explode('/', $s)[0] ?? '');
+        }
+
+        if (str_contains($s, '@')) {
+            $s = strtolower(explode('@', $s)[1] ?? $s);
+        }
+
+        $s = preg_replace('/:\d+$/', '', $s) ?? $s;
+        $s = rtrim($s, '.');
+
+        if ($s === '' || ! str_contains($s, '.')) {
+            return null;
+        }
+        if (! preg_match(self::TARGET_FQDN_REGEX, $s)) {
+            return null;
+        }
+
+        return $s;
+    }
+
+    /**
+     * Optional shortuid pin: accept local identifier if known; else match FQDN in local cluster; else null.
+     * Never requires target to exist locally.
+     */
+    private function resolveOptionalTargetCluster($raw, string $targetFqdn): ?string
+    {
+        if ($raw !== null && trim((string) $raw) !== '') {
+            $resolved = cluster_identifier_to_shortuid($raw);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+            // Non-local or unknown pin — store nothing rather than garbage pkey
+        }
+
+        try {
+            $row = DB::table('cluster')
+                ->whereRaw('LOWER(TRIM(fqdn)) = ?', [strtolower($targetFqdn)])
+                ->first(['shortuid']);
+            if ($row && ! empty($row->shortuid)) {
+                return (string) $row->shortuid;
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return null;
+    }
+
+    private function targetSelfConflictMessage(string $callingShortuid, string $targetFqdn): ?string
+    {
+        try {
+            $calling = DB::table('cluster')
+                ->where('shortuid', $callingShortuid)
+                ->orWhere('pkey', $callingShortuid)
+                ->orWhere('id', $callingShortuid)
+                ->first(['shortuid', 'fqdn']);
+            if ($calling) {
+                $callFqdn = strtolower(trim((string) ($calling->fqdn ?? '')));
+                if ($callFqdn !== '' && $callFqdn === $targetFqdn) {
+                    return 'Target tenant FQDN must differ from the calling tenant.';
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return null;
+    }
+
+    private function instanceFqdnConflictMessage(string $targetFqdn): ?string
+    {
+        try {
+            $g = DB::table('globals')->first(['fqdn', 'domain']);
+            if (! $g) {
+                return null;
+            }
+            foreach (['fqdn', 'domain'] as $col) {
+                $v = strtolower(trim((string) ($g->{$col} ?? '')));
+                if ($v !== '' && $v === $targetFqdn) {
+                    return 'Target must be a tenant FQDN, not this instance hostname.';
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return null;
+    }
+
+    /**
      * @param  \Illuminate\Support\Collection|iterable  $collection
      */
-    private function attachTargetTenantPkey($collection): void
+    private function attachTargetMeta($collection): void
     {
-        $map = [];
+        $byShort = [];
+        $byFqdn = [];
         try {
-            foreach (DB::table('cluster')->get(['id', 'shortuid', 'pkey']) as $row) {
+            foreach (DB::table('cluster')->get(['id', 'shortuid', 'pkey', 'fqdn']) as $row) {
+                $pkey = $row->pkey ?? $row->shortuid ?? null;
+                $fqdn = strtolower(trim((string) ($row->fqdn ?? '')));
                 if (isset($row->id)) {
-                    $map[(string) $row->id] = $row->pkey ?? $row->id;
+                    $byShort[(string) $row->id] = $pkey;
                 }
                 if (isset($row->shortuid)) {
-                    $map[(string) $row->shortuid] = $row->pkey ?? $row->shortuid;
+                    $byShort[(string) $row->shortuid] = $pkey;
                 }
                 if (isset($row->pkey)) {
-                    $map[(string) $row->pkey] = $row->pkey;
+                    $byShort[(string) $row->pkey] = $pkey;
+                }
+                if ($fqdn !== '') {
+                    $byFqdn[$fqdn] = $pkey;
                 }
             }
         } catch (\Throwable $e) {
@@ -225,7 +377,15 @@ class DialAliasController extends Controller
 
         foreach ($collection as $item) {
             $t = $item->target_cluster ?? null;
-            $item->target_tenant_pkey = ($t !== null && $t !== '') ? ($map[(string) $t] ?? $t) : $t;
+            $fqdn = strtolower(trim((string) ($item->target_fqdn ?? '')));
+            $label = null;
+            if ($t !== null && $t !== '') {
+                $label = $byShort[(string) $t] ?? null;
+            }
+            if ($label === null && $fqdn !== '') {
+                $label = $byFqdn[$fqdn] ?? null;
+            }
+            $item->target_tenant_pkey = $label ?? ($t !== null && $t !== '' ? $t : null);
         }
     }
 }
