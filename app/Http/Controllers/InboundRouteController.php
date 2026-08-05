@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\InboundRoute;
+use App\Models\RouteProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -34,11 +35,13 @@ class InboundRouteController extends Controller
         'devicerec' => 'in:None,Inbound,default',
         'disa' => 'in:DISA,CALLBACK|nullable',
         'disapass' => 'string|nullable',
+        'entry_dest' => 'string|nullable',
         'inprefix' => 'string|nullable',
         'match' => 'string|nullable',
         'moh' => 'in:YES,NO',
         'openroute' => 'string|nullable',
         'privileged' => 'string|nullable',
+        'route_profile' => 'string|nullable',
         'swoclip' => 'in:YES,NO',
         'tag' => 'string|nullable',
         'technology' => 'in:' . self::TECHNOLOGY_VALUES,
@@ -127,6 +130,7 @@ class InboundRouteController extends Controller
             if ($pkey === '0') {
                 $validator->errors()->add('pkey', 'Number cannot be a single 0.');
             }
+            $this->validateRouteProfile($validator, $request, $clusterShortuid);
         });
 
         if ($validator->fails()) {
@@ -144,6 +148,7 @@ class InboundRouteController extends Controller
         if ($request->has('closeroute') && (trim((string) $request->input('closeroute', '')) === '' || $request->input('closeroute') === null)) {
             $inboundroute->closeroute = 'None';
         }
+        $this->normalizeRouteProfileAndEntry($request, $inboundroute);
 
         if (empty($inboundroute->trunkname)) {
             $inboundroute->trunkname = $inboundroute->pkey;
@@ -181,12 +186,12 @@ class InboundRouteController extends Controller
 
         $validator->after(function ($validator) use ($request, $inboundroute) {
             $newPkey = $request->has('pkey') ? trim((string) $request->input('pkey', '')) : null;
+            $clusterShortuid = $inboundroute->cluster;
+            if (cluster_identifier_to_shortuid($request->input('cluster')) !== null) {
+                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+                $this->assertClusterAllowed($clusterShortuid);
+            }
             if ($newPkey !== null && $newPkey !== $inboundroute->pkey) {
-                $clusterShortuid = $inboundroute->cluster;
-                if (cluster_identifier_to_shortuid($request->input('cluster')) !== null) {
-                    $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
-                    $this->assertClusterAllowed($clusterShortuid);
-                }
                 if (InboundRoute::where('pkey', $newPkey)->where('cluster', $clusterShortuid)->where('id', '!=', $inboundroute->id)->exists()) {
                     $validator->errors()->add('pkey', 'Duplicate number in this tenant.');
                 }
@@ -197,6 +202,7 @@ class InboundRouteController extends Controller
                     $validator->errors()->add('pkey', 'Number cannot be a single 0.');
                 }
             }
+            $this->validateRouteProfile($validator, $request, (string) $clusterShortuid);
         });
 
         if ($validator->fails()) {
@@ -219,6 +225,7 @@ class InboundRouteController extends Controller
         if ($request->has('closeroute') && (trim((string) $request->input('closeroute', '')) === '' || $request->input('closeroute') === null)) {
             $inboundroute->closeroute = 'None';
         }
+        $this->normalizeRouteProfileAndEntry($request, $inboundroute);
         if ($request->has('pkey')) {
             $inboundroute->pkey = trim((string) $request->input('pkey', ''));
         }
@@ -261,7 +268,7 @@ class InboundRouteController extends Controller
      */
     private function normalizeInboundRouteRouteJsonScalars(Request $request): void
     {
-        foreach (['openroute', 'closeroute'] as $field) {
+        foreach (['openroute', 'closeroute', 'entry_dest'] as $field) {
             if (! $request->exists($field)) {
                 continue;
             }
@@ -269,6 +276,35 @@ class InboundRouteController extends Controller
             if (is_int($v) || is_float($v)) {
                 $request->merge([$field => (string) $v]);
             }
+        }
+    }
+
+    private function validateRouteProfile($validator, Request $request, string $clusterShortuid): void
+    {
+        if (! $request->has('route_profile')) {
+            return;
+        }
+        $rp = trim((string) $request->input('route_profile', ''));
+        if ($rp === '' || strcasecmp($rp, 'None') === 0) {
+            return;
+        }
+        if (! RouteProfile::belongsToCluster($rp, $clusterShortuid)) {
+            $validator->errors()->add(
+                'route_profile',
+                'Route profile not found or belongs to another tenant.'
+            );
+        }
+    }
+
+    private function normalizeRouteProfileAndEntry(Request $request, InboundRoute $inboundroute): void
+    {
+        if ($request->has('route_profile')) {
+            $rp = trim((string) $request->input('route_profile', ''));
+            $inboundroute->route_profile = ($rp === '' || strcasecmp($rp, 'None') === 0) ? null : $rp;
+        }
+        if ($request->has('entry_dest')) {
+            $ed = trim((string) $request->input('entry_dest', ''));
+            $inboundroute->entry_dest = ($ed === '' || strcasecmp($ed, 'None') === 0) ? null : $ed;
         }
     }
 }

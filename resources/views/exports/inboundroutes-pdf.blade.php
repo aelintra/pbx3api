@@ -22,8 +22,9 @@
                 <th>Local UID</th>
                 <th>Tenant</th>
                 <th>Name</th>
-                <th>Open</th>
-                <th>Closed</th>
+                <th>Profile</th>
+                <th>Open (legacy)</th>
+                <th>Closed (legacy)</th>
                 <th>Type</th>
                 <th>Active</th>
             </tr>
@@ -35,6 +36,7 @@
                 <td>{{ $r->shortuid ?? '—' }}</td>
                 <td>{{ $r->tenant_pkey ?? $r->cluster ?? '—' }}</td>
                 <td>{{ $r->trunkname ?? '—' }}</td>
+                <td>{{ $r->route_profile ?? '—' }}</td>
                 <td>{{ $r->openroute ?? '—' }}</td>
                 <td>{{ $r->closeroute ?? '—' }}</td>
                 <td>{{ $r->technology ?? '—' }}</td>

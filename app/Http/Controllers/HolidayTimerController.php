@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\HolidayTimer;
+use App\Support\ScheduleModes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -19,6 +20,8 @@ class HolidayTimerController extends Controller
         'cname' => 'string|nullable',
         'description' => 'string|nullable',
         'route' => 'string|nullable',
+        'force_mode' => 'string|nullable',
+        'force_dest' => 'string|nullable',
         'stime' => 'integer|nullable',
         'etime' => 'integer|nullable',
     ];
@@ -62,6 +65,9 @@ class HolidayTimerController extends Controller
             if ($stime !== null && $etime !== null && $this->overlapsExisting($clusterShortuid, $stime, $etime, null)) {
                 $validator->errors()->add('stime', 'This period overlaps an existing holiday in the same tenant.');
             }
+            if ($request->has('force_mode') && ! ScheduleModes::isValid($request->input('force_mode'), true)) {
+                $validator->errors()->add('force_mode', 'Mode must be a lowercase word (e.g. open, closed, lunch).');
+            }
         });
 
         if ($validator->fails()) {
@@ -74,6 +80,12 @@ class HolidayTimerController extends Controller
         $holidaytimer->id = generate_ksuid();
         $holidaytimer->shortuid = generate_shortuid();
         $holidaytimer->pkey = 'sched' . rand(100000, 999999);
+
+        if ($request->has('force_mode')) {
+            $holidaytimer->force_mode = ScheduleModes::normalize($request->input('force_mode'), '') ?: null;
+        }
+        // Dual-write: force_dest preferred; keep route in sync for timer legacy path
+        $this->syncForceDestAndRoute($request, $holidaytimer);
 
         $stime = $this->stimeFromRequest($request);
         $etime = $this->etimeFromRequest($request);
@@ -121,6 +133,9 @@ class HolidayTimerController extends Controller
             if ($stime !== null && $etime !== null && $this->overlapsExisting($cluster, $stime, $etime, $holidaytimer->id)) {
                 $validator->errors()->add('stime', 'This period overlaps an existing holiday in the same tenant.');
             }
+            if ($request->has('force_mode') && ! ScheduleModes::isValid($request->input('force_mode'), true)) {
+                $validator->errors()->add('force_mode', 'Mode must be a lowercase word (e.g. open, closed, lunch).');
+            }
         });
 
         if ($validator->fails()) {
@@ -132,6 +147,12 @@ class HolidayTimerController extends Controller
         if ($clusterShortuid !== null) {
             $holidaytimer->cluster = $clusterShortuid;
         }
+
+        if ($request->has('force_mode')) {
+            $fm = trim((string) $request->input('force_mode', ''));
+            $holidaytimer->force_mode = $fm === '' ? null : ScheduleModes::normalize($fm, '');
+        }
+        $this->syncForceDestAndRoute($request, $holidaytimer);
 
         $stime = $this->stimeFromRequest($request);
         $etime = $this->etimeFromRequest($request);
@@ -193,5 +214,25 @@ class HolidayTimerController extends Controller
             $q->where('id', '!=', $excludeId);
         }
         return $q->exists();
+    }
+
+    /**
+     * Prefer force_dest; dual-write route for timer/SARK path. Empty clears both when either key is present.
+     */
+    private function syncForceDestAndRoute(Request $request, HolidayTimer $holidaytimer): void
+    {
+        if ($request->has('force_dest')) {
+            $d = trim((string) $request->input('force_dest', ''));
+            $holidaytimer->force_dest = $d === '' ? null : $d;
+            $holidaytimer->route = $d === '' ? null : $d;
+            return;
+        }
+        if ($request->has('route')) {
+            $d = trim((string) $request->input('route', ''));
+            $holidaytimer->route = $d === '' ? null : $d;
+            if ($d !== '') {
+                $holidaytimer->force_dest = $d;
+            }
+        }
     }
 }

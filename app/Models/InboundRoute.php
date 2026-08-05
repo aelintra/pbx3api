@@ -51,6 +51,8 @@ class InboundRoute extends Model
         'pjsipreg',
         'privileged',
         'register',
+        'route_profile',
+        'entry_dest',
         'swoclip',
         'tag',
         'technology',

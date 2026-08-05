@@ -17,6 +17,7 @@ use App\Http\Controllers\InboundRouteController;
 use App\Http\Controllers\IvrController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RouteController;
+use App\Http\Controllers\RouteProfileController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Models\Agent;
@@ -33,6 +34,7 @@ use App\Models\InboundRoute;
 use App\Models\Ivr;
 use App\Models\Queue;
 use App\Models\Route;
+use App\Models\RouteProfile;
 use App\Models\Tenant;
 use App\Models\Trunk;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +59,7 @@ class SchemaService
         'cosrules' => [ClassOfServiceController::class, ClassOfService::class],
         'daytimers' => [DayTimerController::class, DayTimer::class],
         'holidaytimers' => [HolidayTimerController::class, HolidayTimer::class],
+        'routeprofiles' => [RouteProfileController::class, RouteProfile::class],
         'greetingrecords' => [GreetingRecordController::class, Greeting::class],
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
