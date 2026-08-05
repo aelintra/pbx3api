@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\InboundRoute;
 use App\Models\RouteProfile;
+use App\Models\RouteProfileLine;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
@@ -103,11 +105,20 @@ class InboundRouteController extends Controller
 
         $this->normalizeInboundRouteRouteJsonScalars($request);
 
+        // Open destination required; closed defaults to open (BLF / timer baseline).
+        $open = trim((string) $request->input('openroute', ''));
+        $closed = trim((string) $request->input('closeroute', ''));
+        if ($this->isNoneDestination($closed)) {
+            $closed = $open;
+            $request->merge(['closeroute' => $closed]);
+        }
+
 // validate (pkey + technology from dropdown; technology is DB column)
         $rules = array_merge($this->updateableColumns, [
             'pkey' => ['required', 'regex:' . self::PKEY_EXTENSION_REGEX],
             'technology' => 'required|in:' . self::TECHNOLOGY_VALUES,
             'cluster' => 'required|exists:cluster,pkey',
+            'openroute' => 'required|string|max:128',
         ]);
 
         $inboundroute = new InboundRoute;
@@ -116,11 +127,15 @@ class InboundRouteController extends Controller
 
         $messages = [
             'pkey.regex' => 'Number must be digits (optional leading + for E.164), pattern _XZN.! (e.g. _2XXX), or special s/i/t.',
+            'openroute.required' => 'Open destination is required.',
         ];
         $validator = Validator::make($request->all(), $rules, $messages);
-        $validator->setAttributeNames(['pkey' => 'Number (DiD/CLiD)']);
+        $validator->setAttributeNames([
+            'pkey' => 'Number (DiD/CLiD)',
+            'openroute' => 'Open destination',
+        ]);
 
-        $validator->after(function ($validator) use ($request, $inboundroute, $clusterShortuid) {
+        $validator->after(function ($validator) use ($request, $inboundroute, $clusterShortuid, $open) {
             // Check if key exists within tenant (cluster); DB stores shortuid
             if ($inboundroute->where('pkey', '=', $request->input('pkey'))->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('pkey', 'Duplicate number in this tenant.');
@@ -129,6 +144,9 @@ class InboundRouteController extends Controller
             $pkey = trim((string) $request->input('pkey', ''));
             if ($pkey === '0') {
                 $validator->errors()->add('pkey', 'Number cannot be a single 0.');
+            }
+            if ($this->isNoneDestination($open)) {
+                $validator->errors()->add('openroute', 'Open destination is required (cannot be None).');
             }
             $this->validateRouteProfile($validator, $request, $clusterShortuid);
         });
@@ -142,12 +160,8 @@ class InboundRouteController extends Controller
         // Set pkey from request (may be "0" — valid DiD/CLiD; don't use empty() here)
         $inboundroute->pkey = trim((string) $request->input('pkey', ''));
 
-        if ($request->has('openroute') && (trim((string) $request->input('openroute', '')) === '' || $request->input('openroute') === null)) {
-            $inboundroute->openroute = 'None';
-        }
-        if ($request->has('closeroute') && (trim((string) $request->input('closeroute', '')) === '' || $request->input('closeroute') === null)) {
-            $inboundroute->closeroute = 'None';
-        }
+        $inboundroute->openroute = $open;
+        $inboundroute->closeroute = $this->isNoneDestination($closed) ? $open : $closed;
         $this->normalizeRouteProfileAndEntry($request, $inboundroute);
 
         if (empty($inboundroute->trunkname)) {
@@ -159,12 +173,31 @@ class InboundRouteController extends Controller
         $inboundroute->technology = $request->input('technology', 'DiD');
 
         try {
-            $inboundroute->save();
+            DB::transaction(function () use ($inboundroute, $clusterShortuid) {
+                $profileShortuid = trim((string) ($inboundroute->route_profile ?? ''));
+                if ($profileShortuid === '') {
+                    $profileShortuid = $this->createSeededRouteProfile(
+                        $clusterShortuid,
+                        $inboundroute->pkey,
+                        $inboundroute->openroute,
+                        $inboundroute->closeroute
+                    );
+                    $inboundroute->route_profile = $profileShortuid;
+                } else {
+                    $this->ensureProfileModeLines(
+                        $profileShortuid,
+                        $clusterShortuid,
+                        $inboundroute->openroute,
+                        $inboundroute->closeroute
+                    );
+                }
+                $inboundroute->save();
+            });
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()],409);
         }
 
-        return $inboundroute;
+        return $inboundroute->fresh();
     }
 
 
@@ -306,5 +339,77 @@ class InboundRouteController extends Controller
             $ed = trim((string) $request->input('entry_dest', ''));
             $inboundroute->entry_dest = ($ed === '' || strcasecmp($ed, 'None') === 0) ? null : $ed;
         }
+    }
+
+    private function isNoneDestination(?string $dest): bool
+    {
+        $t = trim((string) $dest);
+
+        return $t === '' || strcasecmp($t, 'None') === 0;
+    }
+
+    /**
+     * Create a tenant profile with open (+ closed) lines for a new DID.
+     */
+    private function createSeededRouteProfile(
+        string $clusterShortuid,
+        string $didPkey,
+        string $openDest,
+        string $closedDest
+    ): string {
+        $profile = new RouteProfile;
+        $profile->id = generate_ksuid();
+        $profile->shortuid = generate_shortuid();
+        $profile->pkey = $profile->shortuid;
+        $profile->cluster = $clusterShortuid;
+        $profile->name = 'DID '.$didPkey;
+        $profile->default_mode = 'open';
+        $profile->description = 'Auto-created for inbound '.$didPkey;
+        $profile->save();
+
+        $this->insertProfileLine($profile->shortuid, $clusterShortuid, 'open', $openDest);
+        $this->insertProfileLine($profile->shortuid, $clusterShortuid, 'closed', $closedDest);
+
+        return $profile->shortuid;
+    }
+
+    /**
+     * Seed missing open/closed lines on an existing profile (does not overwrite).
+     */
+    private function ensureProfileModeLines(
+        string $profileShortuid,
+        string $clusterShortuid,
+        string $openDest,
+        string $closedDest
+    ): void {
+        $hasOpen = RouteProfileLine::where('profile', $profileShortuid)
+            ->whereRaw('lower(mode) = ?', ['open'])
+            ->exists();
+        $hasClosed = RouteProfileLine::where('profile', $profileShortuid)
+            ->whereRaw('lower(mode) = ?', ['closed'])
+            ->exists();
+
+        if (! $hasOpen) {
+            $this->insertProfileLine($profileShortuid, $clusterShortuid, 'open', $openDest);
+        }
+        if (! $hasClosed) {
+            $this->insertProfileLine($profileShortuid, $clusterShortuid, 'closed', $closedDest);
+        }
+    }
+
+    private function insertProfileLine(
+        string $profileShortuid,
+        string $clusterShortuid,
+        string $mode,
+        string $destination
+    ): void {
+        $row = new RouteProfileLine;
+        $row->id = generate_ksuid();
+        $row->shortuid = generate_shortuid();
+        $row->profile = $profileShortuid;
+        $row->cluster = $clusterShortuid;
+        $row->mode = $mode;
+        $row->destination = $destination;
+        $row->save();
     }
 }

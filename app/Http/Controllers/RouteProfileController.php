@@ -58,7 +58,7 @@ class RouteProfileController extends Controller
             'cluster' => 'required|exists:cluster,pkey',
             'name' => 'required|string|max:128',
             'default_mode' => ScheduleModes::validationRule(true),
-            'lines' => 'array|nullable',
+            'lines' => 'required|array|min:1',
             'lines.*.mode' => ScheduleModes::validationRule(false),
             'lines.*.destination' => 'required|string|max:128',
         ]);
@@ -218,9 +218,12 @@ class RouteProfileController extends Controller
             }
             $seen[$mode] = true;
             $dest = trim((string) ($line['destination'] ?? ''));
-            if ($dest === '') {
-                $validator->errors()->add("lines.$i.destination", 'Destination is required.');
+            if ($dest === '' || strcasecmp($dest, 'None') === 0) {
+                $validator->errors()->add("lines.$i.destination", 'Destination is required (cannot be None).');
             }
+        }
+        if ($lines !== [] && ! isset($seen['open'])) {
+            $validator->errors()->add('lines', 'Profile must include an open mode destination.');
         }
     }
 
