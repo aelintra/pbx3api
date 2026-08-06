@@ -902,6 +902,7 @@ if (!function_exists('generate_shortuid')) {
     /**
      * Generate a shortuid using idpwgen (same as pbx3 HelperClass::generate()).
      * Default: 6 chars, charset 0123456789bcdfghjkmnpqrstvwxyz (no vowels/similar chars).
+     * Never returns an all-digit string when the charset includes letters (Slice D desk repair gate).
      *
      * @param int    $length  default 6
      * @param string $charset default shortuid charset
@@ -911,6 +912,13 @@ if (!function_exists('generate_shortuid')) {
     {
         $path = env('IDPWGEN_PATH', '/opt/pbx3/golang/idpwgen');
         $charset = $charset ?: '0123456789bcdfghjkmnpqrstvwxyz';
-        return strtolower(idpwgen_run($path, $length, $charset));
+        $requireLetter = (bool) preg_match('/[a-zA-Z]/', $charset);
+        for ($attempt = 0; $attempt < 64; $attempt++) {
+            $out = strtolower(idpwgen_run($path, $length, $charset));
+            if (!$requireLetter || preg_match('/[a-z]/', $out)) {
+                return $out;
+            }
+        }
+        throw new \RuntimeException('idpwgen could not produce a shortuid with a letter');
     }
 }
