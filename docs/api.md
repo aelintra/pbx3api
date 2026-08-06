@@ -1,6 +1,8 @@
-#Overview
+# Overview
 
-##Methods
+**Canonical operator docs:** **pbx3-docs** → Instance API ([Methods and notation](https://aelintra.github.io/pbx3-docs/api/overview/)).
+
+## Methods
 
 pbx3api uses the methods GET,POST,PUT,DELETE
 
