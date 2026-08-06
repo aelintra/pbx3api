@@ -27,6 +27,7 @@ class SysglobalController extends Controller
         'bindport' => 'string|nullable',
         'cosstart' => 'in:ON,OFF',
         'emergency' => 'string|nullable',
+        'default_outbound_dialplan' => 'string|nullable',
         'fqdninspect' => 'nullable|string|in:YES,NO',
         'language' => 'string|nullable',
         'loglevel' => 'integer|nullable',

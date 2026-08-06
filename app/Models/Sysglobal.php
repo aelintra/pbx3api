@@ -38,6 +38,7 @@ class Sysglobal extends Model
         'domain',
         'edomain',
         'emergency',
+        'default_outbound_dialplan',
         'fqdn',
         'fqdninspect',
         'fqdnprov',

@@ -193,6 +193,7 @@ class TenantController extends Controller
 
     		$tenant->save();
             pbx3_update_fqdn_inline_optional();
+            app(\App\Services\Tenant\SeedOutboundRouteOnTenantCreate::class)->seed($tenant);
 
         } catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
