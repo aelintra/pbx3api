@@ -168,6 +168,83 @@ class FleetMobilityController extends Controller
         ]);
     }
 
+    /**
+     * C2 — upsert managed dialalias (source=cohort). No genAst; caller uses POST /fleet/commit.
+     */
+    public function upsertDialAlias(Request $request, \App\Services\Fleet\ManagedDialAliasService $svc): JsonResponse
+    {
+        try {
+            $result = $svc->upsert(is_array($request->all()) ? $request->all() : []);
+        } catch (\InvalidArgumentException $e) {
+            $code = (int) $e->getCode();
+            if ($code < 400 || $code > 599) {
+                $code = 422;
+            }
+
+            return response()->json(['message' => $e->getMessage()], $code);
+        } catch (\RuntimeException $e) {
+            $code = (int) $e->getCode();
+            if ($code < 400 || $code > 599) {
+                $code = 409;
+            }
+
+            return response()->json(['message' => $e->getMessage()], $code);
+        }
+
+        return response()->json($result, $result['action'] === 'created' ? 201 : 200);
+    }
+
+    /**
+     * C2/C3 — list dialaliases for one calling tenant (prune / reconcile).
+     */
+    public function listDialAliases(Request $request): JsonResponse
+    {
+        $cluster = cluster_identifier_to_shortuid((string) $request->query('cluster', ''));
+        if ($cluster === null) {
+            $raw = strtolower(trim((string) $request->query('cluster', '')));
+            if ($raw === '' || ! preg_match('/^[a-z0-9]+$/', $raw)) {
+                return response()->json(['message' => 'cluster query required (tenant shortuid)'], 422);
+            }
+            $cluster = $raw;
+        }
+
+        $rows = \App\Models\DialAlias::query()
+            ->where('cluster', $cluster)
+            ->orderBy('pkey')
+            ->get();
+
+        return response()->json([
+            'cluster' => $cluster,
+            'dialaliases' => $rows,
+        ]);
+    }
+
+    /**
+     * C2 — delete dialalias. Default managed_only; pass managed_only:false to prune lab rows.
+     */
+    public function deleteDialAlias(Request $request, \App\Services\Fleet\ManagedDialAliasService $svc): JsonResponse
+    {
+        try {
+            $result = $svc->delete(is_array($request->all()) ? $request->all() : []);
+        } catch (\InvalidArgumentException $e) {
+            $code = (int) $e->getCode();
+            if ($code < 400 || $code > 599) {
+                $code = 422;
+            }
+
+            return response()->json(['message' => $e->getMessage()], $code);
+        } catch (\RuntimeException $e) {
+            $code = (int) $e->getCode();
+            if ($code < 400 || $code > 599) {
+                $code = 404;
+            }
+
+            return response()->json(['message' => $e->getMessage()], $code);
+        }
+
+        return response()->json($result, 200);
+    }
+
     private function uploadFile(string $url, string $path): void
     {
         $body = file_get_contents($path);

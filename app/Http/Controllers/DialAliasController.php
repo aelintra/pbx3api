@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\DialAlias;
+use App\Services\Fleet\ManagedDialAliasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\Validator;
  * Dial prefixes (tenant short dial A′ Q14): target is tenant FQDN (not local cluster shortuid-only).
  * Product name: dial prefix; table/resource: dialalias / dialaliases.
  * Instance admin only (abilities:admin). Tenant panel users cannot manage cross-tenant wiring.
- * No GenAst/CAGI/SBC yet.
+ * C2: managed (source=cohort) rows are Sanctum read-only; when PBX3_DIAL_COHORT, Sanctum
+ * cannot invent cross-tenant prefixes (403 → Fleet → Site Groups).
  */
 class DialAliasController extends Controller
 {
@@ -21,6 +23,8 @@ class DialAliasController extends Controller
 
     /** FQDN: lowercase labels + TLD; requires at least one dot (rejects bare shortuid). */
     private const TARGET_FQDN_REGEX = '/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/';
+
+    private const SITE_GROUPS_HINT = 'Edit dial prefixes in Fleet → Site Groups.';
 
     private $updateableColumns = [
         'pkey' => 'regex:/^\d{2,4}$/',
@@ -60,6 +64,10 @@ class DialAliasController extends Controller
 
     public function save(Request $request)
     {
+        if ($deny = $this->sanctumCrossTenantDeny()) {
+            return $deny;
+        }
+
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
@@ -109,6 +117,8 @@ class DialAliasController extends Controller
             $targetFqdn
         );
         $row->pkey = trim((string) $request->input('pkey'));
+        $row->source = ManagedDialAliasService::SOURCE_MANUAL;
+        $row->cohort_id = null;
         $row->id = generate_ksuid();
         $row->shortuid = generate_shortuid();
 
@@ -127,6 +137,13 @@ class DialAliasController extends Controller
     public function update(Request $request, DialAlias $dialalias)
     {
         $this->assertModelClusterAllowed($dialalias);
+
+        if ($deny = $this->sanctumManagedDeny($dialalias)) {
+            return $deny;
+        }
+        if ($deny = $this->sanctumCrossTenantDeny()) {
+            return $deny;
+        }
 
         $validator = Validator::make($request->all(), $this->updateableColumns);
 
@@ -234,9 +251,48 @@ class DialAliasController extends Controller
     public function delete(DialAlias $dialalias)
     {
         $this->assertModelClusterAllowed($dialalias);
+
+        if ($deny = $this->sanctumManagedDeny($dialalias)) {
+            return $deny;
+        }
+        if ($deny = $this->sanctumCrossTenantDeny()) {
+            return $deny;
+        }
+
         $dialalias->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Managed Site Group rows are always Sanctum read-only.
+     */
+    private function sanctumManagedDeny(DialAlias $dialalias): ?\Illuminate\Http\JsonResponse
+    {
+        if (ManagedDialAliasService::isManaged($dialalias)) {
+            return response()->json([
+                'message' => 'This dial prefix is managed by a Site Group. '.self::SITE_GROUPS_HINT,
+                'source' => 'cohort',
+                'cohort_id' => $dialalias->cohort_id,
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * When PBX3_DIAL_COHORT is on, Sanctum must not invent/edit cross-tenant prefixes.
+     */
+    private function sanctumCrossTenantDeny(): ?\Illuminate\Http\JsonResponse
+    {
+        if (! ManagedDialAliasService::cohortFeatureOn()) {
+            return null;
+        }
+
+        return response()->json([
+            'message' => 'Site Groups own cross-tenant dial prefixes. '.self::SITE_GROUPS_HINT,
+            'feature' => 'dial_cohort',
+        ], 403);
     }
 
     /**

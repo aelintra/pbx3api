@@ -98,6 +98,10 @@ Route::middleware(['fleet.token'])->prefix('fleet')->group(function () {
     Route::post('certificates/sync', [FleetMobilityController::class, 'certificatesSync']);
     Route::delete('tenants/{tenant}', [FleetMobilityController::class, 'destroyTenant']);
     Route::put('sitename', [FleetMobilityController::class, 'putSitename']);
+    // C2 — managed dialalias projections (Site Groups); commit separately via POST /fleet/commit
+    Route::get('dialaliases', [FleetMobilityController::class, 'listDialAliases']);
+    Route::put('dialaliases', [FleetMobilityController::class, 'upsertDialAlias']);
+    Route::delete('dialaliases', [FleetMobilityController::class, 'deleteDialAlias']);
 });
 
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {

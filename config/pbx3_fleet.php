@@ -54,4 +54,18 @@ return [
         FILTER_VALIDATE_BOOL
     ),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Dial cohort / Site Groups (C2+)
+    |--------------------------------------------------------------------------
+    |
+    | When true, Sanctum forbids create/update/delete of dial prefixes that
+    | target another tenant (403 → Fleet → Site Groups). Managed source=cohort
+    | rows are always Sanctum read-only regardless of this flag.
+    | Lab hand CRUD: leave false until Site Groups replace wild prefixes.
+    |
+    */
+
+    'dial_cohort' => filter_var(env('PBX3_DIAL_COHORT', false), FILTER_VALIDATE_BOOL),
+
 ];

@@ -24,6 +24,7 @@ class DialAlias extends Model
     protected $attributes = [
         'active' => 'YES',
         'cluster' => 'default',
+        'source' => 'manual',
     ];
 
     protected $fillable = [
@@ -34,7 +35,15 @@ class DialAlias extends Model
         'target_fqdn',
         'cname',
         'description',
+        'source',
+        'cohort_id',
     ];
+
+    /** Site Group projection (Gatekeeper-owned). */
+    public function isManaged(): bool
+    {
+        return strtolower(trim((string) ($this->source ?? 'manual'))) === 'cohort';
+    }
 
     protected $hidden = [];
 

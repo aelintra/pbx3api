@@ -48,6 +48,7 @@ class FleetPostureService
             'sbc_egress_host' => (string) config('pbx3_fleet.sbc_egress_host'),
             'sbc_egress_port' => (int) config('pbx3_fleet.sbc_egress_port'),
             'hide_route_paths' => $fleet,
+            'dial_cohort' => (bool) config('pbx3_fleet.dial_cohort', false),
             'egress_qualify' => $this->egressQualifyLive(),
         ];
     }
