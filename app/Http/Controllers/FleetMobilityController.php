@@ -147,6 +147,27 @@ class FleetMobilityController extends Controller
         ]);
     }
 
+    /**
+     * Fleet-owned friendly Name → globals.sitename (FLEET_NAMING_LOCK).
+     * Sanctum cannot change sitename on fleet nodes; Gatekeeper PATCHes label then calls this.
+     */
+    public function putSitename(Request $request): JsonResponse
+    {
+        $sitename = trim((string) $request->input('sitename', ''));
+        // Empty allowed → Home falls back to shortuid
+        $sysglobal = \App\Models\Sysglobal::first();
+        if (! $sysglobal) {
+            return response()->json(['message' => 'System globals not found'], 404);
+        }
+        $sysglobal->sitename = $sitename !== '' ? $sitename : null;
+        $sysglobal->save();
+
+        return response()->json([
+            'ok' => true,
+            'sitename' => $sysglobal->sitename,
+        ]);
+    }
+
     private function uploadFile(string $url, string $path): void
     {
         $body = file_get_contents($path);

@@ -97,6 +97,7 @@ Route::middleware(['fleet.token'])->prefix('fleet')->group(function () {
     Route::post('commit', [FleetMobilityController::class, 'commit']);
     Route::post('certificates/sync', [FleetMobilityController::class, 'certificatesSync']);
     Route::delete('tenants/{tenant}', [FleetMobilityController::class, 'destroyTenant']);
+    Route::put('sitename', [FleetMobilityController::class, 'putSitename']);
 });
 
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {

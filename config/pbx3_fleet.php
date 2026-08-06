@@ -34,4 +34,24 @@ return [
 
     'service_token' => env('PBX3_FLEET_SERVICE_TOKEN', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Gatekeeper catalog (node → control) — sitename ≡ label dual-write
+    |--------------------------------------------------------------------------
+    |
+    | Same PBX3_GATEKEEPER_* as recordings/ops. When URL+token are set, Site Name
+    | save must PATCH catalog label or the whole save fails (FLEET_NAMING_LOCK).
+    | Break-glass or fleet token with fleet_instances. Solo nodes leave unset.
+    |
+    */
+
+    'gatekeeper_url' => env('PBX3_GATEKEEPER_URL', ''),
+
+    'gatekeeper_token' => env('PBX3_GATEKEEPER_TOKEN', ''),
+
+    'gatekeeper_http_verify' => filter_var(
+        env('PBX3_GATEKEEPER_HTTP_VERIFY', true),
+        FILTER_VALIDATE_BOOL
+    ),
+
 ];

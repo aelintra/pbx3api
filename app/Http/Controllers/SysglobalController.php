@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sysglobal;
+use App\Services\Fleet\FleetPostureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -88,7 +89,20 @@ class SysglobalController extends Controller
 
     	if ($validator->fails()) {
     		return response()->json($validator->errors(),422);
-    	}		
+    	}
+
+        // Fleet: friendly Name only via Fleet → Instances (Gatekeeper → PUT /fleet/sitename).
+        if ($request->exists('sitename') && app(FleetPostureService::class)->isFleetNode()) {
+            $incoming = $request->input('sitename');
+            $current = $sysglobal->sitename;
+            $inNorm = $incoming === null ? '' : trim((string) $incoming);
+            $curNorm = $current === null ? '' : trim((string) $current);
+            if ($inNorm !== $curNorm) {
+                return Response::json([
+                    'Error' => 'Fleet mode: change Site Name via Fleet → Instances (friendly Name), not Network',
+                ], 403);
+            }
+        }
 
 // Move post variables to the model  
 

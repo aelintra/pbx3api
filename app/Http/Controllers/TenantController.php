@@ -165,26 +165,17 @@ class TenantController extends Controller
         } catch (\Throwable $e) {
             $instanceDomain = '';
         }
+        // FQDN always {shortuid}.{apex} (FLEET_NAMING_LOCK) — ignore client vanity fqdn.
         if ($instanceDomain !== '') {
-            $autoHost = $tenant->shortuid.'.'.$instanceDomain;
-            $reqDomain = $request->input('domain');
-            $reqFqdn = $request->input('fqdn');
-            if ($reqDomain !== null && trim((string) $reqDomain) !== '') {
-                $tenant->domain = trim((string) $reqDomain);
-            } else {
-                $tenant->domain = $instanceDomain;
-            }
-            if ($reqFqdn !== null && trim((string) $reqFqdn) !== '') {
-                $tenant->fqdn = trim((string) $reqFqdn);
-            } else {
-                $tenant->fqdn = $autoHost;
-            }
+            $tenant->domain = $instanceDomain;
+            $tenant->fqdn = $tenant->shortuid.'.'.$instanceDomain;
         } else {
             if ($request->input('domain') !== null && trim((string) $request->input('domain')) !== '') {
                 $tenant->domain = trim((string) $request->input('domain'));
             }
-            if ($request->input('fqdn') !== null && trim((string) $request->input('fqdn')) !== '') {
-                $tenant->fqdn = trim((string) $request->input('fqdn'));
+            $dom = trim((string) ($tenant->domain ?? ''));
+            if ($dom !== '') {
+                $tenant->fqdn = $tenant->shortuid.'.'.$dom;
             }
         }
 
