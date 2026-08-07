@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sysglobal;
 use App\Models\Tenant;
+use App\Services\Fleet\FleetPostureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -113,8 +114,9 @@ class CertificateController extends Controller
     }
 
     /**
-     * POST /certificates/letsencrypt/setup — first-time LE: all tenant FQDNs as SANs (Option A).
-     * Body: { "email": "admin@example.com" } — optional legacy { "fqdn", "email" } ignored for SAN list (built from tenants).
+     * POST /certificates/letsencrypt/setup — first-time LE.
+     * Fleet: instance FQDN only. Solo/direct: Option A (instance + tenant cluster.fqdn).
+     * Body: { "email": "admin@example.com" }.
      * PBX3_SYSCMD_TIMEOUT or per-call 120s recommended for certbot.
      */
     public function setup(Request $request)
@@ -395,21 +397,47 @@ class CertificateController extends Controller
     }
 
     /**
-     * Instance globals.fqdn (node hostname) then tenant cluster.fqdn values (Option A / bootstrap).
+     * Intended LE SAN list for display / setup / sync.
+     * Fleet nodes: instance FQDN only (TLS_AND_CERTIFICATES.md §0).
+     * Solo/direct: Option A — instance + all tenant cluster.fqdn.
      *
      * @return list<string>
      */
     private function certificateFqdnList(): array
     {
+        $primary = $this->leDomainFromFileOrNull() ?? $this->instanceFqdnFromGlobalsOnly();
+        $tenants = [];
+        $fleet = app(FleetPostureService::class)->isFleetNode();
+        if (! $fleet) {
+            $tenants = $this->tenantFqdnSortedList();
+        }
+
+        return $this->buildCertificateFqdnList($fleet, $primary, $tenants);
+    }
+
+    /**
+     * Pure SAN list builder (testable). When $fleet is true, tenant FQDNs are ignored.
+     *
+     * @param  list<string>  $tenantFqdns
+     * @return list<string>
+     */
+    protected function buildCertificateFqdnList(bool $fleet, ?string $primary, array $tenantFqdns): array
+    {
         $out = [];
         $seen = [];
-        // List intended SANs for display/sync args — use le-domain file then globals.fqdn (no heavy resolveLePrimaryDomain).
-        $primary = $this->leDomainFromFileOrNull() ?? $this->instanceFqdnFromGlobalsOnly();
-        if ($primary !== null) {
-            $out[] = $primary;
-            $seen[strtolower($primary)] = true;
+        if ($primary !== null && trim($primary) !== '') {
+            $p = trim($primary);
+            $out[] = $p;
+            $seen[strtolower($p)] = true;
         }
-        foreach ($this->tenantFqdnSortedList() as $f) {
+        if ($fleet) {
+            return $out;
+        }
+        foreach ($tenantFqdns as $f) {
+            $f = trim((string) $f);
+            if ($f === '') {
+                continue;
+            }
             $k = strtolower($f);
             if (isset($seen[$k])) {
                 continue;
