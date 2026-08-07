@@ -27,8 +27,39 @@ password  (required)  string
 remember_me (optional) boolean
 ```
 
-**Response (200 OK)**  
+**Response (200 OK) — no 2FA**  
 `accessToken` (Bearer token), `token_type` (e.g. `"Bearer"`). Use `accessToken` in the `Authorization: Bearer <token>` header for subsequent requests.
+
+**Response (200 OK) — 2FA enabled**  
+`requires_2fa: true`, `challenge_id` (opaque, short-lived). **No** `accessToken`. Complete with **POST /auth/2fa/verify**.
+
+---
+
+### Verify 2FA  
+**POST /auth/2fa/verify**
+
+**Body**
+```
+challenge_id  (required)  string from login
+code          (required)  TOTP or one-time recovery code
+```
+
+**Response (200 OK)**  
+Same as successful password-only login: `accessToken`, `token_type`.
+
+---
+
+### Two-factor (authenticated)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /auth/2fa/setup | Password step-up → provisional secret + QR (`secret`, `otpauth_url`, `qr_svg`, `issuer`) |
+| POST | /auth/2fa/confirm | Live TOTP → enable; returns `recovery_codes` once |
+| POST | /auth/2fa/disable | Password + code → clear 2FA |
+| POST | /auth/2fa/recovery | Password + TOTP → new recovery codes |
+| DELETE | /auth/users/{id}/2fa | Admin clear (lockout); revokes tokens |
+
+Issuer default: **`Aelintra PBX`** (`PBX3_TOTP_ISSUER`). Opt-in per user. Whoami includes `two_factor_enabled` (boolean).
 
 ---
 

@@ -22,12 +22,12 @@ class PortableUserMobility
 {
     public const JSON_FILENAME = 'portable_users.json';
 
-    public const SCHEMA_VERSION = 1;
+    public const SCHEMA_VERSION = 2;
 
     /**
      * Users that travel with this tenant (payload rows for JSON).
      *
-     * @return list<array{email: string, name: string, password: string, abilities: list<string>, allowed_clusters: list<string>, portable: bool, endpoint: mixed}>
+     * @return list<array<string, mixed>>
      */
     public function collectForTenant(string $shortuid): array
     {
@@ -53,7 +53,7 @@ class PortableUserMobility
                 $abilities = ['tenant'];
             }
 
-            $out[] = [
+            $row = [
                 'email' => (string) $user->email,
                 'name' => (string) $user->name,
                 'password' => (string) $user->getRawOriginal('password'),
@@ -62,6 +62,15 @@ class PortableUserMobility
                 'portable' => true,
                 'endpoint' => $user->endpoint,
             ];
+
+            // TOTP travels with the user (same as password hash).
+            $row['two_factor_secret'] = $user->getRawOriginal('two_factor_secret');
+            $row['two_factor_confirmed_at'] = $user->two_factor_confirmed_at
+                ? $user->two_factor_confirmed_at->toIso8601String()
+                : null;
+            $row['two_factor_recovery_codes'] = $user->getRawOriginal('two_factor_recovery_codes');
+
+            $out[] = $row;
         }
 
         return $out;
@@ -146,7 +155,8 @@ class PortableUserMobility
         }
 
         $raw = json_decode((string) file_get_contents($path), true);
-        if (! is_array($raw) || (int) ($raw['schema_version'] ?? 0) !== self::SCHEMA_VERSION) {
+        $version = (int) ($raw['schema_version'] ?? 0);
+        if (! is_array($raw) || ! in_array($version, [1, 2], true)) {
             throw new \RuntimeException('Unsupported or missing portable_users.json schema_version');
         }
 
@@ -216,6 +226,7 @@ class PortableUserMobility
                 if (array_key_exists('endpoint', $row)) {
                     $existing->endpoint = $row['endpoint'];
                 }
+                $this->applyTwoFactorFromRow($existing, $row);
                 $existing->save();
                 $this->revokeTokensQuietly($existing);
                 $updated++;
@@ -230,6 +241,7 @@ class PortableUserMobility
             $user->allowed_clusters = [$destShortuid];
             $user->portable = true;
             $user->endpoint = $row['endpoint'] ?? null;
+            $this->applyTwoFactorFromRow($user, $row);
             $user->save();
             $created++;
         }
@@ -240,6 +252,31 @@ class PortableUserMobility
             'skipped' => $skipped,
             'count' => $created + $updated,
         ];
+    }
+
+    /**
+     * Restore TOTP fields from portable_users.json (schema v2+; v1 leaves null).
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function applyTwoFactorFromRow(User $user, array $row): void
+    {
+        if (! array_key_exists('two_factor_secret', $row)
+            && ! array_key_exists('two_factor_confirmed_at', $row)
+            && ! array_key_exists('two_factor_recovery_codes', $row)) {
+            return;
+        }
+
+        $secret = $row['two_factor_secret'] ?? null;
+        $user->two_factor_secret = is_string($secret) && $secret !== '' ? $secret : null;
+
+        $confirmed = $row['two_factor_confirmed_at'] ?? null;
+        $user->two_factor_confirmed_at = is_string($confirmed) && $confirmed !== ''
+            ? $confirmed
+            : null;
+
+        $codes = $row['two_factor_recovery_codes'] ?? null;
+        $user->two_factor_recovery_codes = is_string($codes) && $codes !== '' ? $codes : null;
     }
 
     /**

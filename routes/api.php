@@ -46,16 +46,21 @@ use App\Http\Controllers\FleetMobilityController;
 
 Route::group(['prefix' => 'auth'], function () {
 /**
- *  Only login needs no privileges
+ *  Only login / 2FA verify need no privileges
  */
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('2fa/verify', [AuthController::class, 'verifyTwoFactor']);
 /**
- * logout, whoami, change-own-password — any authenticated user
+ * logout, whoami, change-own-password, own 2FA — any authenticated user
  */
     Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('logout', [AuthController::class, 'logout']);
         Route::get('whoami', [AuthController::class, 'user']);
         Route::put('password', [AuthController::class, 'changePassword']);
+        Route::post('2fa/setup', [AuthController::class, 'setupTwoFactor']);
+        Route::post('2fa/confirm', [AuthController::class, 'confirmTwoFactor']);
+        Route::post('2fa/disable', [AuthController::class, 'disableTwoFactor']);
+        Route::post('2fa/recovery', [AuthController::class, 'regenerateRecoveryCodes']);
     });
 
     Route::group(['middleware' => ['auth:sanctum', 'validate.cluster']], function () {
@@ -77,6 +82,7 @@ Route::group(['prefix' => 'auth'], function () {
         Route::get('users/endpoint/{endpoint}', [AuthController::class, 'userByEndpoint']);
         Route::put('users/{id}', [AuthController::class, 'update']);
         Route::put('users/{id}/password', [AuthController::class, 'forcePassword']);
+        Route::delete('users/{id}/2fa', [AuthController::class, 'clearUserTwoFactor']);
         Route::delete('users/revoke/{id}', [AuthController::class, 'revoke']);
         Route::get('users/{id}', [AuthController::class, 'userById']);
         Route::delete('users/{id}', [AuthController::class, 'delete']);

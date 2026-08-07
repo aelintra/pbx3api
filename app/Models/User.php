@@ -37,6 +37,15 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = [
+        'two_factor_enabled',
     ];
 
     /**
@@ -52,7 +61,20 @@ class User extends Authenticatable
             'abilities' => 'array',
             'allowed_clusters' => 'array',
             'portable' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_confirmed_at !== null
+            && is_string($this->two_factor_secret)
+            && $this->two_factor_secret !== '';
+    }
+
+    public function getTwoFactorEnabledAttribute(): bool
+    {
+        return $this->hasTwoFactorEnabled();
     }
 
     public function isAdminAbility(): bool
