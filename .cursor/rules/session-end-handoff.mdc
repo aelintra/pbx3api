@@ -1,5 +1,5 @@
 ---
-description: Session end — update TODO and handoff files when user ends a work session
+description: Session end — thin handoff + TODO/TODO_OPS; enforce size and pointer rules
 alwaysApply: true
 ---
 
@@ -8,14 +8,15 @@ alwaysApply: true
 When the user says **"session end"**, **"end session"**, or **"update handoff"** (including **"session end, commit"** variants):
 
 1. Read and follow **`~/GiT/pbx3-ops/SESSION_END_CHECKLIST.md`** (private **`aelintra/pbx3-ops`**).
-2. Update:
-   - `pbx3/workingdocs/TODO.md` — product roadmap only (no tip/host gossip)
+2. **Before writing handoff:** ensure any product locks/requirements decided this session are already updated in product docs (or update them now). Handoff **points**; it does not restate locks.
+3. Update:
+   - `pbx3/workingdocs/TODO.md` — product roadmap only (**no** tip/host gossip)
    - `~/GiT/pbx3-ops/TODO_OPS.md` — tip SHAs, lab/host follow-ups
-   - `~/GiT/pbx3-ops/AGENT_HANDOFF.md` — fresh **Next agent session notes** block
-   - `~/GiT/pbx3-ops/SESSION_HANDOFF.md` — new top **Session end** block (skip if session was pbx3api-only with no operator impact)
-3. Do not rewrite other workingdocs or `PROJECT_PLAN.md` current state.
-4. Do not reintroduce session blocks into product stub handoff files.
-5. Commit/push only when the user explicitly requests it in the same message (ops and product repos separately as appropriate).
-6. **Optional (non-trivial code sessions):** follow the checklist’s **code-review graph** section — build/update graph in touched repos, graph-backed review before commit/push; skip docs/handoff-only sessions.
+   - `~/GiT/pbx3-ops/AGENT_HANDOFF.md` — **tiny** current **Next agent session notes** block (prefer ≤ ~15 lines; pointers to TODO / TODO_OPS / requirements / git)
+   - `~/GiT/pbx3-ops/SESSION_HANDOFF.md` — **short** top **Session end** block (prefer ≤ ~10 lines; skip if pbx3api-only with no operator impact)
+4. Do not rewrite unrelated workingdocs or `PROJECT_PLAN.md` current state.
+5. Do not reintroduce session blocks into product stub handoff files.
+6. Commit/push only when the user explicitly requests it (ops and product repos separately).
+7. **Optional (non-trivial code):** checklist code-review graph section; skip docs/handoff-only sessions.
 
 After updates, reply with a short summary of what changed in those files.

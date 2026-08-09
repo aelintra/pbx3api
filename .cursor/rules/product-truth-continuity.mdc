@@ -1,0 +1,21 @@
+---
+description: Promote product locks into in-repo requirements during the session; keep handoffs thin
+alwaysApply: true
+---
+
+# Product truth vs continuity notes
+
+**Product locks and active requirements** live in product repos (`pbx3/workingdocs/`, `pbx3-directory/docs/`, spa workingdocs for SPA locks). **Session continuity** (tip SHAs, hosts, resume) lives in **`~/GiT/pbx3-ops/`**.
+
+## When a decision is locked this session
+
+Do **not** leave the only record in chat or in `AGENT_HANDOFF` / `SESSION_HANDOFF`.
+
+1. Update (or create) the relevant **requirements / lock / DESIGN_RULES** doc in the product tree in the **same session**.
+2. Mention the path briefly in conversation and, at session end, **point** at it from the thin handoff — do not paste the lock prose into the handoff.
+3. Research-only / not-yet-locked material may go under **`~/GiT/pbx3-ops/devdocs/`** (or stay private); promote to product when it becomes law.
+
+## Do not
+
+- Put tip SHAs, EIP/FQDN inventories, or “hot on host X” into product **`TODO.md`** or product handoff stubs.
+- Grow session handoff blocks into design essays — pointers + TODO ids only.
