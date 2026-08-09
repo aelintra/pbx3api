@@ -326,7 +326,8 @@ class HomePulseService
             if (function_exists('get_ami_handle')) {
                 try {
                     $amiHandle = get_ami_handle();
-                    $amirets = $amiHandle->amiQuery("Action: CoreStatus\r\n");
+                    // Until blank line — amiQuery() waits the full socket timeout (~3s).
+                    $amirets = $amiHandle->amiQueryUntilBlankLine("Action: CoreStatus\r\n");
                     $amiHandle->logout();
 
                     $amiArray = [];
