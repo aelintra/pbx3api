@@ -7,13 +7,15 @@ alwaysApply: true
 
 When the user says **"session end"**, **"end session"**, or **"update handoff"** (including **"session end, commit"** variants):
 
-1. Read and follow **`pbx3/workingdocs/SESSION_END_CHECKLIST.md`**.
-2. Update only:
-   - `pbx3/workingdocs/TODO.md`
-   - `pbx3/workingdocs/AGENT_HANDOFF.md` (fresh **Next agent session notes** block)
-   - `pbx3spa/workingdocs/SESSION_HANDOFF.md` (new top **Session end** block; skip if session was pbx3api-only with no operator impact)
+1. Read and follow **`~/GiT/pbx3-ops/SESSION_END_CHECKLIST.md`** (private **`aelintra/pbx3-ops`**).
+2. Update:
+   - `pbx3/workingdocs/TODO.md` — product roadmap only (no tip/host gossip)
+   - `~/GiT/pbx3-ops/TODO_OPS.md` — tip SHAs, lab/host follow-ups
+   - `~/GiT/pbx3-ops/AGENT_HANDOFF.md` — fresh **Next agent session notes** block
+   - `~/GiT/pbx3-ops/SESSION_HANDOFF.md` — new top **Session end** block (skip if session was pbx3api-only with no operator impact)
 3. Do not rewrite other workingdocs or `PROJECT_PLAN.md` current state.
-4. Commit/push only when the user explicitly requests it in the same message.
-5. **Optional (non-trivial code sessions):** follow the checklist’s **code-review graph** section — build/update graph in touched repos, graph-backed review before commit/push; skip docs/handoff-only sessions.
+4. Do not reintroduce session blocks into product stub handoff files.
+5. Commit/push only when the user explicitly requests it in the same message (ops and product repos separately as appropriate).
+6. **Optional (non-trivial code sessions):** follow the checklist’s **code-review graph** section — build/update graph in touched repos, graph-backed review before commit/push; skip docs/handoff-only sessions.
 
-After updates, reply with a short summary of what changed in those three files.
+After updates, reply with a short summary of what changed in those files.
