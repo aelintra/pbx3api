@@ -214,6 +214,70 @@ class TenantMobilityService
     }
 
     /**
+     * Per-table row counts for aliases that destroyTenantData would wipe (T1 preflight).
+     * Informational only — does not block wipe (I1).
+     *
+     * @param  object{id?: string, shortuid?: string, pkey?: string, fqdn?: string|null}|string  $tenant
+     * @return array{
+     *   tenant: array{id: string, shortuid: string, pkey: string|null, fqdn: string|null},
+     *   aliases: list<string>,
+     *   tables: array<string, int>,
+     *   total_rows: int,
+     *   cluster: int
+     * }
+     */
+    public function countTenantData(object|string $tenant): array
+    {
+        if (is_string($tenant)) {
+            $tenant = $this->resolveClusterRow($tenant);
+        }
+
+        $pkey = (string) ($tenant->pkey ?? '');
+        if ($pkey === 'default') {
+            throw new \InvalidArgumentException('Cannot delete default tenant');
+        }
+
+        $clusterId = (string) ($tenant->id ?? '');
+        $shortuid = (string) ($tenant->shortuid ?? '');
+        if ($clusterId === '' || $shortuid === '') {
+            throw new \RuntimeException('Tenant id and shortuid are required to count wipe rows');
+        }
+
+        $aliases = cluster_identifier_aliases($shortuid);
+        if ($aliases === []) {
+            $aliases = [$shortuid, $clusterId];
+        }
+
+        $pdo = $this->openPdo();
+        $placeholders = implode(',', array_fill(0, count($aliases), '?'));
+        $tables = [];
+        $total = 0;
+        foreach (self::TENANT_DATA_TABLES as $table) {
+            if (! $this->tableExists($pdo, $table)) {
+                continue;
+            }
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE cluster IN ({$placeholders})");
+            $stmt->execute($aliases);
+            $count = (int) $stmt->fetchColumn();
+            $tables[$table] = $count;
+            $total += $count;
+        }
+
+        return [
+            'tenant' => [
+                'id' => $clusterId,
+                'shortuid' => $shortuid,
+                'pkey' => $pkey !== '' ? $pkey : null,
+                'fqdn' => isset($tenant->fqdn) ? (string) $tenant->fqdn : null,
+            ],
+            'aliases' => $aliases,
+            'tables' => $tables,
+            'total_rows' => $total,
+            'cluster' => 1,
+        ];
+    }
+
+    /**
      * Full tenant wipe: all TENANT_DATA_TABLES rows for cluster aliases + cluster row.
      * Matches import --replace cascade. Does not touch greeting/recording media trees (v1).
      * Portable users are stripped by the caller via PortableUserMobility.
@@ -241,12 +305,44 @@ class TenantMobilityService
         $pdo = $this->openPdo();
         $pdo->beginTransaction();
         try {
+            $this->pruneInboundDialAliases($pdo, $aliases, isset($tenant->fqdn) ? (string) $tenant->fqdn : null);
             $this->removeTenantRows($pdo, $aliases, $clusterId);
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * T2 — same-home sibling dialaliases targeting this tenant (other clusters' rows).
+     * Cross-home peers are pruned by Fleet Delete mesh phase (I7).
+     *
+     * @param  list<string>  $aliases
+     */
+    private function pruneInboundDialAliases(\PDO $pdo, array $aliases, ?string $fqdn): void
+    {
+        if (! $this->tableExists($pdo, 'dialalias')) {
+            return;
+        }
+
+        $aliasPlaceholders = implode(',', array_fill(0, count($aliases), '?'));
+        $params = $aliases;
+        $targetClauses = ["target_cluster IN ({$aliasPlaceholders})"];
+
+        $fqdnNorm = strtolower(trim((string) $fqdn));
+        if ($fqdnNorm !== '') {
+            $targetClauses[] = 'LOWER(TRIM(COALESCE(target_fqdn, \'\'))) = ?';
+            $params[] = $fqdnNorm;
+        }
+
+        $sql = 'DELETE FROM dialalias WHERE ('.implode(' OR ', $targetClauses).')'
+            ." AND cluster NOT IN ({$aliasPlaceholders})";
+        foreach ($aliases as $a) {
+            $params[] = $a;
+        }
+
+        $pdo->prepare($sql)->execute($params);
     }
 
     /**

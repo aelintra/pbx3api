@@ -104,6 +104,7 @@ Route::middleware(['fleet.token'])->prefix('fleet')->group(function () {
     Route::post('tenants/import', [FleetMobilityController::class, 'import']);
     Route::post('commit', [FleetMobilityController::class, 'commit']);
     Route::post('certificates/sync', [FleetMobilityController::class, 'certificatesSync']);
+    Route::get('tenants/{tenant}/wipe-preflight', [FleetMobilityController::class, 'wipePreflight']);
     Route::delete('tenants/{tenant}', [FleetMobilityController::class, 'destroyTenant']);
     Route::put('sitename', [FleetMobilityController::class, 'putSitename']);
     // C2 — managed dialalias projections (Site Groups); commit separately via POST /fleet/commit
@@ -405,6 +406,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
  */
     Route::get('tenants', [TenantController::class, 'index']);
     Route::get('tenants/export/pdf', [TenantController::class, 'exportPdf']);
+    Route::get('tenants/{tenant}/wipe-preflight', [TenantController::class, 'wipePreflight']);
     Route::get('tenants/{tenant}', [TenantController::class, 'show']);
     Route::post('tenants', [TenantController::class, 'save']);
     Route::put('tenants/{tenant}', [TenantController::class, 'update']);

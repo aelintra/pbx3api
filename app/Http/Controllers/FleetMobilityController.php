@@ -124,6 +124,31 @@ class FleetMobilityController extends Controller
         return $tenants->save($request);
     }
 
+    /**
+     * T1 — per-table wipe blast-radius counts before Fleet Delete confirm (informational).
+     */
+    public function wipePreflight(string $tenant, TenantMobilityService $mobility): JsonResponse
+    {
+        $model = (new Tenant)->resolveRouteBinding($tenant);
+        if ($model === null) {
+            return response()->json(['message' => "Tenant not found: {$tenant}"], 404);
+        }
+        if ($model->pkey === 'default') {
+            return response()->json(['message' => 'Cannot delete default tenant'], 409);
+        }
+
+        try {
+            $counts = $mobility->countTenantData($model);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'wipe' => $counts,
+        ]);
+    }
+
     public function destroyTenant(string $tenant, TenantMobilityService $mobility, PortableUserMobility $portableUsers): JsonResponse
     {
         $model = (new Tenant)->resolveRouteBinding($tenant);
@@ -136,6 +161,8 @@ class FleetMobilityController extends Controller
 
         $id = $model->id;
         $shortuid = (string) $model->shortuid;
+        // T3 — same park file cleanup as Sanctum TenantController::delete
+        pbx3_delete_park_asterisk_instances($shortuid);
         $mobility->destroyTenantData($model);
         $usersRemoved = $portableUsers->removeOrStripForTenant($shortuid);
         pbx3_update_fqdn_inline_optional();

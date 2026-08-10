@@ -234,6 +234,34 @@ class TenantController extends Controller
     }   
 
 /**
+ * T1 — per-table wipe blast-radius counts before solo Sanctum Delete confirm.
+ */
+    public function wipePreflight(Tenant $tenant, \App\Services\Tenant\TenantMobilityService $mobility)
+    {
+        if ($tenant->pkey == 'default') {
+            return Response::json(['message' => 'Cannot delete default tenant'], 409);
+        }
+
+        // Fleet nodes wipe via Fleet Delete job (counts come from GET /fleet/tenants/.../wipe-preflight).
+        if (request()->user() !== null && app(FleetPostureService::class)->isFleetNode()) {
+            return response()->json([
+                'message' => 'Fleet mode: use Fleet Delete preflight (not on-node wipe-preflight)',
+            ], 403);
+        }
+
+        try {
+            $counts = $mobility->countTenantData($tenant);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'wipe' => $counts,
+        ]);
+    }
+
+/**
  * Delete tenant instance
  * @param  Tenant
  * @return [type]

@@ -237,6 +237,63 @@ Artisan::command('tenant:import {zip : Path to export zip} {--replace : Overwrit
     return 0;
 })->purpose('Import tenant from export zip; preserves cluster.id KSUID (S8.6)');
 
+Artisan::command('pbx3:tenant-orphan-audit {--json : Machine-readable report} {--sample=5 : Sample orphan rows per table}', function (\App\Services\Tenant\TenantWipeIntegrityService $integrity) {
+    $sample = max(1, min(50, (int) $this->option('sample')));
+    $report = $integrity->auditOrphanClusterRows($sample);
+    if ($this->option('json')) {
+        $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return $report['ok'] ? 0 : 1;
+    }
+    if ($report['ok']) {
+        $this->info('Tenant orphan audit: clean (no cluster-scoped orphans).');
+
+        return 0;
+    }
+    $this->error('Tenant orphan audit: '.$report['total'].' orphan row(s)');
+    foreach ($report['by_table'] as $table => $count) {
+        $this->line("  {$table}: {$count}");
+    }
+    $this->comment('Fix: delete or re-home rows whose cluster is not cluster.id|shortuid|pkey. See TENANT_DELETE_DATA_INTEGRITY.md T4.');
+
+    return 1;
+})->purpose('T4 — audit child rows whose cluster is not a live tenant identifier');
+
+Artisan::command('pbx3:tenant-wipe-list-check {--schema= : Override path to sqlite_create_tenant.sql} {--json : Machine-readable report}', function (\App\Services\Tenant\TenantWipeIntegrityService $integrity) {
+    $schema = $this->option('schema') ?: null;
+    if ($schema === null || $schema === '') {
+        $packaged = base_path('../pbx3/pbx3-1/opt/pbx3/db/db_sql/sqlite_create_tenant.sql');
+        if (is_file($packaged)) {
+            $schema = $packaged;
+        } elseif (is_file((string) config('pbx3_directory.tenant_schema_sql'))) {
+            $schema = (string) config('pbx3_directory.tenant_schema_sql');
+        }
+    }
+    try {
+        $report = $integrity->compareWipeListToSchema(is_string($schema) ? $schema : null);
+    } catch (\Throwable $e) {
+        $this->error($e->getMessage());
+
+        return 1;
+    }
+    if ($this->option('json')) {
+        $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return $report['ok'] ? 0 : 1;
+    }
+    if ($report['ok']) {
+        $this->info('Wipe list covers '.count($report['schema_tables']).' cluster-scoped tenant schema table(s).');
+        if ($report['extra_in_wipe_list'] !== []) {
+            $this->comment('Also in TENANT_DATA_TABLES (not in schema parse): '.implode(', ', $report['extra_in_wipe_list']));
+        }
+
+        return 0;
+    }
+    $this->error('TENANT_DATA_TABLES missing: '.implode(', ', $report['missing_from_wipe_list']));
+
+    return 1;
+})->purpose('T5 — assert TENANT_DATA_TABLES covers tenant-schema tables with a cluster column');
+
 Artisan::command('pbx3:fleet-preflight', function (FleetPreflightService $preflight) {
     $checks = $preflight->run();
     $failed = 0;
