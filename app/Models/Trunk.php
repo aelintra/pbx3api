@@ -62,8 +62,8 @@ class Trunk extends Model
         'pjsip_overlay',
     ];
 
-    /** Attributes excluded from array/JSON. Empty; trunks has no redundant fields to hide. */
-    protected $hidden = [];
+    /** Attributes excluded from array/JSON: SIP/DISA secrets must never round-trip in list/detail responses. */
+    protected $hidden = ['password', 'disapass'];
 
 	/**
 	 * Resolve route model binding by shortuid (globally unique) instead of pkey (tenant-scoped).

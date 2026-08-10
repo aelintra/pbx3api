@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\SysCommand;
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
+use App\Models\Extension;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -20,7 +22,9 @@ class AstAmiController extends Controller
  * 
  * 
  */
-{   
+{
+        use EnforcesClusterScope;
+
         protected $eventList = [
                 'Agents', 
                 'ConfbridgeList',
@@ -131,6 +135,73 @@ class AstAmiController extends Controller
         $amiHandle->logout();
         return response()->json($amirets,200);       
     }  
+
+/**
+ * Twin (follow-me / celltwin) AstDB write. Family is always srktwin (never client-supplied).
+ * Key must be a safe extension identifier (shortuid or pkey) that resolves to an extension the
+ * caller's cluster scope allows — prevents any Sanctum user from writing arbitrary AstDB families/keys.
+ *
+ * @param  Request  $request
+ * @param  string   $key
+ * @param  string   $value
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function dbputTwin(Request $request, string $key, string $value) {
+        $this->assertTwinKeyAllowed($key);
+
+        $amiHandle = $this->amiHandle();
+        $result = $amiHandle->PutDB('srktwin', $key, $value);
+        $amiHandle->logout();
+
+        return response()->json(['result' => $result], 200);
+    }
+
+/**
+ * Twin (follow-me / celltwin) AstDB delete. See dbputTwin() for the ACL rationale.
+ *
+ * @param  Request  $request
+ * @param  string   $key
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function dbdelTwin(Request $request, string $key) {
+        $this->assertTwinKeyAllowed($key);
+
+        $amiHandle = $this->amiHandle();
+        $result = $amiHandle->DelDB('srktwin', $key);
+        $amiHandle->logout();
+
+        return response()->json(['result' => $result], 200);
+    }
+
+/**
+ * Validate the twin AstDB key and ensure the caller may access the owning extension's cluster.
+ * Key must be a plain alphanumeric extension shortuid/pkey (no AstDB family/key injection).
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\HttpException 422/404/401/403
+ */
+    protected function assertTwinKeyAllowed(string $key): void {
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $key)) {
+            abort(422, 'Invalid key.');
+        }
+
+        $extension = Extension::where('shortuid', $key)->first()
+            ?? Extension::where('pkey', $key)->first();
+        if ($extension === null) {
+            abort(404, 'Extension not found.');
+        }
+
+        $this->assertModelClusterAllowed($extension);
+    }
+
+/**
+ * Resolve the AMI handle. Overridable (container binding) so tests can substitute a fake
+ * without a real Asterisk/AMI socket.
+ *
+ * @return Ami
+ */
+    protected function amiHandle() {
+        return get_ami_handle();
+    }
     
     public function hangup (Request $request) {
         $amiHandle = get_ami_handle();

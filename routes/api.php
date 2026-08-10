@@ -63,12 +63,14 @@ Route::group(['prefix' => 'auth'], function () {
         Route::post('2fa/recovery', [AuthController::class, 'regenerateRecoveryCodes']);
     });
 
-    Route::group(['middleware' => ['auth:sanctum', 'validate.cluster']], function () {
+    Route::group(['middleware' => ['auth:sanctum', 'ability:admin,tenant']], function () {
 /**
- * Stuff which has to be logged in but does not need admin privileges
+ * Twin (follow-me / celltwin) AstDB writes. Family is hardcoded to srktwin server-side
+ * (never client-supplied) and the key must resolve to an extension in the caller's cluster scope
+ * — see AstAmiController::assertTwinKeyAllowed().
  */
-        Route::put('astamis/DBput/srktwin/{key}/{value}', [AstAmiController::class, 'dbput']);
-        Route::delete('astamis/DBdel/srktwin/{key}', [AstAmiController::class, 'dbdel']);
+        Route::put('astamis/DBput/srktwin/{key}/{value}', [AstAmiController::class, 'dbputTwin']);
+        Route::delete('astamis/DBdel/srktwin/{key}', [AstAmiController::class, 'dbdelTwin']);
     });
 
 /**

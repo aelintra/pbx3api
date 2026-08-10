@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\CosClose;
+use App\Models\Extension;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class CosCloseController extends Controller
 {
-    //
+    use EnforcesClusterScope;
 
     private $updateableColumns = [
 
@@ -25,7 +26,7 @@ class CosCloseController extends Controller
  */
     public function index (CosClose $cosclose) {
 
-    	return CosClose::orderBy('cos_pkey','asc')->get();
+    	return $this->applyClusterScope(CosClose::query(), 'cluster')->orderBy('cos_pkey','asc')->get();
     }
 
 /**
@@ -36,6 +37,7 @@ class CosCloseController extends Controller
  */
     public function show (CosClose $cosclose) {
 
+    	$this->assertModelClusterAllowed($cosclose);
     	return response()->json($cosclose, 200);
     }
 
@@ -69,9 +71,19 @@ class CosCloseController extends Controller
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
         }
-    
+
+// Resolve owning extension's cluster (tenant IDOR guard); ipphone_pkey is not globally unique
+// so we take the first match — consistent with the model's own composite-key limitations.
+        $extension = Extension::where('pkey', $request->input('ipphone_pkey'))->first();
+        if ($extension === null) {
+            return response()->json(['ipphone_pkey' => ['Extension not found.']], 422);
+        }
+        $clusterShortuid = cluster_identifier_to_shortuid($extension->cluster) ?? (string) $extension->cluster;
+        $this->assertClusterAllowed($clusterShortuid);
+
 // Move post variables to the model 
         move_request_to_model($request,$cosclose,$this->updateableColumns); 
+        $cosclose->cluster = $clusterShortuid;
 
 
 // create the model         
@@ -91,6 +103,8 @@ class CosCloseController extends Controller
  */
     public function update(Request $request, CosClose $cosclose) {
 
+        $this->assertModelClusterAllowed($cosclose);
+
 // Validate   
         $validator = Validator::make($request->all(),$this->updateableColumns);
 
@@ -105,7 +119,7 @@ class CosCloseController extends Controller
 // store the model if it has changed
         try {
             if ($cosclose->isDirty()) {
-                $cosclose->update();
+                $cosclose->save();
             }
 
         } catch (\Exception $e) {
@@ -123,6 +137,7 @@ class CosCloseController extends Controller
  * @return 204
  */
     public function delete(CosClose $cosclose) {
+        $this->assertModelClusterAllowed($cosclose);
         $cosclose->delete();
 
         return response()->json(null, 204);

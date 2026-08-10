@@ -1,11 +1,12 @@
 <?php
 
 // Should be renamed endpoints
-// Throttled by cluster (tenant): ?cluster=pkey returns only destinations for that tenant.
+// Required cluster (tenant): ?cluster=pkey returns only destinations for that tenant.
 // No Trunks in response — destination lists (Inbound routes, IVRs) invoke endpoints, not trunks.
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use Illuminate\Http\Request;
 use App\Models\Application;
 use App\Models\IpPhone;
@@ -15,9 +16,11 @@ use App\Models\Tenant;
 
 class DestinationController extends Controller
 {
+    use EnforcesClusterScope;
+
     /**
      * Return endpoint index for destination dropdowns (Inbound routes, IVRs).
-     * Optional ?cluster={tenantPkey} — when present, only destinations for that tenant are returned.
+     * Requires ?cluster={tenantPkey} — without it the full instance would leak across tenants.
      * Trunks are excluded (destination lists invoke endpoints: queues, extensions, IVRs, custom apps).
      * Cluster filter matches both tenant pkey and tenant id (KSUID) so it works whether DB stores pkey or id.
      *
@@ -27,6 +30,12 @@ class DestinationController extends Controller
     public function index(Request $request)
     {
         $clusterParam = $request->query('cluster');
+        if ($clusterParam === null || trim((string) $clusterParam) === '') {
+            return response()->json(['cluster' => ['The cluster field is required.']], 422);
+        }
+
+        $this->assertRequestedClusterInScope($clusterParam);
+
         $clusterValues = $this->clusterValuesForFilter($clusterParam);
 
         $base = [

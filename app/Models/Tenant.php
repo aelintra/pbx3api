@@ -140,12 +140,16 @@ class Tenant extends Model
      * - name, oclo: legacy, not for API/SPA.
      * - acl: deprecated; no longer used.
      * - vxt: reserved for future use; not exposed via API/SPA.
+     * - ldappass, syspass, spy_pass: secrets — must never round-trip in JSON (SPA masks as password inputs).
      */
     protected $hidden = [
         'name',
         'oclo',
         'acl',
         'vxt',
+        'ldappass',
+        'syspass',
+        'spy_pass',
     ];
 
     /**
