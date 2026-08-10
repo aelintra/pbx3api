@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Extension;
+use App\Support\ExtLenPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -197,6 +198,12 @@ class ExtensionController extends Controller
             $clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
             if ($clusterShortuid === null && $request->cluster !== null && $request->cluster !== '') {
                 $validator->errors()->add('cluster', 'Invalid cluster.');
+            }
+            if ($clusterShortuid !== null) {
+                $extLen = ExtLenPolicy::forClusterIdentifier($clusterShortuid);
+                if (! ExtLenPolicy::isValidExtensionPkey($request->pkey, $extLen)) {
+                    $validator->errors()->add('pkey', ExtLenPolicy::extensionPkeyValidationMessage($extLen));
+                }
             }
             if ($clusterShortuid !== null && Extension::where('pkey', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('save', 'Duplicate extension - ' . $request->pkey . ' in this tenant.');
@@ -776,10 +783,16 @@ class ExtensionController extends Controller
         $validator = Validator::make($request->all(), $rules);
         $validator->after(function ($validator) use ($request, $extension) {
             $pkeySubmitted = $request->input('pkey');
+            $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+            $cluster = $clusterShortuid ?? $request->input('cluster') ?? $extension->cluster;
+            if ($cluster !== null && $pkeySubmitted !== null) {
+                $extLen = ExtLenPolicy::forClusterIdentifier($cluster);
+                if (! ExtLenPolicy::isValidExtensionPkey($pkeySubmitted, $extLen)) {
+                    $validator->errors()->add('pkey', ExtLenPolicy::extensionPkeyValidationMessage($extLen));
+                }
+            }
             $currentPkey = (string) $extension->getAttribute('pkey');
             if ($pkeySubmitted !== null && (string) $pkeySubmitted !== $currentPkey) {
-                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
-                $cluster = $clusterShortuid ?? $request->input('cluster');
                 if ($cluster !== null && Extension::where('pkey', $pkeySubmitted)->where('cluster', $cluster)->where('id', '!=', $extension->id)->exists()) {
                     $validator->errors()->add('pkey', 'The pkey has already been taken in this cluster.');
                 }

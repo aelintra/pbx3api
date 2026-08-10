@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sysglobal;
 use App\Services\Fleet\FleetPostureService;
+use App\Support\ExtLenPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -86,6 +87,21 @@ class SysglobalController extends Controller
 
 // Validate         
     	$validator = Validator::make($request->all(),$this->updateableColumns);
+
+        $validator->after(function ($validator) use ($request) {
+            if (! $request->has('default_outbound_dialplan')) {
+                return;
+            }
+            $dp = trim((string) $request->input('default_outbound_dialplan'));
+            if ($dp === '') {
+                return;
+            }
+            // Instance seed must work for default ext_len tenants (L7a / #4c).
+            $err = ExtLenPolicy::dialplanError($dp, ExtLenPolicy::DEFAULT);
+            if ($err !== null) {
+                $validator->errors()->add('default_outbound_dialplan', $err);
+            }
+        });
 
     	if ($validator->fails()) {
     		return response()->json($validator->errors(),422);

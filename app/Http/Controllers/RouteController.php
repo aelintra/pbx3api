@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Route;
 use App\Services\Fleet\FleetPostureService;
+use App\Support\ExtLenPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -95,6 +96,14 @@ class RouteController extends Controller
             if (Route::where('pkey', '=', $request->pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('pkey', 'That route name is already in use in this tenant.');
             }
+            $extLen = ExtLenPolicy::forClusterIdentifier($clusterShortuid);
+            $dialplan = $request->input('dialplan');
+            if ($dialplan !== null && trim((string) $dialplan) !== '') {
+                $err = ExtLenPolicy::dialplanError((string) $dialplan, $extLen);
+                if ($err !== null) {
+                    $validator->errors()->add('dialplan', $err);
+                }
+            }
         });
 
         if ($validator->fails()) {
@@ -132,10 +141,20 @@ class RouteController extends Controller
 
         $validator->after(function ($validator) use ($request, $route) {
             $pkeySubmitted = $request->input('pkey');
+            $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $route->cluster;
             if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $route->getAttribute('pkey')) {
-                $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster')) ?? $route->cluster;
                 if ($clusterShortuid !== null && Route::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $route->id)->exists()) {
                     $validator->errors()->add('pkey', 'That route name is already in use in this tenant.');
+                }
+            }
+            if ($request->has('dialplan') || $request->has('cluster')) {
+                $dialplan = $request->has('dialplan')
+                    ? (string) $request->input('dialplan')
+                    : (string) ($route->dialplan ?? '');
+                $extLen = ExtLenPolicy::forClusterIdentifier($clusterShortuid);
+                $err = ExtLenPolicy::dialplanError($dialplan, $extLen);
+                if ($err !== null) {
+                    $validator->errors()->add('dialplan', $err);
                 }
             }
         });

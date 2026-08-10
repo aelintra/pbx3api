@@ -6,6 +6,7 @@ use App\Models\Route;
 use App\Models\Sysglobal;
 use App\Models\Tenant;
 use App\Services\Fleet\FleetPostureService;
+use App\Support\ExtLenPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -34,13 +35,13 @@ class SeedOutboundRouteOnTenantCreate
             return;
         }
         try {
-            DB::statement("ALTER TABLE globals ADD COLUMN default_outbound_dialplan TEXT DEFAULT '_0. _00.'");
+            DB::statement("ALTER TABLE globals ADD COLUMN default_outbound_dialplan TEXT DEFAULT '".ExtLenPolicy::UK_SEED_DIALPLAN."'");
             DB::table('globals')
                 ->where(function ($q) {
                     $q->whereNull('default_outbound_dialplan')
                         ->orWhere('default_outbound_dialplan', '');
                 })
-                ->update(['default_outbound_dialplan' => '_0. _00.']);
+                ->update(['default_outbound_dialplan' => ExtLenPolicy::UK_SEED_DIALPLAN]);
         } catch (\Throwable $e) {
             Log::warning('SeedOutboundRouteOnTenantCreate: ensureSchema failed', [
                 'error' => $e->getMessage(),
@@ -76,6 +77,18 @@ class SeedOutboundRouteOnTenantCreate
         }
 
         if ($dialplan === '') {
+            return null;
+        }
+
+        $extLen = ExtLenPolicy::normalize($tenant->ext_len ?? null);
+        $dialplanErr = ExtLenPolicy::dialplanError($dialplan, $extLen);
+        if ($dialplanErr !== null) {
+            Log::warning('SeedOutboundRouteOnTenantCreate: dialplan fails length namespace', [
+                'cluster' => $clusterKey,
+                'ext_len' => $extLen,
+                'error' => $dialplanErr,
+            ]);
+
             return null;
         }
 

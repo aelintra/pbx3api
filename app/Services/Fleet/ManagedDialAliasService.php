@@ -3,6 +3,7 @@
 namespace App\Services\Fleet;
 
 use App\Models\DialAlias;
+use App\Support\ExtLenPolicy;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -58,6 +59,15 @@ class ManagedDialAliasService
             $body['target_cluster'] ?? null,
             $targetFqdn
         );
+
+        $callerLen = ExtLenPolicy::forClusterIdentifier($cluster);
+        $destLen = ExtLenPolicy::forDialTarget($targetCluster, $targetFqdn, $callerLen);
+        if (! ExtLenPolicy::shortDialLengthOk(strlen($pkey), $destLen, $callerLen)) {
+            throw new \InvalidArgumentException(
+                ExtLenPolicy::shortDialLengthValidationMessage(strlen($pkey), $destLen, $callerLen),
+                422
+            );
+        }
 
         $existing = DialAlias::where('cluster', $cluster)->where('pkey', $pkey)->first();
         $now = gmdate('Y-m-d H:i:s');

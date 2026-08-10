@@ -54,7 +54,7 @@ beforeEach(function () use (&$dbPath) {
     DB::table('globals')->insert([
         'id' => 'testglobalsksuid00000000001',
         'pkey' => 'global',
-        'default_outbound_dialplan' => '_0. _00.',
+        'default_outbound_dialplan' => \App\Support\ExtLenPolicy::UK_SEED_DIALPLAN,
         'mycommit' => 'NO',
     ]);
 });
@@ -73,13 +73,14 @@ test('seeds MainOut from globals dialplan string', function () {
     $tenant = new Tenant;
     $tenant->shortuid = 'tenanta1';
     $tenant->pkey = 'TenantA';
+    $tenant->ext_len = 3;
 
     $route = app(SeedOutboundRouteOnTenantCreate::class)->seed($tenant);
 
     expect($route)->not->toBeNull();
     expect($route->pkey)->toBe('MainOut');
     expect($route->cluster)->toBe('tenanta1');
-    expect($route->dialplan)->toBe('_0. _00.');
+    expect($route->dialplan)->toBe(\App\Support\ExtLenPolicy::UK_SEED_DIALPLAN);
     expect($route->path1)->toBe('Egress');
 });
 
@@ -94,13 +95,25 @@ test('skips seed when globals dialplan empty', function () {
     expect(Route::where('cluster', 'tenantb1')->count())->toBe(0);
 });
 
+test('skips seed when dialplan fails length namespace', function () {
+    DB::table('globals')->update(['default_outbound_dialplan' => '_0. _00.']);
+
+    $tenant = new Tenant;
+    $tenant->shortuid = 'tenantd1';
+    $tenant->pkey = 'TenantD';
+    $tenant->ext_len = 3;
+
+    expect(app(SeedOutboundRouteOnTenantCreate::class)->seed($tenant))->toBeNull();
+    expect(Route::where('cluster', 'tenantd1')->count())->toBe(0);
+});
+
 test('skips seed when tenant already has routes', function () {
     $existing = new Route;
     $existing->id = 'existingrouteksuid0000000001';
     $existing->shortuid = 'route001';
     $existing->pkey = 'Custom';
     $existing->cluster = 'tenantc1';
-    $existing->dialplan = '_9.';
+    $existing->dialplan = '_9XXXX';
     $existing->save();
 
     $tenant = new Tenant;

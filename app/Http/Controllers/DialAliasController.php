@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\DialAlias;
 use App\Services\Fleet\ManagedDialAliasService;
+use App\Support\ExtLenPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
@@ -102,6 +103,20 @@ class DialAliasController extends Controller
             if ($instErr !== null) {
                 $validator->errors()->add('target_fqdn', $instErr);
             }
+            if ($alias !== '' && preg_match('/^\d{2,4}$/', $alias)) {
+                $callerLen = ExtLenPolicy::forClusterIdentifier($clusterShortuid);
+                $destLen = ExtLenPolicy::forDialTarget(
+                    $request->input('target_cluster'),
+                    $targetFqdn,
+                    $callerLen
+                );
+                if (! ExtLenPolicy::shortDialLengthOk(strlen($alias), $destLen, $callerLen)) {
+                    $validator->errors()->add(
+                        'pkey',
+                        ExtLenPolicy::shortDialLengthValidationMessage(strlen($alias), $destLen, $callerLen)
+                    );
+                }
+            }
         });
 
         if ($validator->fails()) {
@@ -185,6 +200,20 @@ class DialAliasController extends Controller
                 $instErr = $this->instanceFqdnConflictMessage($targetFqdn);
                 if ($instErr !== null) {
                     $validator->errors()->add('target_fqdn', $instErr);
+                }
+                $prefix = ($newPkey !== null && $newPkey !== '') ? $newPkey : (string) $dialalias->pkey;
+                if (preg_match('/^\d{2,4}$/', $prefix)) {
+                    $callerLen = ExtLenPolicy::forClusterIdentifier($clusterShortuid);
+                    $pin = $request->has('target_cluster')
+                        ? $request->input('target_cluster')
+                        : $dialalias->target_cluster;
+                    $destLen = ExtLenPolicy::forDialTarget($pin, $targetFqdn, $callerLen);
+                    if (! ExtLenPolicy::shortDialLengthOk(strlen($prefix), $destLen, $callerLen)) {
+                        $validator->errors()->add(
+                            'pkey',
+                            ExtLenPolicy::shortDialLengthValidationMessage(strlen($prefix), $destLen, $callerLen)
+                        );
+                    }
                 }
             }
         });

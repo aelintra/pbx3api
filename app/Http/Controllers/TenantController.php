@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Services\Fleet\FleetPostureService;
+use App\Support\ExtLenPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class TenantController extends Controller
 			'emailalert' => 'string|nullable',
 			'emergency' => 'string|nullable',
 			'ext_lim' => 'integer|nullable',
-			'ext_len' => 'integer|nullable',
+			'ext_len' => 'nullable|integer|min:'.ExtLenPolicy::MIN.'|max:'.ExtLenPolicy::MAX,
 			'fqdninspect' => 'boolean',
 			'int_ring_delay' => 'integer',
 			'ivr_key_wait' => 'integer',
@@ -155,6 +156,11 @@ class TenantController extends Controller
 
 // Move post variables to the model 
     	move_request_to_model($request, $tenant, $createRules);
+        if (! $request->filled('ext_len')) {
+            $tenant->ext_len = ExtLenPolicy::DEFAULT;
+        } else {
+            $tenant->ext_len = ExtLenPolicy::normalize($request->input('ext_len'));
+        }
 
         $instanceDomain = '';
         try {
@@ -205,6 +211,54 @@ class TenantController extends Controller
 // Validate         
     	$validator = Validator::make($request->all(),$this->updateableColumns);
 
+        $validator->after(function ($validator) use ($request, $tenant) {
+            if (! $request->has('ext_len')) {
+                return;
+            }
+            $newLen = ExtLenPolicy::normalize($request->input('ext_len'));
+            $oldLen = ExtLenPolicy::normalize($tenant->ext_len ?? null);
+            if ($newLen === $oldLen) {
+                return;
+            }
+            $aliases = cluster_identifier_aliases($tenant->shortuid ?? $tenant->pkey);
+            if ($aliases === []) {
+                $aliases = array_filter([(string) ($tenant->shortuid ?? ''), (string) ($tenant->pkey ?? '')]);
+            }
+            try {
+                $pkeys = DB::table('ipphone')->whereIn('cluster', $aliases)->pluck('pkey');
+                foreach ($pkeys as $pk) {
+                    if (! ExtLenPolicy::isValidExtensionPkey($pk, $newLen)) {
+                        $validator->errors()->add(
+                            'ext_len',
+                            "Cannot set extension length to {$newLen}: existing extension {$pk} is not exactly {$newLen} digits."
+                        );
+                        return;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // table may be missing in tests
+            }
+            try {
+                $routes = DB::table('route')->whereIn('cluster', $aliases)->get(['pkey', 'dialplan']);
+                foreach ($routes as $r) {
+                    $dp = trim((string) ($r->dialplan ?? ''));
+                    if ($dp === '') {
+                        continue;
+                    }
+                    $err = ExtLenPolicy::dialplanError($dp, $newLen);
+                    if ($err !== null) {
+                        $validator->errors()->add(
+                            'ext_len',
+                            "Cannot set extension length to {$newLen}: OutRoute {$r->pkey} dialplan is incompatible ({$err})"
+                        );
+                        return;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        });
+
     	if ($validator->fails()) {
     		return response()->json($validator->errors(),422);
     	}		
@@ -212,6 +266,9 @@ class TenantController extends Controller
 // Move post variables to the model  
 
 		move_request_to_model($request,$tenant,$this->updateableColumns);
+        if ($request->has('ext_len')) {
+            $tenant->ext_len = ExtLenPolicy::normalize($request->input('ext_len'));
+        }
 		if ($request->has('park_overlay')) {
 			$ov = $request->input('park_overlay');
 			$tenant->park_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
