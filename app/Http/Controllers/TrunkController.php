@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Trunk;
+use App\Services\Fleet\FleetPostureService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -132,6 +133,12 @@ class TrunkController extends Controller
  * @return New Trunk
  */
     public function save(Request $request) {
+
+		if ($request->user() !== null && app(FleetPostureService::class)->isFleetNode()) {
+			return response()->json([
+				'message' => 'Fleet mode: carriers live on the SBC; do not create trunks on the node. Edit Egress for mangle/transform.',
+			], 403);
+		}
 
 		// First cut: all new trunks belong to the default tenant (TRUNK_ROUTE_MULTITENANCY)
 		$request->merge(['cluster' => 'default']);
