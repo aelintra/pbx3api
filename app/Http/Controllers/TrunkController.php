@@ -212,16 +212,21 @@ class TrunkController extends Controller
  */
     public function update(Request $request, Trunk $trunk) {
 
-		// First cut: trunk tenant is not changeable; force default (TRUNK_ROUTE_MULTITENANCY). When layered permissions are added, users with the right role may be allowed to modify trunk tenant (later phase).
-		$request->merge(['cluster' => 'default']);
+		// Trunk tenant is not changeable via PUT (TRUNK_ROUTE_MULTITENANCY). Preserve the
+		// existing cluster — do not force 'default' (fleet nodes may have no default tenant;
+		// Egress often lives under the office tenant shortuid).
+		$request->request->remove('cluster');
 
 		// SIP registration mode (pjsipreg) is create-only; strip so PUT cannot change it (IAX2 still clears via normalize).
 		$request->request->remove('pjsipreg');
 
 		$this->normalizeTrunkPjsipregOnWrite($request, $trunk);
 
+		$updateRules = $this->updateableColumns;
+		unset($updateRules['cluster']);
+
 // Validate (Request + Validator only; no Form Request)
-    	$validator = Validator::make($request->all(), $this->updateableColumns);
+    	$validator = Validator::make($request->all(), $updateRules);
 
     	$validator->after(function ($validator) use ($request, $trunk) {
 			$host = $request->host;
@@ -232,8 +237,8 @@ class TrunkController extends Controller
 			// pkey uniqueness when client sends a different pkey
 			$pkeySubmitted = $request->input('pkey');
 			if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $trunk->getAttribute('pkey')) {
-				$clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
-				if ($clusterShortuid !== null && Trunk::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $trunk->id)->exists()) {
+				$clusterShortuid = cluster_identifier_to_shortuid($trunk->cluster) ?? (string) $trunk->cluster;
+				if ($clusterShortuid !== '' && Trunk::where('pkey', $pkeySubmitted)->where('cluster', $clusterShortuid)->where('id', '!=', $trunk->id)->exists()) {
 					$validator->errors()->add('pkey', 'That name is already in use in this tenant.');
 				}
 			}
@@ -243,15 +248,11 @@ class TrunkController extends Controller
     		return response()->json($validator->errors(),422);
     	}
 
-// Move post variables to the model   
-		move_request_to_model($request,$trunk,$this->updateableColumns);
+// Move post variables to the model (cluster intentionally omitted — keep existing)
+		move_request_to_model($request,$trunk,$updateRules);
 		if ($request->has('pjsip_overlay')) {
 			$ov = $request->input('pjsip_overlay');
 			$trunk->pjsip_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
-		}
-		$clusterShortuid = cluster_identifier_to_shortuid($request->cluster);
-		if ($clusterShortuid !== null) {
-			$trunk->cluster = $clusterShortuid;
 		}
 
 // store the model if it has changed — update by id only (tenant-safe)
