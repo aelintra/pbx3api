@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class LogRetentionService
 {
-    public const CLASSES = ['syslog', 'asterisk-messages', 'cdr'];
+    public const CLASSES = ['syslog', 'asterisk-messages', 'cdr', 'sip-text', 'sip-pcap'];
 
     /**
      * @return array{

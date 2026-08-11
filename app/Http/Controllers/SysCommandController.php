@@ -26,7 +26,10 @@ class SysCommandController extends Controller
         'reboot' => 'null',
         'pbxstart' => 'null',
         'pbxstop' => 'null',
-        'pbxrunstate' => 'returns PBX state (boolean)'
+        'pbxrunstate' => 'returns PBX state (boolean)',
+        'sipdebug/status' => 'home SIP debug session status',
+        'sipdebug/arm' => 'arm home SIP debug (text ± pcap, TTL)',
+        'sipdebug/disarm' => 'disarm home SIP debug',
     ];
 
     /**
@@ -474,6 +477,80 @@ class SysCommandController extends Controller
             pbx3_request_syscmd('/sbin/shorewall restart 2>&1');
         }
         return response()->json(['allow' => $allow], 200);
+    }
+
+    /**
+     * GET syscommands/sipdebug/status — session-armed home SIP debug state.
+     * Spec: HOME_SIP_LOGGING_REQUIREMENTS.md
+     */
+    public function sipdebugStatus()
+    {
+        $script = '/opt/pbx3/scripts/sip-debug-status.sh';
+        [$out, $err] = pbx3_request_syscmd('test -x '.escapeshellarg($script).' && '.escapeshellarg($script).' 2>&1');
+        if ($err !== null || $out === null || trim($out) === '') {
+            return response()->json([
+                'armed' => false,
+                'text' => false,
+                'pcap' => false,
+                'pcap_running' => false,
+                'expires_at' => '',
+                'ttl_remaining_sec' => 0,
+                'available' => false,
+                'detail' => $err ?? 'sip-debug-status.sh missing — tip-deploy pbx3 package/scripts',
+            ], 200);
+        }
+        $decoded = json_decode(trim($out), true);
+        if (! is_array($decoded)) {
+            return response()->json(['message' => 'Invalid status JSON', 'detail' => $out], 502);
+        }
+        $decoded['available'] = true;
+
+        return response()->json($decoded, 200);
+    }
+
+    /**
+     * POST syscommands/sipdebug/arm — { ttl_minutes?: 15-60, pcap?: bool }
+     */
+    public function sipdebugArm(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ttl_minutes' => 'sometimes|integer|min:15|max:60',
+            'pcap' => 'sometimes|boolean',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        $ttl = (int) $request->input('ttl_minutes', 30);
+        $pcap = $request->boolean('pcap');
+        $script = '/opt/pbx3/scripts/sip-debug-arm.sh';
+        $cmd = escapeshellarg($script).' --ttl '.escapeshellarg((string) $ttl);
+        if ($pcap) {
+            $cmd .= ' --pcap';
+        }
+        [$out, $err] = pbx3_request_syscmd('test -x '.escapeshellarg($script).' && '.$cmd.' 2>&1');
+        if ($err !== null) {
+            Log::warning('sipdebug/arm failed', ['error' => $err, 'out' => $out]);
+
+            return response()->json(['message' => 'Failed to arm SIP debug', 'detail' => $err ?: $out], 502);
+        }
+
+        return $this->sipdebugStatus();
+    }
+
+    /**
+     * POST syscommands/sipdebug/disarm
+     */
+    public function sipdebugDisarm()
+    {
+        $script = '/opt/pbx3/scripts/sip-debug-disarm.sh';
+        [$out, $err] = pbx3_request_syscmd('test -x '.escapeshellarg($script).' && '.escapeshellarg($script).' 2>&1');
+        if ($err !== null) {
+            Log::warning('sipdebug/disarm failed', ['error' => $err, 'out' => $out]);
+
+            return response()->json(['message' => 'Failed to disarm SIP debug', 'detail' => $err ?: $out], 502);
+        }
+
+        return $this->sipdebugStatus();
     }
 
     private function safeShell($cmd)

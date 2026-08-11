@@ -38,6 +38,8 @@ return [
         'syslog' => (int) env('PBX3_LOG_LOCAL_DAYS_SYSLOG', 7),
         'asterisk-messages' => (int) env('PBX3_LOG_LOCAL_DAYS_MESSAGES', 7),
         'cdr' => (int) env('PBX3_LOG_LOCAL_DAYS_CDR', 7),
+        'sip-text' => (int) env('PBX3_LOG_LOCAL_DAYS_SIP_TEXT', 7),
+        'sip-pcap' => (int) env('PBX3_LOG_LOCAL_DAYS_SIP_PCAP', 7),
     ],
 
     /** S3 lifecycle hint (written to instances/{id}/logs/policy.json). */
@@ -45,11 +47,15 @@ return [
         'syslog' => (int) env('PBX3_LOG_S3_MAXAGE_SYSLOG', 30),
         'asterisk-messages' => (int) env('PBX3_LOG_S3_MAXAGE_MESSAGES', 30),
         'cdr' => (int) env('PBX3_LOG_S3_MAXAGE_CDR', 60),
+        'sip-text' => (int) env('PBX3_LOG_S3_MAXAGE_SIP_TEXT', 30),
+        'sip-pcap' => (int) env('PBX3_LOG_S3_MAXAGE_SIP_PCAP', 30),
     ],
 
     /**
      * Globs per class (rotated segments only — never the live open file).
      * Syslog: system rsyslog rotation. Asterisk: pbx3-asterisk-logs.
+     * sip-text: sip-debug.* from arm/disarm rotate or logrotate.
+     * sip-pcap: dumpcap completed ring under SIPLOG (not live siplog.pcap).
      */
     'sources' => [
         'syslog' => [
@@ -63,6 +69,15 @@ return [
         'cdr' => [
             '/var/log/asterisk/cdr-csv/Master.csv.[0-9]*',
             '/var/log/asterisk/cdr-csv/Master.csv.*.gz',
+        ],
+        'sip-text' => [
+            '/var/log/asterisk/sip-debug.[0-9]*',
+            '/var/log/asterisk/sip-debug.*.gz',
+            '/var/log/asterisk/sip-debug.20*',
+        ],
+        'sip-pcap' => [
+            '/opt/pbx3/db/var/log/siplog/siplog_*.pcap',
+            '/opt/pbx3/db/var/log/siplog/siplog.pcap[0-9]*',
         ],
     ],
 

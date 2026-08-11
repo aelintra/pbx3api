@@ -15,15 +15,18 @@ class LogController extends Controller
 
 	private $updateableColumns = [];
 
-	/** List of log files to show (relative to /var/log/). */
+	/** Instance SIP pcap carousel (config.php SIPLOG). */
+	private const SIPLOG_DIR = '/opt/pbx3/db/var/log/siplog';
+
+	/** List of log files to show (relative to /var/log/, except siplog/* absolute via resolveFullPath). */
 	private const LOG_FILES = [
 		'asterisk/messages',
 		'asterisk/full',
+		'asterisk/sip-debug',
 		'asterisk/cdr-csv/Master.csv',
 		'asterisk/queue_log',
 		'syslog',
 		'shorewall.log',
-		'siplog',
 		'mail.log',
 		'fail2ban.log',
 		'auth.log',
@@ -33,6 +36,7 @@ class LogController extends Controller
 	private const LOG_FILE_MAP = [
 		'astmessages' => 'asterisk/messages',
 		'astfull' => 'asterisk/full',
+		'astsipdebug' => 'asterisk/sip-debug',
 		'astcdrs' => 'asterisk/cdr-csv/Master.csv',
 		'astqueues' => 'asterisk/queue_log',
 	];
@@ -46,8 +50,7 @@ class LogController extends Controller
 	}
 
 	/**
-	 * Resolve symbolic name to actual file path.
-	 * Returns the mapped path if name is in LOG_FILE_MAP, otherwise returns the name as-is.
+	 * Resolve symbolic name to actual path (e.g., astmessages → asterisk/messages).
 	 */
 	private static function resolveLogPath(string $name): string
 	{
@@ -55,18 +58,46 @@ class LogController extends Controller
 	}
 
 	/**
-	 * Check if a log name/path is valid (either a symbolic name or a direct path in LOG_FILES).
+	 * Absolute filesystem path for a validated log name/path.
+	 * siplog/{basename} → SIPLOG_DIR/{basename}; else /var/log/{path}.
+	 */
+	private static function resolveFullPath(string $nameOrPath): ?string
+	{
+		$actual = self::resolveLogPath($nameOrPath);
+		if (str_starts_with($actual, 'siplog/')) {
+			$base = basename(substr($actual, strlen('siplog/')));
+			if ($base === '' || $base === '.' || $base === '..' || str_contains($base, '/')) {
+				return null;
+			}
+			// Allow only pcap ring names
+			if (! preg_match('/^(siplog_.*\.pcap|siplog\.pcap\d*|siplog\.pcap)$/', $base)) {
+				return null;
+			}
+
+			return self::SIPLOG_DIR.'/'.$base;
+		}
+		if (! self::isValidLogPath($actual)) {
+			return null;
+		}
+
+		return '/var/log/'.$actual;
+	}
+
+	/**
+	 * Check if a log name/path is valid (symbolic, LOG_FILES entry, or siplog/* pcap).
 	 */
 	private static function isValidLogName(string $name): bool
 	{
-		// Check if it's a symbolic name
 		if (isset(self::LOG_FILE_MAP[$name])) {
 			return true;
 		}
-		// Check if it's a direct path in LOG_FILES
 		if (in_array($name, self::LOG_FILES, true)) {
 			return self::isValidLogPath($name);
 		}
+		if (str_starts_with($name, 'siplog/')) {
+			return self::resolveFullPath($name) !== null;
+		}
+
 		return false;
 	}
 
@@ -76,7 +107,41 @@ class LogController extends Controller
 	private static function getLogDisplayName(string $logPath): string
 	{
 		$symbolic = array_search($logPath, self::LOG_FILE_MAP, true);
+
 		return $symbolic !== false ? $symbolic : $logPath;
+	}
+
+	/**
+	 * @return list<array{path: string, actualPath: string, exists: bool, size: int}>
+	 */
+	private function listSiplogPcaps(): array
+	{
+		$logs = [];
+		[$lsOut] = pbx3_request_syscmd('ls -1 '.escapeshellarg(self::SIPLOG_DIR).' 2>/dev/null');
+		if ($lsOut === null || trim($lsOut) === '') {
+			return $logs;
+		}
+		foreach (preg_split('/\r?\n/', trim($lsOut)) as $base) {
+			$base = trim($base);
+			if ($base === '' || ! preg_match('/^(siplog_.*\.pcap|siplog\.pcap\d*|siplog\.pcap)$/', $base)) {
+				continue;
+			}
+			$display = 'siplog/'.$base;
+			$full = self::SIPLOG_DIR.'/'.$base;
+			$size = 0;
+			[$sizeOut, $sizeErr] = pbx3_request_syscmd('stat -c %s '.escapeshellarg($full).' 2>/dev/null');
+			if ($sizeErr === null && is_numeric(trim((string) $sizeOut))) {
+				$size = (int) trim((string) $sizeOut);
+			}
+			$logs[] = [
+				'path' => $display,
+				'actualPath' => $display,
+				'exists' => true,
+				'size' => $size,
+			];
+		}
+
+		return $logs;
 	}
 
 	/**
@@ -87,34 +152,36 @@ class LogController extends Controller
 		try {
 			$logs = [];
 			foreach (self::LOG_FILES as $logPath) {
-				$fullPath = '/var/log/' . $logPath;
-				
-				// Check if file exists
-				[$testOut, $testErr] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullPath) . ' && echo exists || echo missing');
-				$exists = ($testErr === null && trim($testOut) === 'exists');
-				
-				// Get file size if exists
+				$fullPath = '/var/log/'.$logPath;
+
+				[$testOut, $testErr] = pbx3_request_syscmd('test -f '.escapeshellarg($fullPath).' && echo exists || echo missing');
+				$exists = ($testErr === null && trim((string) $testOut) === 'exists');
+
 				$size = 0;
 				if ($exists) {
-					[$sizeOut, $sizeErr] = pbx3_request_syscmd('stat -c %s ' . escapeshellarg($fullPath) . ' 2>/dev/null');
-					if ($sizeErr === null && is_numeric(trim($sizeOut))) {
-						$size = (int)trim($sizeOut);
+					[$sizeOut, $sizeErr] = pbx3_request_syscmd('stat -c %s '.escapeshellarg($fullPath).' 2>/dev/null');
+					if ($sizeErr === null && is_numeric(trim((string) $sizeOut))) {
+						$size = (int) trim((string) $sizeOut);
 					}
 				}
-				
-				// Use symbolic name if mapped, otherwise use path
+
 				$displayName = self::getLogDisplayName($logPath);
-				
+
 				$logs[] = [
-					'path' => $displayName, // Return symbolic name for asterisk logs
-					'actualPath' => $logPath, // Keep actual path for reference
+					'path' => $displayName,
+					'actualPath' => $logPath,
 					'exists' => $exists,
 					'size' => $size,
 				];
 			}
+			foreach ($this->listSiplogPcaps() as $pcap) {
+				$logs[] = $pcap;
+			}
+
 			return response()->json(['logs' => $logs], 200);
 		} catch (\Exception $e) {
 			Log::error('LogController::index failed', ['error' => $e->getMessage()]);
+
 			return response()->json(['message' => 'Failed to list logs', 'detail' => $e->getMessage()], 500);
 		}
 	}
@@ -128,20 +195,19 @@ class LogController extends Controller
 	 */
 	public function show(Request $request, string $logfile)
 	{
-		// Validate the log name (symbolic or direct path)
-		if (!self::isValidLogName($logfile)) {
+		if (! self::isValidLogName($logfile)) {
 			return response()->json(['message' => 'Invalid log name'], 422);
 		}
-		
-		// Resolve symbolic name to actual path (e.g., astmessages → asterisk/messages)
-		$actualPath = self::resolveLogPath($logfile);
-		
-		if (!self::isValidLogPath($actualPath)) {
+
+		$fullPath = self::resolveFullPath($logfile);
+		if ($fullPath === null) {
 			return response()->json(['message' => 'Invalid log path'], 422);
 		}
-		
-		// Use actual path for file operations
-		$logfile = $actualPath;
+
+		// Binary pcaps: use download, not text tail
+		if (str_ends_with($fullPath, '.pcap') || preg_match('/\.pcap\d+$/', $fullPath)) {
+			return response()->json(['message' => 'Use download for pcap files'], 422);
+		}
 
 		$validator = Validator::make($request->all(), [
 			'offset' => 'integer|min:0',
@@ -154,30 +220,24 @@ class LogController extends Controller
 
 		$offset = (int) $request->input('offset', 0);
 		$limit = (int) $request->input('limit', 100);
-		$fullPath = '/var/log/' . $logfile;
 
-		// Check file exists
-		[$testOut, $testErr] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullPath) . ' && echo exists || echo missing');
-		if ($testErr !== null || trim($testOut) !== 'exists') {
+		[$testOut, $testErr] = pbx3_request_syscmd('test -f '.escapeshellarg($fullPath).' && echo exists || echo missing');
+		if ($testErr !== null || trim((string) $testOut) !== 'exists') {
 			return response()->json(['message' => 'Log file not found'], 404);
 		}
 
-		// Count total lines
-		[$lineCountOut, $lineCountErr] = pbx3_request_syscmd('wc -l < ' . escapeshellarg($fullPath) . ' 2>/dev/null');
-		$totalLines = $lineCountErr === null ? (int)trim($lineCountOut) : 0;
+		[$lineCountOut, $lineCountErr] = pbx3_request_syscmd('wc -l < '.escapeshellarg($fullPath).' 2>/dev/null');
+		$totalLines = $lineCountErr === null ? (int) trim((string) $lineCountOut) : 0;
 
-		// Read lines
 		$lines = [];
 		if ($totalLines > 0) {
 			if ($offset === 0) {
-				// Tail: last N lines
-				[$output, $err] = pbx3_request_syscmd('tail -n ' . $limit . ' ' . escapeshellarg($fullPath) . ' 2>/dev/null');
+				[$output, $err] = pbx3_request_syscmd('tail -n '.$limit.' '.escapeshellarg($fullPath).' 2>/dev/null');
 			} else {
-				// Older lines: from line (totalLines - offset - limit + 1) to (totalLines - offset)
 				$startLine = max(1, $totalLines - $offset - $limit + 1);
 				$endLine = $totalLines - $offset;
 				if ($startLine <= $endLine && $endLine > 0) {
-					[$output, $err] = pbx3_request_syscmd('sed -n "' . $startLine . ',' . $endLine . 'p" ' . escapeshellarg($fullPath) . ' 2>/dev/null');
+					[$output, $err] = pbx3_request_syscmd('sed -n "'.$startLine.','.$endLine.'p" '.escapeshellarg($fullPath).' 2>/dev/null');
 				} else {
 					$output = '';
 					$err = null;
@@ -185,20 +245,18 @@ class LogController extends Controller
 			}
 
 			if ($err === null && $output !== null) {
-				$lines = array_filter(preg_split('/\r?\n/', $output), function($line) {
+				$lines = array_filter(preg_split('/\r?\n/', $output), function ($line) {
 					return $line !== '';
 				});
 			}
 		}
 
 		$hasMore = ($offset + $limit) < $totalLines;
-
-		// Return symbolic name if mapped, otherwise actual path
-		$displayName = self::getLogDisplayName($logfile);
+		$displayName = self::getLogDisplayName(self::resolveLogPath($logfile));
 
 		return response()->json([
 			'path' => $displayName,
-			'lines' => $lines,
+			'lines' => array_values($lines),
 			'offset' => $offset,
 			'limit' => $limit,
 			'totalLines' => $totalLines,
@@ -208,47 +266,35 @@ class LogController extends Controller
 
 	/**
 	 * Download full log file.
-	 * 
-	 * @param Request $request
-	 * @param string $logfile Log file path (relative to /var/log/) - may be partial if route split on /
+	 *
+	 * @param  Request  $request
+	 * @param  string  $logfile  Log file path - may be partial if route split on /
 	 */
 	public function download(Request $request, string $logfile)
 	{
-		// Validate the log name (symbolic or direct path)
-		if (!self::isValidLogName($logfile)) {
+		if (! self::isValidLogName($logfile)) {
 			return response()->json(['message' => 'Invalid log name'], 422);
 		}
-		
-		// Resolve symbolic name to actual path (e.g., astmessages → asterisk/messages)
-		$actualPath = self::resolveLogPath($logfile);
-		
-		if (!self::isValidLogPath($actualPath)) {
+
+		$fullPath = self::resolveFullPath($logfile);
+		if ($fullPath === null) {
 			return response()->json(['message' => 'Invalid log path'], 422);
 		}
-		
-		// Use actual path for file operations
-		$logfile = $actualPath;
 
-		$fullPath = '/var/log/' . $logfile;
-		[$testOut, $testErr] = pbx3_request_syscmd('test -f ' . escapeshellarg($fullPath) . ' && echo exists || echo missing');
-		if ($testErr !== null || trim($testOut) !== 'exists') {
+		[$testOut, $testErr] = pbx3_request_syscmd('test -f '.escapeshellarg($fullPath).' && echo exists || echo missing');
+		if ($testErr !== null || trim((string) $testOut) !== 'exists') {
 			return response()->json(['message' => 'Log file not found'], 404);
 		}
 
-		// Copy to temp file for download (syshelper can read, but Response::download needs readable file)
-		$tmpName = 'log_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($logfile)) . '_' . time();
-		$tmpPath = '/tmp/' . $tmpName;
-		[$copyOut, $copyErr] = pbx3_request_syscmd('/bin/cp ' . escapeshellarg($fullPath) . ' ' . escapeshellarg($tmpPath) . ' 2>&1');
-		if ($copyErr !== null || !file_exists($tmpPath)) {
+		$tmpName = 'log_'.preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($fullPath)).'_'.time();
+		$tmpPath = '/tmp/'.$tmpName;
+		[$copyOut, $copyErr] = pbx3_request_syscmd('/bin/cp '.escapeshellarg($fullPath).' '.escapeshellarg($tmpPath).' 2>&1');
+		if ($copyErr !== null || ! file_exists($tmpPath)) {
 			return response()->json(['message' => 'Failed to prepare download', 'detail' => $copyErr ?? 'Copy failed'], 502);
 		}
 
-		// Make readable
 		@chmod($tmpPath, 0644);
-
-		// Use symbolic name for download filename if mapped
-		$displayName = self::getLogDisplayName($logfile);
-		$downloadName = strpos($displayName, '/') === false ? basename($logfile) : basename($logfile);
+		$downloadName = basename($fullPath);
 
 		return Response::download($tmpPath, $downloadName)->deleteFileAfterSend(true);
 	}
@@ -299,10 +345,14 @@ class LogController extends Controller
 			'local_days.syslog' => 'sometimes|integer|min:1|max:365',
 			'local_days.asterisk-messages' => 'sometimes|integer|min:1|max:365',
 			'local_days.cdr' => 'sometimes|integer|min:1|max:365',
+			'local_days.sip-text' => 'sometimes|integer|min:1|max:365',
+			'local_days.sip-pcap' => 'sometimes|integer|min:1|max:365',
 			's3_maxage_days' => 'sometimes|array',
 			's3_maxage_days.syslog' => 'sometimes|integer|min:1|max:730',
 			's3_maxage_days.asterisk-messages' => 'sometimes|integer|min:1|max:730',
 			's3_maxage_days.cdr' => 'sometimes|integer|min:1|max:730',
+			's3_maxage_days.sip-text' => 'sometimes|integer|min:1|max:730',
+			's3_maxage_days.sip-pcap' => 'sometimes|integer|min:1|max:730',
 		]);
 		if ($validator->fails()) {
 			return response()->json($validator->errors(), 422);
@@ -325,7 +375,7 @@ class LogController extends Controller
 	public function archiveIndex(Request $request, InstanceLogArchiveService $archive)
 	{
 		$validator = Validator::make($request->all(), [
-			'class' => 'sometimes|string|in:syslog,asterisk-messages,cdr',
+			'class' => 'sometimes|string|in:syslog,asterisk-messages,cdr,sip-text,sip-pcap',
 			'from' => 'sometimes|string',
 			'to' => 'sometimes|string',
 		]);

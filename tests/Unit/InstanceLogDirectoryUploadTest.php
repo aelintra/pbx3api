@@ -21,6 +21,17 @@ test('isRotatedSegment accepts Asterisk messages and CDR rotations', function ()
         ->and($u->isRotatedSegment('Master.csv', 'cdr'))->toBeFalse();
 });
 
+test('isRotatedSegment accepts sip-text and sip-pcap rotations', function () {
+    $u = new InstanceLogDirectoryUpload;
+
+    expect($u->isRotatedSegment('sip-debug.1', 'sip-text'))->toBeTrue()
+        ->and($u->isRotatedSegment('sip-debug.20260811T120000Z', 'sip-text'))->toBeTrue()
+        ->and($u->isRotatedSegment('sip-debug', 'sip-text'))->toBeFalse()
+        ->and($u->isRotatedSegment('siplog_00109_20260810150049.pcap', 'sip-pcap'))->toBeTrue()
+        ->and($u->isRotatedSegment('siplog.pcap0', 'sip-pcap'))->toBeTrue()
+        ->and($u->isRotatedSegment('siplog.pcap', 'sip-pcap'))->toBeFalse();
+});
+
 test('buildObjectKey uses class and stamp path under instances ksuid', function () {
     $dir = sys_get_temp_dir().'/pbx3-logship-'.bin2hex(random_bytes(4));
     mkdir($dir);

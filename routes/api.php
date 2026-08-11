@@ -338,8 +338,8 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('logs/archive', [LogController::class, 'archiveIndex']);
     Route::get('logs/archive/download-url', [LogController::class, 'archiveDownloadUrl']);
     Route::get('logs/cdrs{limit}', [LogController::class, 'showcdr']);
-    Route::get('logs/{logfile}/download', [LogController::class, 'download']);
-    Route::get('logs/{logfile}', [LogController::class, 'show']);
+    Route::get('logs/{logfile}/download', [LogController::class, 'download'])->where('logfile', '.*');
+    Route::get('logs/{logfile}', [LogController::class, 'show'])->where('logfile', '.*');
 
 /**
  * Snapshots
@@ -395,6 +395,9 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('syscommands/timezones', [SysCommandController::class, 'timezones']);
     Route::put('syscommands/timezone', [SysCommandController::class, 'settimezone']);
     Route::put('syscommands/icmp', [SysCommandController::class, 'seticmp']);
+    Route::get('syscommands/sipdebug/status', [SysCommandController::class, 'sipdebugStatus']);
+    Route::post('syscommands/sipdebug/arm', [SysCommandController::class, 'sipdebugArm']);
+    Route::post('syscommands/sipdebug/disarm', [SysCommandController::class, 'sipdebugDisarm']);
 
 /**
  * System Globals write

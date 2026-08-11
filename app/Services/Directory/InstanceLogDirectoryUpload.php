@@ -147,6 +147,10 @@ class InstanceLogDirectoryUpload
             'syslog' => (bool) preg_match('/^syslog\.\d+/', $basename),
             'asterisk-messages' => (bool) preg_match('/^messages\.\d+/', $basename),
             'cdr' => (bool) preg_match('/^Master\.csv\.\d+/', $basename),
+            // logrotate: sip-debug.1 ; disarm rotate: sip-debug.20260811T123456Z
+            'sip-text' => (bool) preg_match('/^sip-debug\.(\d+|20\d{6}T\d{6}Z)/', $basename),
+            'sip-pcap' => (bool) preg_match('/^siplog_.*\.pcap$/', $basename)
+                || (bool) preg_match('/^siplog\.pcap\d+$/', $basename),
             default => false,
         };
     }
