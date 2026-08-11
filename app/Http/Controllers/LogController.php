@@ -59,7 +59,9 @@ class LogController extends Controller
 
 	/**
 	 * Absolute filesystem path for a validated log name/path.
-	 * siplog/{basename} → SIPLOG_DIR/{basename}; else /var/log/{path}.
+	 * siplog/{basename} → SIPLOG_DIR/{basename}
+	 * sip-text/{basename} → /var/log/asterisk/{basename} (rotated sip-debug.*)
+	 * else /var/log/{path}.
 	 */
 	private static function resolveFullPath(string $nameOrPath): ?string
 	{
@@ -76,6 +78,18 @@ class LogController extends Controller
 
 			return self::SIPLOG_DIR.'/'.$base;
 		}
+		if (str_starts_with($actual, 'sip-text/')) {
+			$base = basename(substr($actual, strlen('sip-text/')));
+			if ($base === '' || $base === '.' || $base === '..' || str_contains($base, '/')) {
+				return null;
+			}
+			// Rotated segments only (not the live sip-debug file — use astsipdebug)
+			if (! preg_match('/^sip-debug\.(\d+|20\d{6}T\d{6}Z)(\.gz)?$/', $base)) {
+				return null;
+			}
+
+			return '/var/log/asterisk/'.$base;
+		}
 		if (! self::isValidLogPath($actual)) {
 			return null;
 		}
@@ -84,7 +98,7 @@ class LogController extends Controller
 	}
 
 	/**
-	 * Check if a log name/path is valid (symbolic, LOG_FILES entry, or siplog/* pcap).
+	 * Check if a log name/path is valid (symbolic, LOG_FILES entry, siplog/*, or sip-text/*).
 	 */
 	private static function isValidLogName(string $name): bool
 	{
@@ -94,7 +108,7 @@ class LogController extends Controller
 		if (in_array($name, self::LOG_FILES, true)) {
 			return self::isValidLogPath($name);
 		}
-		if (str_starts_with($name, 'siplog/')) {
+		if (str_starts_with($name, 'siplog/') || str_starts_with($name, 'sip-text/')) {
 			return self::resolveFullPath($name) !== null;
 		}
 
@@ -109,6 +123,42 @@ class LogController extends Controller
 		$symbolic = array_search($logPath, self::LOG_FILE_MAP, true);
 
 		return $symbolic !== false ? $symbolic : $logPath;
+	}
+
+	/**
+	 * @return list<array{path: string, actualPath: string, exists: bool, size: int}>
+	 */
+	private function listSipTextRotations(): array
+	{
+		$logs = [];
+		[$lsOut] = pbx3_request_syscmd('ls -1 /var/log/asterisk/sip-debug.* 2>/dev/null');
+		if ($lsOut === null || trim($lsOut) === '') {
+			return $logs;
+		}
+		foreach (preg_split('/\r?\n/', trim($lsOut)) as $full) {
+			$full = trim($full);
+			if ($full === '') {
+				continue;
+			}
+			$base = basename($full);
+			if (! preg_match('/^sip-debug\.(\d+|20\d{6}T\d{6}Z)(\.gz)?$/', $base)) {
+				continue;
+			}
+			$display = 'sip-text/'.$base;
+			$size = 0;
+			[$sizeOut, $sizeErr] = pbx3_request_syscmd('stat -c %s '.escapeshellarg($full).' 2>/dev/null');
+			if ($sizeErr === null && is_numeric(trim((string) $sizeOut))) {
+				$size = (int) trim((string) $sizeOut);
+			}
+			$logs[] = [
+				'path' => $display,
+				'actualPath' => $display,
+				'exists' => true,
+				'size' => $size,
+			];
+		}
+
+		return $logs;
 	}
 
 	/**
@@ -173,6 +223,9 @@ class LogController extends Controller
 					'exists' => $exists,
 					'size' => $size,
 				];
+			}
+			foreach ($this->listSipTextRotations() as $seg) {
+				$logs[] = $seg;
 			}
 			foreach ($this->listSiplogPcaps() as $pcap) {
 				$logs[] = $pcap;
