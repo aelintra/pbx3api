@@ -823,6 +823,13 @@ class ExtensionController extends Controller
             }
         }
 
+        // Velocity V5 sets z_updater=velocity when auto-blocking. Clearing Active→YES
+        // is an operator override — drop the velocity stamp so SPA honesty resets.
+        $wasVelocity = strcasecmp((string) $extension->getOriginal('z_updater'), 'velocity') === 0;
+        if ($wasVelocity && strtoupper((string) $extension->active) === 'YES') {
+            $extension->z_updater = 'system';
+        }
+
         $newMac = $extension->macaddr;
         $newMac = $newMac !== null && $newMac !== '' ? preg_replace('/[^0-9a-fA-F]/', '', $newMac) : null;
 

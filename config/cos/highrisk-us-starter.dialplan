@@ -1,0 +1,6 @@
+# US CoS high-risk — Asterisk deny patterns (space-separated).
+# Rule: HR_OFFSHORE (offshore + UK personal when dialled from US).
+# Aligned with VELOCITY_PREFIX_SEEDS.md / prefixes-us-starter.txt. See HIGH_RISK_DIAL_BLOCK_POSTURE.md.
+
+# OFFSHORE — same destinations as UK pack, US dial forms (1NPA / 011 / +)
+_1264. _1268. _1246. _1284. _1767. _1473. _1664. _1649. _1876. _+1264. _+1268. _+1246. _+1284. _+1767. _+1473. _+1664. _+1649. _+1876. _011247. _011252. _011232. _011257. _011261. _011265. _011960. _011211. _011225. _011213. _01153. _011870. _011871. _011878. _011881. _011882. _011883. _0113708. _0114470. _+247. _+252. _+232. _+257. _+261. _+265. _+960. _+211. _+225. _+213. _+53. _+870. _+871. _+878. _+881. _+882. _+883. _+3708. _+4470. _070.

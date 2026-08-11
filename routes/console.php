@@ -486,6 +486,83 @@ Artisan::command('pbx3:cdr-fixture
     return 0;
 })->purpose('Seed lab CDR rows into a path-safe master.db copy (velocity V1)');
 
+Artisan::command('pbx3:cdr-velocity-pack', function (
+    \App\Services\Cdr\VelocityCdrPack $pack,
+) {
+    $result = $pack->run();
+    foreach ($result['cases'] as $case) {
+        $mark = $case['ok'] ? 'PASS' : 'FAIL';
+        $this->line(sprintf('[%s] %s — %s', $mark, $case['id'], $case['detail']));
+    }
+    $this->info(sprintf(
+        'CDR velocity pack: passed=%d failed=%d',
+        $result['passed'],
+        $result['failed']
+    ));
+
+    return $result['failed'] > 0 ? 1 : 0;
+})->purpose('Run fixture CDR decks against VelocityCdrQuery (IRSF pack)');
+
+Artisan::command('pbx3:cos-highrisk-seed
+    {--tenant= : Tenant shortuid or pkey}
+    {--all : Seed every tenant}
+    {--locale= : uk|us (default config PBX3_COS_HIGHRISK_LOCALE)}
+    {--force : Refresh dialplan on existing HR_* rules}
+    {--oride : Force-include on all extensions (orideopen/closed YES)}', function (
+    \App\Services\Tenant\SeedCosHighRiskOnTenantCreate $seeder,
+) {
+    $all = (bool) $this->option('all');
+    $tenantOpt = $this->option('tenant');
+    if (! $all && (! is_string($tenantOpt) || trim($tenantOpt) === '')) {
+        $this->error('Pass --tenant=SHORTUID or --all');
+
+        return 1;
+    }
+
+    $locale = $this->option('locale');
+    $locale = is_string($locale) && trim($locale) !== '' ? trim($locale) : null;
+    $force = (bool) $this->option('force');
+    $oride = (bool) $this->option('oride');
+
+    $query = \App\Models\Tenant::query();
+    if (! $all) {
+        $key = trim((string) $tenantOpt);
+        $query->where(function ($q) use ($key) {
+            $q->where('shortuid', $key)->orWhere('pkey', $key);
+        });
+    }
+    $tenants = $query->get();
+    if ($tenants->isEmpty()) {
+        $this->warn('No matching tenants');
+
+        return 1;
+    }
+
+    $total = 0;
+    foreach ($tenants as $tenant) {
+        $rows = $seeder->seed($tenant, $locale, $force, $oride);
+        $label = $tenant->shortuid ?? $tenant->pkey;
+        if ($rows === []) {
+            $this->line("tenant={$label} — no changes (rules exist; use --force / --oride)");
+        } else {
+            foreach ($rows as $row) {
+                $this->info(sprintf(
+                    'tenant=%s pkey=%s oride=%s/%s patterns≈%d',
+                    $label,
+                    $row->pkey,
+                    $row->orideopen,
+                    $row->orideclosed,
+                    count(preg_split('/\s+/', trim((string) $row->dialplan)) ?: [])
+                ));
+                $total++;
+            }
+        }
+    }
+    $this->info("CoS high-risk seed done: rules_written={$total}");
+
+    return 0;
+})->purpose('Seed high-risk CoS deny rules (HR_UK070 / HR_OFFSHORE)');
+
 Artisan::command('pbx3:cdr-import-csv
     {--file= : Asterisk Master.csv (or .gz / accountcode.csv)}
     {--path= : Lab SQLite path (preferred; refuses live master.db)}

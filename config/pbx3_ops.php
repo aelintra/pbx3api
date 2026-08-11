@@ -104,4 +104,16 @@ return [
     /** Unit tests: skip asterisk CLI / genAst (DB act still runs). */
     'velocity_skip_asterisk' => filter_var(env('PBX3_OPS_VELOCITY_SKIP_ASTERISK', false), FILTER_VALIDATE_BOOL),
 
+    /*
+    |--------------------------------------------------------------------------
+    | High-risk CoS seed (prevention)
+    |--------------------------------------------------------------------------
+    |
+    | Spec: HIGH_RISK_DIAL_BLOCK_POSTURE.md
+    | Patterns: config/cos/highrisk-{uk|us}-starter.dialplan
+    |
+    */
+    'cos_highrisk_seed' => filter_var(env('PBX3_COS_HIGHRISK_SEED', false), FILTER_VALIDATE_BOOL),
+    'cos_highrisk_locale' => env('PBX3_COS_HIGHRISK_LOCALE', 'uk'),
+
 ];

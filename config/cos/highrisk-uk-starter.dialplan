@@ -1,0 +1,9 @@
+# UK CoS high-risk — Asterisk deny patterns (space-separated).
+# Rule split: HR_UK070 (this file's PERSONAL section) vs HR_OFFSHORE (OFFSHORE section).
+# Aligned with VELOCITY_PREFIX_SEEDS.md / prefixes-uk-starter.txt. See HIGH_RISK_DIAL_BLOCK_POSTURE.md.
+
+# PERSONAL — UK 070/076 (not ordinary mobiles 071-075/077-079)
+_070. _+4470. _076. _+4476.
+
+# OFFSHORE — same destinations as US pack, UK dial forms (00 / +)
+_001264. _001268. _001246. _001284. _001767. _001473. _001664. _001649. _001876. _+1264. _+1268. _+1246. _+1284. _+1767. _+1473. _+1664. _+1649. _+1876. _00247. _00252. _00232. _00257. _00261. _00265. _00960. _00211. _00225. _00213. _002135. _002136. _002137. _0021396. _0053. _003708. _00870. _008708. _00871. _00878. _00881. _00882. _00883. _+247. _+252. _+232. _+257. _+261. _+265. _+960. _+211. _+225. _+213. _+2135. _+2136. _+2137. _+21396. _+53. _+3708. _+870. _+871. _+878. _+881. _+882. _+883.
