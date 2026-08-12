@@ -115,6 +115,19 @@ return [
     /** Filled at runtime by VelocityPolicyResolver when fleet policy applies. */
     'velocity_fleet_policy' => null,
 
+    /**
+     * WP1 off-hours detector (high-risk prefixes inside policy windows).
+     * Fleet policy detectors.off_hours / off_hours.* override when mode=fleet.
+     */
+    'velocity_off_hours_enabled' => filter_var(env('PBX3_OPS_VELOCITY_OFF_HOURS', false), FILTER_VALIDATE_BOOL),
+    'velocity_off_hours_tz' => env('PBX3_OPS_VELOCITY_OFF_HOURS_TZ', 'UTC'),
+    'velocity_off_hours_threshold' => (int) env('PBX3_OPS_VELOCITY_OFF_HOURS_N', 20),
+    'velocity_off_hours_window_minutes' => (int) env('PBX3_OPS_VELOCITY_OFF_HOURS_T', 60),
+    /** @var list<array{dow:list<int>, start:string, end:string}> */
+    'velocity_off_hours_windows' => [
+        ['dow' => [6, 0], 'start' => '18:00', 'end' => '06:00'],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | High-risk CoS seed (prevention)

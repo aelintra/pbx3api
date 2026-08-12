@@ -46,10 +46,11 @@ Artisan::command('pbx3:ops-egress-qualify', function (\App\Services\Ops\EgressQu
     return count($result['errors']) > 0 && $result['emitted'] === 0 ? 1 : 0;
 })->purpose('Poll Egress PJSIP qualify; notify Gatekeeper on Unavail/cleared');
 
-Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityIrsfScanner $scanner) {
-    $result = $scanner->run();
+Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityOrchestrator $orchestrator) {
+    $result = $orchestrator->run();
+    $off = $result['detectors']['off_hours'] ?? null;
     $this->info(sprintf(
-        'scanned=%s candidates=%d over=%d emitted=%d cleared=%d acted=%d skipped_hyst=%d policy=%s errors=%d',
+        'scanned=%s candidates=%d over=%d emitted=%d cleared=%d acted=%d skipped_hyst=%d policy=%s off_hours=%s errors=%d',
         $result['scanned'] ? 'yes' : 'no',
         $result['candidates'],
         $result['over_threshold'],
@@ -58,6 +59,7 @@ Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityIrsfSc
         $result['acted'],
         $result['skipped_hysteresis'],
         $result['policy_source'] ?? 'env',
+        $off === null ? 'off' : 'on',
         count($result['errors'])
     ));
     foreach ($result['errors'] as $err) {
@@ -65,7 +67,7 @@ Artisan::command('pbx3:ops-velocity', function (\App\Services\Ops\VelocityIrsfSc
     }
 
     return count($result['errors']) > 0 && $result['emitted'] === 0 && $result['cleared'] === 0 ? 1 : 0;
-})->purpose('Scan CDR for IRSF destination surge; notify Gatekeeper (velocity V2/V5)');
+})->purpose('Scan CDR for velocity detectors (IRSF + optional off-hours); notify Gatekeeper');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

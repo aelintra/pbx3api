@@ -66,7 +66,27 @@ final class VelocityPolicyResolver
             config(['pbx3_ops.velocity_allowlist' => implode(',', array_map('strval', $allow))]);
         }
 
-        // Stash full policy for WP1 off-hours (and future detectors).
+        $det = is_array($policy['detectors'] ?? null) ? $policy['detectors'] : [];
+        if (array_key_exists('off_hours', $det)) {
+            config(['pbx3_ops.velocity_off_hours_enabled' => filter_var($det['off_hours'], FILTER_VALIDATE_BOOL)]);
+        }
+
+        $oh = is_array($policy['off_hours'] ?? null) ? $policy['off_hours'] : [];
+        if ($oh !== []) {
+            if (isset($oh['tz']) && is_string($oh['tz']) && trim($oh['tz']) !== '') {
+                config(['pbx3_ops.velocity_off_hours_tz' => trim($oh['tz'])]);
+            }
+            if (isset($oh['n'])) {
+                config(['pbx3_ops.velocity_off_hours_threshold' => max(1, (int) $oh['n'])]);
+            }
+            if (isset($oh['t_minutes'])) {
+                config(['pbx3_ops.velocity_off_hours_window_minutes' => max(1, (int) $oh['t_minutes'])]);
+            }
+            if (isset($oh['windows']) && is_array($oh['windows'])) {
+                config(['pbx3_ops.velocity_off_hours_windows' => $oh['windows']]);
+            }
+        }
+
         config(['pbx3_ops.velocity_fleet_policy' => $policy]);
 
         return [
