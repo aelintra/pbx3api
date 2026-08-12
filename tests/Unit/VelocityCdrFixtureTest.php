@@ -84,6 +84,6 @@ test('VelocityCdrQuery isInternalDst heuristics', function () {
     $q = new VelocityCdrQuery(new CdrIndexService);
     expect($q->isInternalDst('1002'))->toBeTrue()
         ->and($q->isInternalDst('vqcwd4'))->toBeTrue()
-        ->and($q->isInternalDst('009001234567'))->toBeFalse()
+        ->and($q->isInternalDst('09001234567'))->toBeFalse()
         ->and($q->isInternalDst('+441924918076'))->toBeFalse();
 });

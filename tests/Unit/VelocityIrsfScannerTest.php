@@ -10,6 +10,7 @@ use App\Services\Ops\GatekeeperOpsClient;
 use App\Services\Ops\VelocityIrsfScanner;
 use App\Services\Ops\VelocityPhoneActuator;
 use App\Services\Ops\VelocityPhoneAttributor;
+use App\Services\Ops\VelocityPolicyResolver;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +18,18 @@ use Illuminate\Support\Facades\Schema;
 function pbx3VelocityActuator(): VelocityPhoneActuator
 {
     return new VelocityPhoneActuator(new VelocityPhoneAttributor);
+}
+
+function pbx3VelocityScanner(): VelocityIrsfScanner
+{
+    config(['pbx3_ops.velocity_policy_mode' => 'local']);
+
+    return new VelocityIrsfScanner(
+        new GatekeeperOpsClient,
+        new VelocityCdrQuery(new CdrIndexService),
+        pbx3VelocityActuator(),
+        new VelocityPolicyResolver
+    );
 }
 
 function pbx3VelocityEnsureIpphoneSchema(): void
@@ -78,11 +91,7 @@ test('VelocityIrsfScanner emits once then hysteresis skips', function () {
         'control.example/*' => Http::response(['accepted' => true, 'notified' => true], 200),
     ]);
 
-    $scanner = new VelocityIrsfScanner(
-        new GatekeeperOpsClient,
-        new VelocityCdrQuery(new CdrIndexService),
-        pbx3VelocityActuator()
-    );
+    $scanner = pbx3VelocityScanner();
 
     $first = $scanner->run();
     expect($first['emitted'])->toBe(1)
@@ -104,7 +113,7 @@ test('VelocityIrsfScanner emits once then hysteresis skips', function () {
             && ($data['extension'] ?? null) === '1001'
             && (int) ($data['count'] ?? 0) === 12
             && ($data['auto_block'] ?? null) === false
-            && str_starts_with((string) (($data['masked_prefixes'][0] ?? '')), '00900');
+            && str_starts_with((string) (($data['masked_prefixes'][0] ?? '')), '0900');
     });
 
     $second = $scanner->run();
@@ -117,23 +126,15 @@ test('VelocityIrsfScanner emits once then hysteresis skips', function () {
 });
 
 test('VelocityIrsfScanner maskDestination truncates digits', function () {
-    $scanner = new VelocityIrsfScanner(
-        new GatekeeperOpsClient,
-        new VelocityCdrQuery(new CdrIndexService),
-        pbx3VelocityActuator()
-    );
-    expect($scanner->maskDestination('009001234567'))->toBe('00900***')
+    $scanner = pbx3VelocityScanner();
+    expect($scanner->maskDestination('09001234567'))->toBe('09001***')
         ->and($scanner->maskDestination('+44192'))->toBe('+4419***');
 });
 
 test('VelocityIrsfScanner no-ops when disabled', function () {
     config(['pbx3_ops.velocity_enabled' => false]);
     Http::fake();
-    $scanner = new VelocityIrsfScanner(
-        new GatekeeperOpsClient,
-        new VelocityCdrQuery(new CdrIndexService),
-        pbx3VelocityActuator()
-    );
+    $scanner = pbx3VelocityScanner();
     expect($scanner->run()['scanned'])->toBeFalse();
     Http::assertNothingSent();
 });

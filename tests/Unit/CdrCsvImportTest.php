@@ -12,8 +12,8 @@ function pbx3GoldenCsvSample(): string
 {
     return <<<'CSV'
 "dhbm8x","+447908971810","Q1000","dhbm8x",""""" <+447908971810>","Local/Q1000@dhbm8x-00000009;2","PJSIP/fkdd5d-0000008a","Dial","PJSIP/fkdd5d/sip:fkdd5d@dhbm8x.pbx3.com","2026-07-24 11:44:19",,"2026-07-24 11:44:23",4,0,"NO ANSWER","DOCUMENTATION","1784893459.324",""
-"dhbm8x","1001","009001234567","from-internal","""1001"" <1001>","PJSIP/aaaa1111-00000001","","Dial","PJSIP/Egress","2026-07-24 17:50:01","2026-07-24 17:50:02","2026-07-24 17:50:10",9,8,"ANSWERED","DOCUMENTATION","1784910000.1",""
-"dhbm8x","1001","009001234568","from-internal","""1001"" <1001>","PJSIP/aaaa1111-00000002","","Dial","PJSIP/Egress","2026-07-24 17:50:15","2026-07-24 17:50:16","2026-07-24 17:50:20",5,4,"ANSWERED","DOCUMENTATION","1784910000.2",""
+"dhbm8x","1001","09001234567","from-internal","""1001"" <1001>","PJSIP/aaaa1111-00000001","","Dial","PJSIP/Egress","2026-07-24 17:50:01","2026-07-24 17:50:02","2026-07-24 17:50:10",9,8,"ANSWERED","DOCUMENTATION","1784910000.1",""
+"dhbm8x","1001","09001234568","from-internal","""1001"" <1001>","PJSIP/aaaa1111-00000002","","Dial","PJSIP/Egress","2026-07-24 17:50:15","2026-07-24 17:50:16","2026-07-24 17:50:20",5,4,"ANSWERED","DOCUMENTATION","1784910000.2",""
 CSV;
 }
 
@@ -59,7 +59,7 @@ test('CdrCsvImportService imports CSV into lab sqlite and velocity can query', f
 
     // Make premium rows "recent" for default window by rewriting calldates
     $pdo = new PDO('sqlite:'.$db);
-    $pdo->exec("UPDATE cdr SET calldate = datetime('now') WHERE dst LIKE '00900%'");
+    $pdo->exec("UPDATE cdr SET calldate = datetime('now') WHERE dst LIKE '0900%'");
 
     $probe = (new VelocityCdrQuery(new CdrIndexService))->candidates(5);
     expect($probe['total'])->toBe(2)

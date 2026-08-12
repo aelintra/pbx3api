@@ -16,7 +16,7 @@ final class CdrFixtureService
     public const LIVE_DEFAULT_PATH = '/var/log/asterisk/master.db';
 
     /** Lab high-cost prefix used by the IRSF deck (matches config default). */
-    public const LAB_PREMIUM_PREFIX = '00900';
+    public const LAB_PREMIUM_PREFIX = '0900';
 
     public function __construct(
         private readonly CdrIndexService $index,

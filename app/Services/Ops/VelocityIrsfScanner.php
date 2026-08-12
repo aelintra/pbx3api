@@ -17,6 +17,7 @@ final class VelocityIrsfScanner
         private readonly GatekeeperOpsClient $client,
         private readonly VelocityCdrQuery $query,
         private readonly VelocityPhoneActuator $actuator,
+        private readonly VelocityPolicyResolver $policyResolver,
     ) {
     }
 
@@ -29,6 +30,7 @@ final class VelocityIrsfScanner
      *   cleared:int,
      *   skipped_hysteresis:int,
      *   acted:int,
+     *   policy_source:string,
      *   errors:list<string>
      * }
      */
@@ -42,8 +44,16 @@ final class VelocityIrsfScanner
             'cleared' => 0,
             'skipped_hysteresis' => 0,
             'acted' => 0,
+            'policy_source' => 'env',
             'errors' => [],
         ];
+
+        $policyApply = $this->policyResolver->apply();
+        $out['policy_source'] = $policyApply['source'];
+        if ($policyApply['error'] !== '' && $policyApply['source'] === 'env') {
+            // Non-fatal: continue on env defaults (solo / first boot).
+            Log::debug('velocity policy unresolved; using env', ['error' => $policyApply['error']]);
+        }
 
         if (! filter_var(config('pbx3_ops.velocity_enabled', false), FILTER_VALIDATE_BOOL)) {
             return $out;
@@ -338,7 +348,7 @@ final class VelocityIrsfScanner
         if ($dst === '') {
             return '';
         }
-        // Keep up to 5 leading chars (covers lab 00900 and +CC), mask the rest.
+        // Keep up to 5 leading chars (covers lab 0900 and +CC), mask the rest.
         $keep = min(5, strlen($dst));
         $prefix = substr($dst, 0, $keep);
 

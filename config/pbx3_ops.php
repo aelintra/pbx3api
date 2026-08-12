@@ -69,7 +69,7 @@ return [
     | Fleet ops — toll fraud / velocity (V1–V2; V5 auto-block later)
     |--------------------------------------------------------------------------
     |
-    | Query helper reads Phase 6 master.db. Lab fixture uses prefix 00900…
+    | Query helper reads Phase 6 master.db. Lab fixture uses prefix 0900…
     | Scanner: pbx3:ops-velocity → Gatekeeper velocity_irsf.
     | Spec: FLEET_TOLL_FRAUD_VELOCITY_REQUIREMENTS.md
     |
@@ -87,7 +87,7 @@ return [
     'velocity_quiet_minutes' => (int) env('PBX3_OPS_VELOCITY_Q', 30),
 
     /** Comma-separated high-cost destination prefixes (lab default matches fixture). */
-    'velocity_prefixes' => env('PBX3_OPS_VELOCITY_PREFIXES', '00900'),
+    'velocity_prefixes' => env('PBX3_OPS_VELOCITY_PREFIXES', '0900,+44900,0044900'),
 
     'velocity_state_path' => env('PBX3_OPS_VELOCITY_STATE', storage_path('app/ops-velocity.json')),
 
@@ -103,6 +103,17 @@ return [
 
     /** Unit tests: skip asterisk CLI / genAst (DB act still runs). */
     'velocity_skip_asterisk' => filter_var(env('PBX3_OPS_VELOCITY_SKIP_ASTERISK', false), FILTER_VALIDATE_BOOL),
+
+    /**
+     * V3 policy source: fleet (S3 catalog/velocity-policy.json → cache → env) or local (env only).
+     * Spec: FLEET_TOLL_FRAUD_VELOCITY_IMPLEMENTATION_PLAN.md L1.
+     */
+    'velocity_policy_mode' => env('PBX3_OPS_VELOCITY_POLICY', 'fleet'),
+
+    'velocity_policy_cache_path' => env('PBX3_OPS_VELOCITY_POLICY_CACHE', storage_path('app/ops-velocity-policy.json')),
+
+    /** Filled at runtime by VelocityPolicyResolver when fleet policy applies. */
+    'velocity_fleet_policy' => null,
 
     /*
     |--------------------------------------------------------------------------
