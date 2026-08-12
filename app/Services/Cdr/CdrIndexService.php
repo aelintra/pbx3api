@@ -257,6 +257,86 @@ class CdrIndexService
     }
 
     /**
+     * Where outbound calls went today (Home dest pie).
+     *
+     * Buckets: internal / high_cost / international / domestic.
+     *
+     * @param  array{
+     *   accountcode?: string|null,
+     *   accountcodes?: list<string>|null
+     * }  $filters
+     * @return array{
+     *   available: bool,
+     *   timezone: string,
+     *   home_country_code: string,
+     *   internal: int,
+     *   high_cost: int,
+     *   international: int,
+     *   domestic: int,
+     *   empty: int,
+     *   total: int
+     * }
+     */
+    public function destWhereToday(array $filters = []): array
+    {
+        $timezone = SiteTimezone::id();
+        $home = preg_replace('/\D+/', '', (string) config('pbx3_cdr.home_country_code', '44')) ?: '44';
+        $empty = [
+            'available' => false,
+            'timezone' => $timezone,
+            'home_country_code' => $home,
+            'internal' => 0,
+            'high_cost' => 0,
+            'international' => 0,
+            'domestic' => 0,
+            'empty' => 0,
+            'total' => 0,
+        ];
+
+        if (! $this->isAvailable()) {
+            return $empty;
+        }
+
+        $aggFilters = array_merge($filters, [
+            'from' => SiteTimezone::todayStartUtc(),
+        ]);
+
+        $pdo = $this->openReadOnly();
+        [$whereSql, $params] = $this->buildWhere($aggFilters);
+
+        $sql = 'SELECT dst FROM cdr'.$whereSql;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+        $classifier = new CdrDestClassifier;
+        $out = [
+            'available' => true,
+            'timezone' => $timezone,
+            'home_country_code' => $home,
+            'internal' => 0,
+            'high_cost' => 0,
+            'international' => 0,
+            'domestic' => 0,
+            'empty' => 0,
+            'total' => 0,
+        ];
+
+        foreach ($rows as $dst) {
+            $bucket = $classifier->classify((string) $dst);
+            if (! isset($out[$bucket])) {
+                $bucket = 'domestic';
+            }
+            $out[$bucket]++;
+            if ($bucket !== 'empty') {
+                $out['total']++;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Create helpful indexes (safe while Asterisk holds the writer; run from prune).
      */
     public function ensureIndexes(): void

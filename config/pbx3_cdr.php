@@ -28,4 +28,10 @@ return [
 
     'timezone_file' => env('PBX3_CDR_TIMEZONE_FILE', '/etc/timezone'),
 
+    /**
+     * Home country calling code (no +) for dest-class pie.
+     * UK=44, US/NANP=1. Intl dials to other CCs count as international.
+     */
+    'home_country_code' => env('PBX3_CDR_HOME_CC', '44'),
+
 ];

@@ -76,6 +76,15 @@ class HomePulseService
                         'failed' => 0,
                         'other' => 0,
                     ],
+                    'dest_where_today' => [
+                        'internal' => 0,
+                        'high_cost' => 0,
+                        'international' => 0,
+                        'domestic' => 0,
+                        'empty' => 0,
+                        'total' => 0,
+                        'home_country_code' => (string) config('pbx3_cdr.home_country_code', '44'),
+                    ],
                 ];
             }
         }
@@ -392,6 +401,7 @@ class HomePulseService
         return $this->rememberOrCompute('home_pulse:cdr:'.$scopeKey, self::TTL_CDR, function () use ($filters) {
             $volume = $this->cdr->volumeLast24h($filters);
             $outcome = $this->cdr->outcomeToday($filters);
+            $dest = $this->cdr->destWhereToday($filters);
             $available = ($volume['available'] ?? false) && ($outcome['available'] ?? false);
             $timezone = (string) ($volume['timezone'] ?? $outcome['timezone'] ?? SiteTimezone::id());
 
@@ -409,6 +419,15 @@ class HomePulseService
                     'busy' => (int) ($outcome['busy'] ?? 0),
                     'failed' => (int) ($outcome['failed'] ?? 0),
                     'other' => (int) ($outcome['other'] ?? 0),
+                ],
+                'dest_where_today' => [
+                    'internal' => (int) ($dest['internal'] ?? 0),
+                    'high_cost' => (int) ($dest['high_cost'] ?? 0),
+                    'international' => (int) ($dest['international'] ?? 0),
+                    'domestic' => (int) ($dest['domestic'] ?? 0),
+                    'empty' => (int) ($dest['empty'] ?? 0),
+                    'total' => (int) ($dest['total'] ?? 0),
+                    'home_country_code' => (string) ($dest['home_country_code'] ?? config('pbx3_cdr.home_country_code', '44')),
                 ],
             ];
         });
