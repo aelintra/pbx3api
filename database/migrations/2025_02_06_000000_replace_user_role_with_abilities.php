@@ -12,9 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->json('abilities')->nullable()->after('password');
-        });
+        if (! Schema::hasColumn('users', 'abilities')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->json('abilities')->nullable()->after('password');
+            });
+        }
     }
 
     public function down(): void

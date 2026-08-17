@@ -12,10 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->json('allowed_clusters')->nullable()->after('abilities');
-            $table->boolean('portable')->default(true)->after('allowed_clusters');
-        });
+        if (! Schema::hasColumn('users', 'allowed_clusters')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->json('allowed_clusters')->nullable()->after('abilities');
+            });
+        }
+        if (! Schema::hasColumn('users', 'portable')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->boolean('portable')->default(true)->after('allowed_clusters');
+            });
+        }
 
         // Existing admin users are instance-local (not portable with a tenant).
         try {

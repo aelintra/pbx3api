@@ -143,6 +143,14 @@ set_env_value() {
     fi
 }
 
+run_as_www_data() {
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u www-data -- "$@"
+    else
+        su -s /bin/sh www-data -c "$*"
+    fi
+}
+
 bootstrap_laravel_app() {
     if [ "${SKIP_ARTISAN}" = "1" ]; then
         echo "Skipping Laravel bootstrap (SKIP_ARTISAN=1)"
@@ -182,6 +190,14 @@ bootstrap_laravel_app() {
     chown -R www-data:www-data "${REPO_ROOT}/storage" "${REPO_ROOT}/bootstrap/cache"
     find "${REPO_ROOT}/storage" "${REPO_ROOT}/bootstrap/cache" -type d -exec chmod 775 {} \;
     find "${REPO_ROOT}/storage" "${REPO_ROOT}/bootstrap/cache" -type f -exec chmod 664 {} \;
+    # Ensure log file exists as www-data — root artisan creates root-owned laravel.log and login 500s.
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u www-data -- touch "${REPO_ROOT}/storage/logs/laravel.log"
+    else
+        su -s /bin/sh www-data -c "touch '${REPO_ROOT}/storage/logs/laravel.log'"
+    fi
+    chown www-data:www-data "${REPO_ROOT}/storage/logs/laravel.log"
+    chmod 664 "${REPO_ROOT}/storage/logs/laravel.log"
     chown root:www-data "${REPO_ROOT}/.env"
     chmod 664 "${REPO_ROOT}/.env"
 
@@ -209,27 +225,29 @@ bootstrap_laravel_app() {
         return
     fi
 
-    echo "Running Laravel setup commands"
+    echo "Running Laravel setup commands (as www-data)"
     cd "${REPO_ROOT}"
-    php artisan key:generate --force || true
-
+    # Never run artisan as root — it creates root-owned storage/logs/laravel.log and SPA login 500s.
     if command -v runuser >/dev/null 2>&1; then
+        runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan key:generate --force || true"
+        runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan migrate --force --no-interaction"
         runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan config:clear || true"
         runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan cache:clear || true"
         runuser -u www-data -- sh -c "cd '${REPO_ROOT}' && php artisan route:clear || true"
     else
+        su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan key:generate --force || true"
+        su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan migrate --force --no-interaction"
         su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan config:clear || true"
         su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan cache:clear || true"
         su -s /bin/sh www-data -c "cd '${REPO_ROOT}' && php artisan route:clear || true"
     fi
-}
 
-run_as_www_data() {
-    if command -v runuser >/dev/null 2>&1; then
-        runuser -u www-data -- "$@"
-    else
-        su -s /bin/sh www-data -c "$*"
-    fi
+    # Re-assert log ownership after artisan (belt and braces).
+    chown www-data:www-data "${REPO_ROOT}/storage/logs/laravel.log" 2>/dev/null || true
+    run_as_www_data test -w "${REPO_ROOT}/storage/logs/laravel.log" || {
+        echo "www-data cannot write ${REPO_ROOT}/storage/logs/laravel.log — SPA login will 500" >&2
+        exit 1
+    }
 }
 
 validate_install_health() {
@@ -267,6 +285,23 @@ validate_install_health() {
         echo "Health check failed: www-data cannot write ${pbx3_sqlite}" >&2
         exit 1
     }
+
+    log_file="${app_root}/storage/logs/laravel.log"
+    run_as_www_data test -w "${log_file}" || {
+        echo "Health check failed: www-data cannot write ${log_file}" >&2
+        echo "SPA login Log::info will 500. Fix: chown www-data:www-data ${log_file}" >&2
+        exit 1
+    }
+
+    # API schema on shared PBX sqlite (2FA / privileges) — migrations should have run in bootstrap.
+    if command -v sqlite3 >/dev/null 2>&1; then
+        for col in abilities portable two_factor_secret; do
+            if ! sqlite3 "${pbx3_sqlite}" "PRAGMA table_info(users);" | awk -F'|' '{print $2}' | grep -qx "${col}"; then
+                echo "Health check failed: users.${col} missing — re-run installer migrate step" >&2
+                exit 1
+            fi
+        done
+    fi
 
     if ! command -v nginx >/dev/null 2>&1; then
         echo "Health check failed: nginx not found in PATH" >&2
