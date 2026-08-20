@@ -342,7 +342,7 @@ class Ami
     }
 
     /**
-     * PJSIPShowEndpoint for live IP/latency parsing — SARK/sail65 compatible read pattern.
+     * PJSIPShowEndpoint for live IP/latency parsing — legacy SARK-compatible read pattern.
      *
      * Accumulates lines until the first line containing "ListItems" (same termination as legacy
      * AsteriskManager::_sendCommand(..., 'ListItems')), then drains the rest of this action until
