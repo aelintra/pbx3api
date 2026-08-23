@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\HolidayTimer;
 use App\Support\ScheduleModes;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -35,6 +36,16 @@ class HolidayTimerController extends Controller
     public function index(HolidayTimer $holidaytimer)
     {
         return $this->applyClusterScope(HolidayTimer::query())->orderBy('stime')->orderBy('id')->get();
+    }
+
+    /** Export holiday timers list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $holidaytimers = $this->applyClusterScope(HolidayTimer::query())->orderBy('stime')->orderBy('id')->get();
+        attach_tenant_pkey_to_collection($holidaytimers);
+        return Pdf::loadView('exports.holidaytimers-pdf', ['holidaytimers' => $holidaytimers])
+            ->setPaper('a4', 'landscape')
+            ->download('holidaytimers.pdf');
     }
 
     public function show(HolidayTimer $holidaytimer)

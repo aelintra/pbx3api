@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\Greeting;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -59,6 +60,16 @@ class GreetingRecordController extends Controller
     public function index(Greeting $greeting)
     {
         return $this->applyClusterScope(Greeting::query())->orderBy('pkey', 'asc')->get();
+    }
+
+    /** Export greetings list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $greetings = $this->applyClusterScope(Greeting::query())->orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($greetings);
+        return Pdf::loadView('exports.greetings-pdf', ['greetings' => $greetings])
+            ->setPaper('a4', 'landscape')
+            ->download('greetings.pdf');
     }
 
     public function show(Greeting $greetingrecord)

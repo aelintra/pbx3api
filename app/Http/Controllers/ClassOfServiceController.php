@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\ClassOfService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -12,7 +13,8 @@ class ClassOfServiceController extends Controller
 {
     use EnforcesClusterScope;
 
-    // cos table (sqlite_create_tenant.sql). pkey = identity-only (not updateable). orideopen/orideclosed not updateable.
+    // cos table (sqlite_create_tenant.sql). pkey = identity-only (not updateable).
+    // orideopen/orideclosed: GenAst forces this rule onto ALL extensions (retrospective apply).
     private $updateableColumns = [
         'active' => 'in:YES,NO',
         'cluster' => 'exists:cluster,pkey',
@@ -21,6 +23,8 @@ class ClassOfServiceController extends Controller
         'dialplan' => 'required|string',
         'defaultopen' => 'in:YES,NO',
         'defaultclosed' => 'in:YES,NO',
+        'orideopen' => 'in:YES,NO',
+        'orideclosed' => 'in:YES,NO',
     ];
 
     /** Return column names that are updateable (for schema metadata). */
@@ -31,7 +35,17 @@ class ClassOfServiceController extends Controller
 
     public function index(ClassOfService $classofservice)
     {
-        return $this->applyClusterScope(ClassOfService::query())->orderBy('pkey', 'asc')->get();
+        return $this->applyClusterScope(ClassOfService::query())->orderBy('cname', 'asc')->orderBy('pkey', 'asc')->get();
+    }
+
+    /** Export Class of Service rules as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $cosrules = $this->applyClusterScope(ClassOfService::query())->orderBy('cname', 'asc')->orderBy('pkey', 'asc')->get();
+        attach_tenant_pkey_to_collection($cosrules);
+        return Pdf::loadView('exports.cosrules-pdf', ['cosrules' => $cosrules])
+            ->setPaper('a4', 'landscape')
+            ->download('cosrules.pdf');
     }
 
     public function show(ClassOfService $classofservice)
@@ -48,8 +62,9 @@ class ClassOfServiceController extends Controller
         }
         $this->assertClusterAllowed($clusterShortuid);
 
+        // SPA create omits pkey → pkey = shortuid. Seeds/API may pass a stable name (e.g. HR_UK070).
         $rules = array_merge($this->updateableColumns, [
-            'pkey' => 'required|alpha_dash',
+            'pkey' => 'nullable|alpha_dash',
             'cluster' => 'required|exists:cluster,pkey',
         ]);
 
@@ -58,7 +73,7 @@ class ClassOfServiceController extends Controller
 
         $validator->after(function ($validator) use ($request, $clusterShortuid) {
             $pkey = $request->input('pkey');
-            if ($pkey !== null && ClassOfService::where('pkey', $pkey)->where('cluster', $clusterShortuid)->exists()) {
+            if ($pkey !== null && $pkey !== '' && ClassOfService::where('pkey', $pkey)->where('cluster', $clusterShortuid)->exists()) {
                 $validator->errors()->add('pkey', 'That CoS key is already in use in this tenant.');
             }
         });
@@ -67,10 +82,17 @@ class ClassOfServiceController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        move_request_to_model($request, $classofservice, array_merge($this->updateableColumns, ['pkey' => 'required|alpha_dash']));
+        move_request_to_model($request, $classofservice, $this->updateableColumns);
         $classofservice->cluster = $clusterShortuid;
         $classofservice->id = generate_ksuid();
         $classofservice->shortuid = generate_shortuid();
+
+        $requestedPkey = $request->input('pkey');
+        if ($requestedPkey !== null && trim((string) $requestedPkey) !== '') {
+            $classofservice->pkey = trim((string) $requestedPkey);
+        } else {
+            $classofservice->pkey = $classofservice->shortuid;
+        }
 
         try {
             $classofservice->save();

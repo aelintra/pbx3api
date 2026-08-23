@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\DayTimer;
 use App\Support\ScheduleDayOfWeek;
 use App\Support\ScheduleModes;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
@@ -39,6 +40,16 @@ class DayTimerController extends Controller
     public function index(DayTimer $daytimer)
     {
         return $this->applyClusterScope(DayTimer::query())->orderBy('cluster')->orderBy('dayofweek')->orderBy('id')->get();
+    }
+
+    /** Export day timers list as PDF. Same dataset as index with tenant_pkey resolved. */
+    public function exportPdf()
+    {
+        $daytimers = $this->applyClusterScope(DayTimer::query())->orderBy('cluster')->orderBy('dayofweek')->orderBy('id')->get();
+        attach_tenant_pkey_to_collection($daytimers);
+        return Pdf::loadView('exports.daytimers-pdf', ['daytimers' => $daytimers])
+            ->setPaper('a4', 'landscape')
+            ->download('daytimers.pdf');
     }
 
     /**

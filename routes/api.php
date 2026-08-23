@@ -176,18 +176,21 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::delete('inboundroutes/{inboundroute}', [InboundRouteController::class, 'delete']);
 
     Route::get('daytimers', [DayTimerController::class, 'index']);
+    Route::get('daytimers/export/pdf', [DayTimerController::class, 'exportPdf']);
     Route::get('daytimers/{daytimer}', [DayTimerController::class, 'show']);
     Route::post('daytimers', [DayTimerController::class, 'save']);
     Route::put('daytimers/{daytimer}', [DayTimerController::class, 'update']);
     Route::delete('daytimers/{daytimer}', [DayTimerController::class, 'delete']);
 
     Route::get('holidaytimers', [HolidayTimerController::class, 'index']);
+    Route::get('holidaytimers/export/pdf', [HolidayTimerController::class, 'exportPdf']);
     Route::get('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'show']);
     Route::post('holidaytimers', [HolidayTimerController::class, 'save']);
     Route::put('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'update']);
     Route::delete('holidaytimers/{holidaytimer}', [HolidayTimerController::class, 'delete']);
 
     Route::get('routeprofiles', [RouteProfileController::class, 'index']);
+    Route::get('routeprofiles/export/pdf', [RouteProfileController::class, 'exportPdf']);
     Route::get('routeprofiles/{routeprofile}', [RouteProfileController::class, 'show']);
     Route::post('routeprofiles', [RouteProfileController::class, 'save']);
     Route::put('routeprofiles/{routeprofile}', [RouteProfileController::class, 'update']);
@@ -206,6 +209,7 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::delete('cosopens/{cosopen}', [CosOpenController::class, 'delete']);
 
     Route::get('cosrules', [ClassOfServiceController::class, 'index']);
+    Route::get('cosrules/export/pdf', [ClassOfServiceController::class, 'exportPdf']);
     Route::get('cosrules/{classofservice}', [ClassOfServiceController::class, 'show']);
     Route::post('cosrules', [ClassOfServiceController::class, 'save']);
     Route::put('cosrules/{classofservice}', [ClassOfServiceController::class, 'update']);
@@ -217,6 +221,7 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::delete('greetings/{greeting}', [GreetingController::class, 'delete']);
 
     Route::get('greetingrecords', [GreetingRecordController::class, 'index']);
+    Route::get('greetingrecords/export/pdf', [GreetingRecordController::class, 'exportPdf']);
     Route::get('greetingrecords/{greetingrecord}', [GreetingRecordController::class, 'show']);
     Route::get('greetingrecords/{greetingrecord}/download', [GreetingRecordController::class, 'download']);
     Route::post('greetingrecords', [GreetingRecordController::class, 'save']);

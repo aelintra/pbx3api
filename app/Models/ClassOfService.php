@@ -23,8 +23,10 @@ class ClassOfService extends Model
 
     /**
      * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql cos.
-     * pkey set on create only (identity-only). orideopen/orideclosed are system-only.
+     * pkey set on create only (identity-only). SPA create defaults pkey = shortuid;
+     * seeds may set a stable name (HR_UK070, HR_OFFSHORE).
      * defaultopen/defaultclosed seed new extensions via ExtensionController::create_default_cos_instances.
+     * orideopen/orideclosed: GenAst includes this rule for ALL extensions (no junction backfill).
      */
     protected $fillable = [
         'pkey',
@@ -35,6 +37,8 @@ class ClassOfService extends Model
         'dialplan',
         'defaultopen',
         'defaultclosed',
+        'orideopen',
+        'orideclosed',
     ];
 
     protected $guarded = ['z_created', 'z_updated', 'z_updater'];

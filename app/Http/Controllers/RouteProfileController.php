@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\EnforcesClusterScope;
 use App\Models\RouteProfile;
 use App\Models\RouteProfileLine;
 use App\Support\ScheduleModes;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
@@ -37,6 +38,23 @@ class RouteProfileController extends Controller
             ->get();
 
         return $rows->map(fn (RouteProfile $p) => $this->withLines($p));
+    }
+
+    /** Export route profiles list as PDF. Same dataset as index with tenant_pkey and mode counts. */
+    public function exportPdf()
+    {
+        $profiles = $this->applyClusterScope(RouteProfile::query())
+            ->orderBy('cluster')
+            ->orderBy('name')
+            ->orderBy('shortuid')
+            ->get();
+        attach_tenant_pkey_to_collection($profiles);
+        foreach ($profiles as $p) {
+            $p->modes_count = RouteProfileLine::where('profile', $p->shortuid)->count();
+        }
+        return Pdf::loadView('exports.routeprofiles-pdf', ['profiles' => $profiles])
+            ->setPaper('a4', 'landscape')
+            ->download('routeprofiles.pdf');
     }
 
     public function show(RouteProfile $routeprofile)
