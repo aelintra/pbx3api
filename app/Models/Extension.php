@@ -32,6 +32,7 @@ class Extension extends Model
         'protocol' => 'IPV4',
         'transport' => 'udp',
         'technology' => 'SIP',
+        'named_groups' => 'ALL',
         'z_updater' => 'system',
     ];
 
@@ -62,16 +63,17 @@ class Extension extends Model
         'protocol',
         'provision',
         'provisionwith',
-        'pjsipuser',
         'technology',
         'transport',
         'vmailfwd',
         'pjsip_overlay',
+        'named_groups',
     ];
 
-    /** Attributes excluded from array/JSON (e.g. passwd). */
+    /** Attributes excluded from array/JSON (e.g. passwd). Legacy pjsipuser deprecated — hide from API. */
     protected $hidden = [
         'passwd',
+        'pjsipuser',
     ];
 
     /** Appended when serialized (no DB column). Derived from device. */

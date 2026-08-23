@@ -54,7 +54,6 @@ class ExtensionRequest extends FormRequest
             'extalert' => 'string|nullable',
             'provision' => 'string|nullable',
             'provisionwith' => 'in:IP,FQDN',
-            'pjsipuser' => 'string|nullable',
             'technology' => 'nullable|in:SIP,IAX2,DiD,CLiD,Class',
             'protocol' => 'in:IPV4,IPV6',
             'transport' => 'in:udp,tcp,tls,wss',

@@ -42,11 +42,12 @@ class ExtensionController extends Controller
 		'protocol' => 'in:IPV4,IPV6',
 		'provision' => 'string|nullable',
 		'provisionwith' => 'in:IP,FQDN',
-		'pjsipuser' => 'string|nullable',
 		'technology' => 'string|nullable',
 		'transport' => 'in:udp,tcp,tls,wss',
 		'vmailfwd' => 'email|nullable',
 		'pjsip_overlay' => 'nullable|string|max:16384',
+		// Comma-separated named pickup tokens; ALL = whole tenant (GenAst → $clst)
+		'named_groups' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
 	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -192,6 +193,7 @@ class ExtensionController extends Controller
             'protocol' => 'nullable|in:IPV4,IPV6',
             'ipversion' => 'nullable|in:IPV4,IPV6',
             'vmailfwd' => 'nullable|email',
+            'named_groups' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
         ]);
 
         $validator->after(function ($validator) use ($request, $extensionTypeInput) {
@@ -279,7 +281,6 @@ class ExtensionController extends Controller
                 $attrs['device'] = $deviceVendor;
                 $deviceRow = $this->getDeviceRow($deviceVendor);
                 if ($deviceRow) {
-                    $attrs['pjsipuser'] = $deviceRow->sipiaxfriend ?? null;
                     $attrs['technology'] = $deviceRow->technology ?? 'SIP';
                 }
                 $provision = '#INCLUDE ' . $deviceVendor;
@@ -291,7 +292,6 @@ class ExtensionController extends Controller
                 $attrs['device'] = 'General SIP';
                 $deviceRow = $this->getDeviceRow('General SIP');
                 if ($deviceRow) {
-                    $attrs['pjsipuser'] = $deviceRow->sipiaxfriend ?? null;
                     $attrs['technology'] = $deviceRow->technology ?? 'SIP';
                 }
                 $attrs['provision'] = null;
@@ -302,7 +302,6 @@ class ExtensionController extends Controller
             $attrs['protocol'] = $protocolInput;
             $deviceRow = $this->getDeviceRow('WebRTC');
             if ($deviceRow) {
-                $attrs['pjsipuser'] = $deviceRow->sipiaxfriend ?? null;
                 $attrs['technology'] = $deviceRow->technology ?? 'SIP';
             }
             $attrs['provision'] = null;
@@ -328,6 +327,12 @@ class ExtensionController extends Controller
         }
         if ($request->has('vmailfwd')) {
             $attrs['vmailfwd'] = $request->input('vmailfwd') ?: null;
+        }
+        if ($request->has('named_groups')) {
+            $ng = trim((string) $request->input('named_groups'));
+            $attrs['named_groups'] = $ng !== '' ? $ng : 'ALL';
+        } else {
+            $attrs['named_groups'] = 'ALL';
         }
 
         try {
@@ -355,10 +360,10 @@ class ExtensionController extends Controller
         return response()->json($extension->fresh(), 201);
     }
 
-    /** Get Device row by pkey (instance schema). */
+    /** Get Device row by pkey (instance schema). technology only — sipiaxfriend deprecated. */
     private function getDeviceRow(string $devicePkey) {
         try {
-            return DB::table('device')->where('pkey', $devicePkey)->first(['sipiaxfriend', 'technology']);
+            return DB::table('device')->where('pkey', $devicePkey)->first(['technology']);
         } catch (\Throwable $e) {
             return null;
         }
@@ -817,6 +822,9 @@ class ExtensionController extends Controller
                     } else {
                         $extension->pjsip_overlay = is_string($value) ? trim($value) : $value;
                     }
+                } elseif ($key === 'named_groups') {
+                    $ng = is_string($value) ? trim($value) : $value;
+                    $extension->named_groups = ($ng === null || $ng === '') ? 'ALL' : $ng;
                 } else {
                     $extension->$key = is_string($value) ? trim($value) : $value;
                 }
@@ -853,7 +861,6 @@ class ExtensionController extends Controller
             $extension->device = $deviceVendor;
             $deviceRow = $this->getDeviceRow($deviceVendor);
             if ($deviceRow) {
-                $extension->pjsipuser = $deviceRow->sipiaxfriend ?? null;
                 $extension->technology = $deviceRow->technology ?? 'SIP';
             }
             $provision = '#INCLUDE ' . $deviceVendor;
@@ -865,10 +872,8 @@ class ExtensionController extends Controller
         } elseif ($macRemoved) {
             $extension->device = 'General SIP';
             $extension->provision = null;
-            $extension->pjsipuser = null;
             $deviceRow = $this->getDeviceRow('General SIP');
             if ($deviceRow) {
-                $extension->pjsipuser = $deviceRow->sipiaxfriend ?? null;
                 $extension->technology = $deviceRow->technology ?? 'SIP';
             }
         } elseif (($extension->isDirty('transport') || $extension->isDirty('protocol')) && $extension->provision !== null && trim((string) $extension->provision) !== '') {

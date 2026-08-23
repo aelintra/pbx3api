@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
  */
 class DeviceController extends Controller
 {
-    /** Updateable columns and validation rules. device never accepted; deprecated (imageurl, noproxy, tftpname, zapdevfixed) excluded. */
+    /** Updateable columns and validation rules. device never accepted; deprecated (sipiaxfriend, imageurl, noproxy, tftpname, zapdevfixed) excluded. */
     private $updateableColumns = [
         'blfkeyname' => 'string|nullable',
         'blfkeys' => 'integer|nullable',
@@ -22,7 +22,6 @@ class DeviceController extends Controller
         'owner' => 'string|nullable',
         'pkeys' => 'integer|nullable',
         'provision' => 'string|nullable',
-        'sipiaxfriend' => 'string|nullable',
         'technology' => 'nullable|string|in:SIP,Descriptor,BLF Template',
     ];
 
