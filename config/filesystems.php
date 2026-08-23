@@ -101,6 +101,13 @@ return [
             'throw' => false,
         ],
 
+        /** Per-tenant Music-on-Hold files: moh-{shortuid}/ under Asterisk share (GenAst + CAGI). */
+        'moh' => [
+            'driver' => 'local',
+            'root' => '/usr/share/asterisk',
+            'throw' => false,
+        ],
+
         /*
          * Call recordings (Phase R1 — local-first, no S3). Asterisk MixMonitor
          * writes finished wav files to {root}/{tenant_shortuid}/, named

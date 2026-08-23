@@ -415,6 +415,12 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('tenants', [TenantController::class, 'index']);
     Route::get('tenants/export/pdf', [TenantController::class, 'exportPdf']);
     Route::get('tenants/{tenant}/wipe-preflight', [TenantController::class, 'wipePreflight']);
+    Route::get('tenants/{tenant}/moh', [TenantController::class, 'listMoh']);
+    Route::post('tenants/{tenant}/moh', [TenantController::class, 'uploadMoh']);
+    Route::get('tenants/{tenant}/moh/{filename}', [TenantController::class, 'downloadMoh'])
+        ->where('filename', '[^/]+');
+    Route::delete('tenants/{tenant}/moh/{filename}', [TenantController::class, 'deleteMoh'])
+        ->where('filename', '[^/]+');
     Route::get('tenants/{tenant}', [TenantController::class, 'show']);
     Route::post('tenants', [TenantController::class, 'save']);
     Route::put('tenants/{tenant}', [TenantController::class, 'update']);

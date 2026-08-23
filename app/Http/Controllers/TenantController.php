@@ -77,7 +77,7 @@ class TenantController extends Controller
 			'spy_pass' => 'nullable|string|max:64',
 			'sysop' => 'integer|nullable',
 			'syspass' => 'nullable|string|max:64',
-			'usemohcustom' => 'string|nullable',
+			'usemohcustom' => 'in:YES,NO',
 			'VDELAY' => 'integer|nullable',
 			'vmail_age' => 'integer',
 			'voice_instr' => 'integer|nullable',
@@ -351,5 +351,172 @@ class TenantController extends Controller
 
         return response()->json(['tenant ' .$id .' deleted'],200);
     }
-    //
+
+    private const MOH_ROOT = '/usr/share/asterisk';
+
+    /** Absolute MOH directory for this tenant (CAGI / GenAst use shortuid). */
+    private function mohDir(Tenant $tenant): string
+    {
+        $su = trim((string) $tenant->shortuid);
+        if ($su === '' || ! preg_match('/^[A-Za-z0-9_-]+$/', $su)) {
+            throw new \InvalidArgumentException('Tenant shortuid missing or invalid.');
+        }
+
+        return self::MOH_ROOT.'/moh-'.$su;
+    }
+
+    private function ensureMohDir(Tenant $tenant): string
+    {
+        $fullPath = $this->mohDir($tenant);
+        [$out, $err] = pbx3_request_syscmd('/bin/mkdir -p '.escapeshellarg($fullPath));
+        if ($err !== null) {
+            throw new \RuntimeException('Unable to create MOH directory: '.$err);
+        }
+        [$out, $err] = pbx3_request_syscmd('/bin/chown www-data:www-data '.escapeshellarg($fullPath));
+        if ($err !== null) {
+            throw new \RuntimeException('Unable to set MOH directory ownership: '.$err);
+        }
+        [$out, $err] = pbx3_request_syscmd('/bin/chmod 755 '.escapeshellarg($fullPath));
+        if ($err !== null) {
+            throw new \RuntimeException('Unable to set MOH directory permissions: '.$err);
+        }
+
+        return $fullPath;
+    }
+
+    /** Sanitize upload basename (SARK-style); returns null if unusable. */
+    private function sanitizeMohFilename(string $original): ?string
+    {
+        $base = basename(str_replace('\\', '/', $original));
+        if (! preg_match('/^(.+)\.([A-Za-z0-9]+)$/', $base, $m)) {
+            return null;
+        }
+        $stem = preg_replace('/[^A-Za-z0-9 ]/', '', $m[1]);
+        $stem = preg_replace('/[^A-Za-z0-9]/', '_', (string) $stem);
+        $stem = preg_replace('/_+/', '_', (string) $stem);
+        $stem = trim((string) $stem, '_');
+        $ext = strtolower($m[2]);
+        if ($stem === '' || ! in_array($ext, ['wav', 'mp3', 'gsm'], true)) {
+            return null;
+        }
+
+        return $stem.'.'.$ext;
+    }
+
+    /** List custom MOH files for this tenant. */
+    public function listMoh(Tenant $tenant)
+    {
+        $dir = $this->mohDir($tenant);
+        $files = [];
+        if (is_dir($dir) && ($handle = opendir($dir))) {
+            while (false !== ($entry = readdir($handle))) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $path = $dir.'/'.$entry;
+                if (! is_file($path)) {
+                    continue;
+                }
+                $files[] = [
+                    'name' => $entry,
+                    'size' => filesize($path) ?: 0,
+                ];
+            }
+            closedir($handle);
+        }
+        usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return response()->json([
+            'directory' => 'moh-'.$tenant->shortuid,
+            'usemohcustom' => $tenant->usemohcustom === 'YES' ? 'YES' : 'NO',
+            'files' => $files,
+        ]);
+    }
+
+    /** Upload a custom MOH file (wav preferred; sox → 8 kHz mono). */
+    public function uploadMoh(Request $request, Tenant $tenant)
+    {
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|max:51200',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $upload = $request->file('file');
+        $safeName = $this->sanitizeMohFilename($upload->getClientOriginalName() ?: 'moh.wav');
+        if ($safeName === null) {
+            return response()->json(['file' => ['File name must be wav, mp3, or gsm after sanitizing.']], 422);
+        }
+
+        try {
+            $dir = $this->ensureMohDir($tenant);
+        } catch (\Throwable $e) {
+            return response()->json(['Error' => $e->getMessage()], 409);
+        }
+
+        $target = $dir.'/'.$safeName;
+        $tmp = $upload->getRealPath();
+        if (! $tmp || ! is_readable($tmp)) {
+            return response()->json(['file' => ['Upload temporary file missing.']], 422);
+        }
+
+        $ext = pathinfo($safeName, PATHINFO_EXTENSION);
+        if ($ext === 'wav') {
+            [$out, $err] = pbx3_request_syscmd(
+                '/usr/bin/sox '.escapeshellarg($tmp).' -r 8000 -c 1 -e signed '.escapeshellarg($target).' -q'
+            );
+            if ($err !== null || ! file_exists($target)) {
+                // Fall back to raw copy if sox missing / fails
+                [$out, $err] = pbx3_request_syscmd('/bin/cp '.escapeshellarg($tmp).' '.escapeshellarg($target));
+                if ($err !== null || ! file_exists($target)) {
+                    return response()->json(['Error' => 'Failed to store MOH wav: '.($err ?? 'unknown')], 409);
+                }
+            }
+        } else {
+            [$out, $err] = pbx3_request_syscmd('/bin/cp '.escapeshellarg($tmp).' '.escapeshellarg($target));
+            if ($err !== null || ! file_exists($target)) {
+                return response()->json(['Error' => 'Failed to store MOH file: '.($err ?? 'unknown')], 409);
+            }
+        }
+
+        pbx3_request_syscmd('/bin/chmod +r '.escapeshellarg($target));
+        pbx3_request_syscmd('/bin/chown asterisk:asterisk '.escapeshellarg($target));
+
+        return response()->json(['message' => "File {$safeName} uploaded", 'name' => $safeName], 200);
+    }
+
+    /** Stream/download one MOH file for in-browser play. */
+    public function downloadMoh(Tenant $tenant, string $filename)
+    {
+        $safe = basename(str_replace('\\', '/', $filename));
+        if ($safe === '' || $safe !== $filename || str_contains($safe, '..')) {
+            return response()->json(['Error' => 'Invalid filename'], 422);
+        }
+        $path = $this->mohDir($tenant).'/'.$safe;
+        if (! is_file($path)) {
+            return response()->json(['Error' => 'File not found'], 404);
+        }
+
+        return response()->file($path);
+    }
+
+    /** Delete one custom MOH file. */
+    public function deleteMoh(Tenant $tenant, string $filename)
+    {
+        $safe = basename(str_replace('\\', '/', $filename));
+        if ($safe === '' || $safe !== $filename || str_contains($safe, '..')) {
+            return response()->json(['Error' => 'Invalid filename'], 422);
+        }
+        $path = $this->mohDir($tenant).'/'.$safe;
+        if (! is_file($path)) {
+            return response()->json(['Error' => 'File not found'], 404);
+        }
+        [$out, $err] = pbx3_request_syscmd('/bin/rm -f '.escapeshellarg($path));
+        if ($err !== null && is_file($path)) {
+            return response()->json(['Error' => 'Failed to delete: '.$err], 409);
+        }
+
+        return response()->json(['message' => "Deleted {$safe}"], 200);
+    }
 }
