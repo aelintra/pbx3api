@@ -46,8 +46,9 @@ class ExtensionController extends Controller
 		'transport' => 'in:udp,tcp,tls,wss',
 		'vmailfwd' => 'email|nullable',
 		'pjsip_overlay' => 'nullable|string|max:16384',
-		// Comma-separated named pickup tokens; ALL = whole tenant (GenAst → $clst)
-		'named_groups' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
+		// Comma-separated named group tokens; ALL = whole tenant (GenAst → $clst)
+		'named_call_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
+		'named_pickup_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
 	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -193,7 +194,8 @@ class ExtensionController extends Controller
             'protocol' => 'nullable|in:IPV4,IPV6',
             'ipversion' => 'nullable|in:IPV4,IPV6',
             'vmailfwd' => 'nullable|email',
-            'named_groups' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
+            'named_call_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
+            'named_pickup_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
         ]);
 
         $validator->after(function ($validator) use ($request, $extensionTypeInput) {
@@ -328,11 +330,17 @@ class ExtensionController extends Controller
         if ($request->has('vmailfwd')) {
             $attrs['vmailfwd'] = $request->input('vmailfwd') ?: null;
         }
-        if ($request->has('named_groups')) {
-            $ng = trim((string) $request->input('named_groups'));
-            $attrs['named_groups'] = $ng !== '' ? $ng : 'ALL';
+        if ($request->has('named_call_group')) {
+            $ng = trim((string) $request->input('named_call_group'));
+            $attrs['named_call_group'] = $ng !== '' ? $ng : 'ALL';
         } else {
-            $attrs['named_groups'] = 'ALL';
+            $attrs['named_call_group'] = 'ALL';
+        }
+        if ($request->has('named_pickup_group')) {
+            $ng = trim((string) $request->input('named_pickup_group'));
+            $attrs['named_pickup_group'] = $ng !== '' ? $ng : 'ALL';
+        } else {
+            $attrs['named_pickup_group'] = 'ALL';
         }
 
         try {
@@ -822,9 +830,9 @@ class ExtensionController extends Controller
                     } else {
                         $extension->pjsip_overlay = is_string($value) ? trim($value) : $value;
                     }
-                } elseif ($key === 'named_groups') {
+                } elseif ($key === 'named_call_group' || $key === 'named_pickup_group') {
                     $ng = is_string($value) ? trim($value) : $value;
-                    $extension->named_groups = ($ng === null || $ng === '') ? 'ALL' : $ng;
+                    $extension->$key = ($ng === null || $ng === '') ? 'ALL' : $ng;
                 } else {
                     $extension->$key = is_string($value) ? trim($value) : $value;
                 }

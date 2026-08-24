@@ -32,7 +32,8 @@ class Extension extends Model
         'protocol' => 'IPV4',
         'transport' => 'udp',
         'technology' => 'SIP',
-        'named_groups' => 'ALL',
+        'named_call_group' => 'ALL',
+        'named_pickup_group' => 'ALL',
         'z_updater' => 'system',
     ];
 
@@ -67,7 +68,8 @@ class Extension extends Model
         'transport',
         'vmailfwd',
         'pjsip_overlay',
-        'named_groups',
+        'named_call_group',
+        'named_pickup_group',
     ];
 
     /** Attributes excluded from array/JSON (e.g. passwd). Legacy pjsipuser deprecated — hide from API. */
