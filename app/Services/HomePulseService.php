@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
  */
 class HomePulseService
 {
-    public const TTL_LIVE = 20;
+    public const TTL_LIVE = 45;
 
     public const TTL_SYSTEM = 45;
 
