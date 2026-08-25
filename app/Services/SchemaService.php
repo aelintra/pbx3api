@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\ClassOfServiceController;
+use App\Http\Controllers\ClidBlockController;
 use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\CustomAppController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TrunkController;
 use App\Models\Agent;
 use App\Models\ClassOfService;
+use App\Models\ClidBlock;
 use App\Models\Conference;
 use App\Models\CustomApp;
 use App\Models\DayTimer;
@@ -68,6 +70,7 @@ class SchemaService
         'trunks'     => [TrunkController::class, Trunk::class],
         'ivrs'       => [IvrController::class, Ivr::class],
         'inroutes'   => [InboundRouteController::class, InboundRoute::class],
+        'clidblocks' => [ClidBlockController::class, ClidBlock::class],
         'tenants'    => [TenantController::class, Tenant::class],
     ];
 

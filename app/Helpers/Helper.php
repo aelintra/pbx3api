@@ -899,6 +899,37 @@ if (!function_exists('generate_ksuid')) {
     }
 }
 
+if (!function_exists('normalize_clid_block_digits')) {
+    /**
+     * Normalize a caller ID for clid_block storage/match: digits only, 6–32 chars.
+     *
+     * @return string|null null when too short or no digits
+     */
+    function normalize_clid_block_digits($raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim((string) $raw);
+        if ($trimmed === '') {
+            return null;
+        }
+        if (preg_match('/^(anonymous|unknown|private|withheld|unavailable)$/i', $trimmed)) {
+            return null;
+        }
+        $digits = preg_replace('/\D+/', '', $trimmed);
+        if ($digits === null || $digits === '') {
+            return null;
+        }
+        $len = strlen($digits);
+        if ($len < 6 || $len > 32) {
+            return null;
+        }
+
+        return $digits;
+    }
+}
+
 if (!function_exists('generate_shortuid')) {
     /**
      * Generate a shortuid using idpwgen (same as pbx3 HelperClass::generate()).

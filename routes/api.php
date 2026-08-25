@@ -10,6 +10,7 @@ use App\Http\Controllers\AsteriskFileController;
 use App\Http\Controllers\AstAmiController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\ClidBlockController;
 use App\Http\Controllers\CosCloseController;
 use App\Http\Controllers\CosOpenController;
 use App\Http\Controllers\ClassOfServiceController;
@@ -173,6 +174,12 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::post('inboundroutes', [InboundRouteController::class, 'save']);
     Route::put('inboundroutes/{inboundroute}', [InboundRouteController::class, 'update']);
     Route::delete('inboundroutes/{inboundroute}', [InboundRouteController::class, 'delete']);
+
+    Route::get('clidblocks', [ClidBlockController::class, 'index']);
+    Route::get('clidblocks/{clidblock}', [ClidBlockController::class, 'show']);
+    Route::post('clidblocks', [ClidBlockController::class, 'save']);
+    Route::put('clidblocks/{clidblock}', [ClidBlockController::class, 'update']);
+    Route::delete('clidblocks/{clidblock}', [ClidBlockController::class, 'delete']);
 
     Route::get('daytimers', [DayTimerController::class, 'index']);
     Route::get('daytimers/export/pdf', [DayTimerController::class, 'exportPdf']);
