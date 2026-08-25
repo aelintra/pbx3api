@@ -64,7 +64,7 @@ class FirewallController extends Controller
             'rules.*.action' => 'required|in:allow',
             'rules.*.proto' => 'required|in:tcp,udp,icmp,all',
             'rules.*.port' => 'nullable|string|max:64',
-            'rules.*.from' => 'required|string|max:64',
+            'rules.*.from' => 'required|string|max:80',
             'rules.*.comment' => 'nullable|string|max:120',
         ]);
 
@@ -199,8 +199,8 @@ class FirewallController extends Controller
 
     private function validateRuleShape(string $proto, string $port, string $from): ?string
     {
-        if ($from !== 'any' && !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/', $from)) {
-            return "from must be 'any' or an IPv4/CIDR (got: {$from})";
+        if (!$this->isValidFrom($from)) {
+            return "from must be 'any', an IPv4/CIDR, or an IPv6/CIDR (got: {$from})";
         }
         if ($proto === 'icmp') {
             return null;
@@ -217,6 +217,33 @@ class FirewallController extends Controller
         }
 
         return null;
+    }
+
+    private function isValidFrom(string $from): bool
+    {
+        if ($from === 'any') {
+            return true;
+        }
+        if (preg_match('/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]{1,2})?$/', $from)) {
+            return true;
+        }
+        $addr = $from;
+        $prefix = null;
+        if (str_contains($from, '/')) {
+            [$addr, $prefix] = explode('/', $from, 2);
+            if (!ctype_digit($prefix)) {
+                return false;
+            }
+            $p = (int) $prefix;
+            if ($p < 0 || $p > 128) {
+                return false;
+            }
+        }
+        if (filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return false;
+        }
+        // If prefix set, already checked 0–128; bare IPv6 OK
+        return true;
     }
 
     private function looksLikeLegacyShorewallLines(array $rules): bool
