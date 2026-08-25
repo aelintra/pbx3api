@@ -55,6 +55,8 @@ function pbx3VelocityEnsureIpphoneSchema(): void
         $table->string('protocol')->default('IPV4');
         $table->string('transport')->default('udp');
         $table->string('technology')->nullable();
+        $table->string('named_call_group')->default('ALL');
+        $table->string('named_pickup_group')->default('ALL');
         $table->string('z_updater')->default('system');
     });
 }

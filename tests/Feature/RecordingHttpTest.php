@@ -35,6 +35,11 @@ test('recordings index returns mocked list', function () {
 
 test('recordings stream returns 404 when missing', function () {
     $this->mock(RecordingIndexService::class, function ($mock) {
+        // clusterFromId runs first (ACL); null = unknown id → 404 downstream
+        $mock->shouldReceive('clusterFromId')
+            ->once()
+            ->with('missing-id')
+            ->andReturn(null);
         $mock->shouldReceive('absolutePathFromId')
             ->once()
             ->with('missing-id')
@@ -53,6 +58,10 @@ test('recordings stream returns 404 when missing', function () {
 
 test('recordings download returns 404 when missing', function () {
     $this->mock(RecordingIndexService::class, function ($mock) {
+        $mock->shouldReceive('clusterFromId')
+            ->once()
+            ->with('missing-id')
+            ->andReturn(null);
         $mock->shouldReceive('absolutePathFromId')
             ->once()
             ->with('missing-id')

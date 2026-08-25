@@ -47,6 +47,8 @@ test('T5 wipe list covers every cluster-scoped table in tenant schema SQL', func
     $candidates = [
         dirname(base_path()).'/pbx3/pbx3-1/opt/pbx3/db/db_sql/sqlite_create_tenant.sql',
         base_path('../pbx3/pbx3-1/opt/pbx3/db/db_sql/sqlite_create_tenant.sql'),
+        // Lab / installed home (tests run from /opt/pbx3api)
+        '/opt/pbx3/db/db_sql/sqlite_create_tenant.sql',
     ];
     $schema = null;
     foreach ($candidates as $path) {
