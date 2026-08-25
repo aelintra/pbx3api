@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\FirewallAllowRule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -79,7 +80,7 @@ class FirewallController extends Controller
             $from = trim((string) $r['from']);
             $comment = isset($r['comment']) ? trim((string) $r['comment']) : '';
 
-            if ($err = $this->validateRuleShape($proto, $port, $from)) {
+            if ($err = FirewallAllowRule::validateShape($proto, $port, $from)) {
                 return response()->json(['rules' => [$err]], 422);
             }
 
@@ -124,7 +125,7 @@ class FirewallController extends Controller
     public function ipv4save(Request $request)
     {
         // Legacy Shorewall sent { rules: ["ACCEPT …", …] }. Reject with guidance.
-        if ($request->has('rules') && is_array($request->input('rules')) && $this->looksLikeLegacyShorewallLines($request->input('rules'))) {
+        if ($request->has('rules') && is_array($request->input('rules')) && FirewallAllowRule::looksLikeLegacyShorewallLines($request->input('rules'))) {
             return response()->json([
                 'message' => 'Shorewall raw lines are no longer accepted. POST structured rules: { profile, rules:[{action,proto,port,from,comment}] }.',
             ], 422);
@@ -195,67 +196,5 @@ class FirewallController extends Controller
             'profile' => $data['profile'] ?? null,
             'rules' => array_values($data['rules']),
         ];
-    }
-
-    private function validateRuleShape(string $proto, string $port, string $from): ?string
-    {
-        if (!$this->isValidFrom($from)) {
-            return "from must be 'any', an IPv4/CIDR, or an IPv6/CIDR (got: {$from})";
-        }
-        if ($proto === 'icmp') {
-            return null;
-        }
-        if ($proto === 'all') {
-            if ($port !== '' && strtoupper($port) !== 'N/A') {
-                return 'proto=all must not set a port';
-            }
-
-            return null;
-        }
-        if ($port === '' || !preg_match('/^[0-9]+(:[0-9]+)?$/', $port)) {
-            return "port must be a number or range like 10000:20000 (got: {$port})";
-        }
-
-        return null;
-    }
-
-    private function isValidFrom(string $from): bool
-    {
-        if ($from === 'any') {
-            return true;
-        }
-        if (preg_match('/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]{1,2})?$/', $from)) {
-            return true;
-        }
-        $addr = $from;
-        $prefix = null;
-        if (str_contains($from, '/')) {
-            [$addr, $prefix] = explode('/', $from, 2);
-            if (!ctype_digit($prefix)) {
-                return false;
-            }
-            $p = (int) $prefix;
-            if ($p < 0 || $p > 128) {
-                return false;
-            }
-        }
-        if (filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
-            return false;
-        }
-        // If prefix set, already checked 0–128; bare IPv6 OK
-        return true;
-    }
-
-    private function looksLikeLegacyShorewallLines(array $rules): bool
-    {
-        if ($rules === []) {
-            return false;
-        }
-        $first = $rules[0];
-        if (!is_string($first)) {
-            return false;
-        }
-
-        return (bool) preg_match('/^(ACCEPT|DROP|REJECT|INLINE)\b/i', trim($first));
     }
 }
