@@ -27,7 +27,6 @@ class LogController extends Controller
 		'asterisk/queue_log',
 		'syslog',
 		'ufw.log',
-		'shorewall.log',
 		'mail.log',
 		'fail2ban.log',
 		'auth.log',
