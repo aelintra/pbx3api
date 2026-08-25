@@ -162,7 +162,7 @@ class ExtensionController extends Controller
 
 /**
  * Create a new extension (single endpoint). extensionType: SIP | WebRTC.
- * Sets id (ksuid), dvrvmail = pkey. Device/provision from Device table and optional MAC.
+ * Sets id (ksuid), dvrvmail = pkey. Optional MAC sets ipphone.device via OUI (vendor label).
  *
  * @param  Request  pkey, cluster, desc (name), extensionType (SIP|WebRTC), macaddr (optional for SIP), protocol (IPV4|IPV6)
  * @return New extension
@@ -273,39 +273,21 @@ class ExtensionController extends Controller
         if ($extensionType === 'SIP') {
             $attrs['transport'] = $request->input('transport', 'udp');
             $attrs['protocol'] = $protocolInput;
+            $attrs['technology'] = 'SIP';
+            $attrs['provision'] = null;
 
             if ($macaddr !== null && $macaddr !== '') {
-                $deviceVendor = $this->getVendorFromMac($macaddr);
-                if ($deviceVendor === null) {
-                    return response()->json(['macaddr' => ["Can't find Manufacturer for this MAC."]], 422);
-                }
                 $attrs['macaddr'] = $macaddr;
-                $attrs['device'] = $deviceVendor;
-                $deviceRow = $this->getDeviceRow($deviceVendor);
-                if ($deviceRow) {
-                    $attrs['technology'] = $deviceRow->technology ?? 'SIP';
-                }
-                $provision = '#INCLUDE ' . $deviceVendor;
-                if (preg_match('/^[Cc]isco/', $deviceVendor)) {
-                    $provision .= "\n</flat-profile>\n</device>";
-                }
-                $attrs['provision'] = $provision;
+                // OUI → vendor label when known; else General SIP (no Device template table).
+                $attrs['device'] = $this->getVendorFromMac($macaddr) ?? 'General SIP';
             } else {
                 $attrs['device'] = 'General SIP';
-                $deviceRow = $this->getDeviceRow('General SIP');
-                if ($deviceRow) {
-                    $attrs['technology'] = $deviceRow->technology ?? 'SIP';
-                }
-                $attrs['provision'] = null;
             }
         } else {
             $attrs['device'] = 'WebRTC';
             $attrs['transport'] = $request->input('transport', 'wss');
             $attrs['protocol'] = $protocolInput;
-            $deviceRow = $this->getDeviceRow('WebRTC');
-            if ($deviceRow) {
-                $attrs['technology'] = $deviceRow->technology ?? 'SIP';
-            }
+            $attrs['technology'] = 'SIP';
             $attrs['provision'] = null;
         }
 
@@ -356,25 +338,11 @@ class ExtensionController extends Controller
         // SIP password: auto-generate 12 chars (passwd not fillable; set via direct update)
         Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
 
-        if ($extension->provision !== null && $extension->provision !== '') {
-            $this->adjustAstProvSettings($extension);
-            Extension::where('id', $extension->id)->update(['provision' => $extension->provision]);
-        }
-
         $this->create_default_cos_instances($extension);
 
         set_commit_dirty();
 
         return response()->json($extension->fresh(), 201);
-    }
-
-    /** Get Device row by pkey (instance schema). technology only — sipiaxfriend deprecated. */
-    private function getDeviceRow(string $devicePkey) {
-        try {
-            return DB::table('device')->where('pkey', $devicePkey)->first(['technology']);
-        } catch (\Throwable $e) {
-            return null;
-        }
     }
 
 /**
@@ -717,50 +685,34 @@ class ExtensionController extends Controller
             }                 
         });
 
-    	$device=null;
+    	$device = null;
+		if ($request->post('macaddr')) {
+			$device = $this->getVendorFromMac($request->post('macaddr')) ?? 'General SIP';
+		}
 
-		if ($request->post('macaddr')) {  
-			$device = $this->getVendorFromMac($request->post('macaddr')); 
-		} 
-
-    	$validator->after(function ($validator) use ($request, $device) {
-			// Lookup the vendor from the MAC address
-		
-    		if (! isset($device)) {
-        		$validator->errors()->add('macaddr', "Can't find Manufacturer for this MAC! " . $request->post('macaddr'));
-    		}
-    		else {
-    			// check for duplicate MAC
+    	$validator->after(function ($validator) use ($request) {
     			if (Extension::where('macaddr','=',$request->post('macaddr'))->count()) {
     				$validator->errors()->add('macaddr', "This MAC already exists in the DB! " . $request->post('macaddr'));
-    			}    			
-    		}
+    			}
 		});
 
     	if ($validator->fails()) {
     		return response()->json($validator->errors(),422);
     	}
 
-    	// Set initial provisioning string
-    	
-    	$provision = "#INCLUDE " .  $device . "\n";
-    	$provision .= "#INCLUDE " .  $device . '.udp' . "\n";
-    	$provision .= "#INCLUDE " .  $device . '.ipv4' . "\n";
-
         $clusterShortuid = cluster_identifier_to_shortuid($request->post('cluster'));
         if ($clusterShortuid === null) {
             return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
         }
-
-    	// store it
 
     	try {
         	$extension = Extension::create([
         		'id' => generate_ksuid(),
         		'shortuid' => generate_shortuid(),
         		'pkey' => $request->post('pkey'),
-        		'provision' => $provision,
-        		'device' => $device,
+        		'provision' => null,
+        		'device' => $device ?? 'General SIP',
+        		'technology' => 'SIP',
         		'cluster' => $clusterShortuid,
         		'macaddr' => $request->post('macaddr'),
         		]);
@@ -861,31 +813,14 @@ class ExtensionController extends Controller
             if ($exists) {
                 return response()->json(['macaddr' => ['This MAC already exists.']], 422);
             }
-            $deviceVendor = $this->getVendorFromMac($newMac);
-            if ($deviceVendor === null) {
-                return response()->json(['macaddr' => ["Can't find Manufacturer for this MAC."]], 422);
-            }
             $extension->macaddr = $newMac;
-            $extension->device = $deviceVendor;
-            $deviceRow = $this->getDeviceRow($deviceVendor);
-            if ($deviceRow) {
-                $extension->technology = $deviceRow->technology ?? 'SIP';
-            }
-            $provision = '#INCLUDE ' . $deviceVendor;
-            if (preg_match('/^[Cc]isco/', $deviceVendor)) {
-                $provision .= "\n</flat-profile>\n</device>";
-            }
-            $extension->provision = $provision;
-            $this->adjustAstProvSettings($extension);
+            $extension->device = $this->getVendorFromMac($newMac) ?? 'General SIP';
+            $extension->technology = 'SIP';
+            $extension->provision = null;
         } elseif ($macRemoved) {
             $extension->device = 'General SIP';
+            $extension->technology = 'SIP';
             $extension->provision = null;
-            $deviceRow = $this->getDeviceRow('General SIP');
-            if ($deviceRow) {
-                $extension->technology = $deviceRow->technology ?? 'SIP';
-            }
-        } elseif (($extension->isDirty('transport') || $extension->isDirty('protocol')) && $extension->provision !== null && trim((string) $extension->provision) !== '') {
-            $this->adjustAstProvSettings($extension);
         }
 
         try {
@@ -1064,46 +999,8 @@ class ExtensionController extends Controller
     }
 
 
-/**
- * Adjust the provisioning includes depending upon protocol and transport.
- * Only runs when extension has a non-empty provision string.
- *
- * @param  Extension $extension
- * @return void
- */
-    private function adjustAstProvSettings(Extension $extension) {
-        if ($extension->provision === null || trim((string) $extension->provision) === '') {
-            return;
-        }
-        $provision = $extension->provision;
-        $provision = preg_replace('/^\#INCLUDE.*\.tcp.*$/m', '', $provision);
-        $provision = preg_replace('/^\#INCLUDE.*\.tls.*$/m', '', $provision);
-        $provision = preg_replace('/^\#INCLUDE.*\.udp.*$/m', '', $provision);
-        $provision = preg_replace('/^\#INCLUDE.*\.ipv6.*$/m', '', $provision);
-        $provision = preg_replace('/^\#INCLUDE.*\.ipv4.*$/m', '', $provision);
-        $provision = rtrim($provision);
-        $transport = $extension->transport ?? 'udp';
-        $protocol = $extension->protocol ?? 'IPV4';
-        $shortdevice = substr((string) $extension->device, 0, 4);
-        switch ($shortdevice) {
-            case 'Snom':
-            case 'snom':
-                $provision .= $transport === 'tcp' ? "\n#INCLUDE snom.tcp" : ($transport === 'tls' ? "\n#INCLUDE snom.tls" : "\n#INCLUDE snom.udp");
-                $provision .= $protocol === 'IPV6' ? "\n#INCLUDE snom.ipv6" : "\n#INCLUDE snom.ipv4";
-                break;
-            case 'Yeal':
-                $provision .= $transport === 'tcp' ? "\n#INCLUDE yealink.tcp" : ($transport === 'tls' ? "\n#INCLUDE yealink.tls" : "\n#INCLUDE yealink.udp");
-                $provision .= $protocol === 'IPV6' ? "\n#INCLUDE yealink.ipv6" : "\n#INCLUDE yealink.ipv4";
-                break;
-            case 'Pana':
-                $provision .= $transport === 'tcp' ? "\n#INCLUDE panasonic.tcp" : ($transport === 'tls' ? "\n#INCLUDE panasonic.tls" : "\n#INCLUDE panasonic.udp");
-                $provision .= $protocol === 'IPV6' ? "\n#INCLUDE panasonic.ipv6" : "\n#INCLUDE panasonic.ipv4";
-                break;
-            default:
-                break;
-        }
-        $extension->provision = $provision;
-    }
+
+
 
 	private function create_default_cos_instances($extension) {
 		$aliases = cluster_identifier_aliases($extension->cluster);

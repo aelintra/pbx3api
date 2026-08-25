@@ -82,8 +82,9 @@ class Extension extends Model
     protected $appends = ['extension_type'];
 
     /**
-     * Extension type derived from device: WebRTC | MAILBOX | SIP.
-     * WebRTC and MAILBOX have a single device template; all other devices are SIP (hard or soft).
+     * Extension type derived from device label: WebRTC | MAILBOX | SIP.
+     * WebRTC and MAILBOX are fixed labels; all other device values are SIP (hard or soft).
+     * (Legacy Device template table removed 2026-08-25.)
      */
     public function getExtensionTypeAttribute(): string
     {

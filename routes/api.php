@@ -16,7 +16,6 @@ use App\Http\Controllers\ClassOfServiceController;
 use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DayTimerController;
-use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\DialAliasController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\HelpCoreController;
@@ -256,7 +255,7 @@ Route::middleware(['auth:sanctum', 'ability:admin,recordings'])->group(function 
 });
 
 /**
- * Admin-only: trunks, routes, tenants, devices, system, AMI, user-adjacent help write, etc.
+ * Admin-only: trunks, routes, tenants, system, AMI, user-adjacent help write, etc.
  */
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
@@ -300,15 +299,6 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::post('customapps', [CustomAppController::class, 'save']);
     Route::put('customapps/{customapp}', [CustomAppController::class, 'update']);
     Route::delete('customapps/{customapp}', [CustomAppController::class, 'delete']);
-
-/**
- * Devices (provisioning templates; instance-scoped, pkey-only)
- */
-    Route::get('devices', [DeviceController::class, 'index']);
-    Route::get('devices/{device}', [DeviceController::class, 'show']);
-    Route::post('devices', [DeviceController::class, 'save']);
-    Route::put('devices/{device}', [DeviceController::class, 'update']);
-    Route::delete('devices/{device}', [DeviceController::class, 'delete']);
 
 /**
  * Help messages write (GET is under tenant group)

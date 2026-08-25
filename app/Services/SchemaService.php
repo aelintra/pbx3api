@@ -8,7 +8,6 @@ use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\DayTimerController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DialAliasController;
-use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\GreetingRecordController;
 use App\Http\Controllers\HelpCoreController;
@@ -26,9 +25,9 @@ use App\Models\Conference;
 use App\Models\CustomApp;
 use App\Models\DayTimer;
 use App\Models\DialAlias;
-use App\Models\Device;
 use App\Models\Extension;
 use App\Models\Greeting;
+use App\Models\HelpCore;
 use App\Models\HolidayTimer;
 use App\Models\InboundRoute;
 use App\Models\Ivr;
@@ -64,7 +63,6 @@ class SchemaService
         'agents'     => [AgentController::class, Agent::class],
         'customapps' => [CustomAppController::class, CustomApp::class],
         'dialaliases' => [DialAliasController::class, DialAlias::class],
-        'devices'    => [DeviceController::class, Device::class],
         'helpcore'   => [HelpCoreController::class, HelpCore::class],
         'routes'     => [RouteController::class, Route::class],
         'trunks'     => [TrunkController::class, Trunk::class],
