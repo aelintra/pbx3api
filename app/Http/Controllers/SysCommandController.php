@@ -306,10 +306,10 @@ class SysCommandController extends Controller
             $timezone = trim($tzOut);
         }
 
-        $icmp = false;
-        [$pingOut] = pbx3_request_syscmd("grep -q '^Ping/ACCEPT' /etc/shorewall/rules 2>/dev/null && echo YES || echo NO");
-        if ($pingOut !== null && trim($pingOut) === 'YES') {
-            $icmp = true;
+        $icmp = true; // UFW default allows echo-request
+        [$ufwSt] = pbx3_request_syscmd("ufw status 2>/dev/null | head -1");
+        if (!is_string($ufwSt) || stripos($ufwSt, 'Status: active') === false) {
+            $icmp = false;
         }
 
         return response()->json([
@@ -450,8 +450,9 @@ class SysCommandController extends Controller
     }
 
     /**
-     * PUT syscommands/icmp — allow or reject ping (ICMP) in Shorewall (via syshelper).
-     * Body: { "allow": true|false }. Restarts shorewall after change.
+     * PUT syscommands/icmp — allow or reject ping (ICMP).
+     * Under UFW: not exposed — Ubuntu UFW keeps echo allowed by default.
+     * Body: { "allow": true|false }.
      */
     public function seticmp(Request $request)
     {
@@ -461,22 +462,11 @@ class SysCommandController extends Controller
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
-        $allow = $request->boolean('allow');
-        $sed = $allow
-            ? "sed -i 's|^Ping/REJECT|Ping/ACCEPT|' /etc/shorewall/rules"
-            : "sed -i 's|^Ping/ACCEPT|Ping/REJECT|' /etc/shorewall/rules";
-        [$_, $err] = pbx3_request_syscmd($sed . ' 2>&1');
-        if ($err !== null) {
-            Log::warning('syscommands/seticmp sed failed', ['error' => $err]);
-            return response()->json(['message' => 'Failed to update firewall rule', 'detail' => $err], 502);
-        }
-        [$rc, $err2] = pbx3_request_syscmd('/sbin/shorewall check 2>&1');
-        if ($err2 !== null || ($rc !== null && stripos($rc, 'error') !== false)) {
-            Log::warning('syscommands/seticmp shorewall check failed', ['error' => $err2, 'output' => $rc]);
-        } else {
-            pbx3_request_syscmd('/sbin/shorewall restart 2>&1');
-        }
-        return response()->json(['allow' => $allow], 200);
+
+        return response()->json([
+            'allow' => true,
+            'message' => 'ICMP follows UFW defaults (echo allowed). Toggle not implemented under UFW.',
+        ], 200);
     }
 
     /**

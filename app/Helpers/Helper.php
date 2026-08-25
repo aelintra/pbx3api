@@ -209,8 +209,9 @@ if (!function_exists('pbx3_request_syscmd')) {
 
 if (!function_exists('pbx3_update_fqdn_inline_optional')) {
     /**
-     * Regenerate /etc/shorewall/pbx3_inline_fqdn via NetHelper and restart Shorewall (Option A).
+     * Re-apply home UFW allow-list via update-fqdn-inline.sh (NetHelper).
      * Non-fatal: logs a warning if syshelper or the script fails.
+     * fqdninspect STRING / Shorewall INLINE retired (UFW Phase 4).
      */
     function pbx3_update_fqdn_inline_optional(): void
     {
@@ -402,7 +403,7 @@ if (!function_exists('create_new_backup')) {
             '/usr/share/asterisk/sounds',
             '/var/spool/asterisk/voicemail',
             '/etc/asterisk',
-            '/etc/shorewall',
+            '/etc/pbx3/firewall.allows.json',
             '/tmp/pbx3.local.ldif'
         ];
 

@@ -320,6 +320,9 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 /**
  * Firewall
  */
+    Route::get('firewalls', [FirewallController::class, 'index']);
+    Route::post('firewalls', [FirewallController::class, 'save']);
+    Route::put('firewalls', [FirewallController::class, 'apply']);
     Route::get('firewalls/ipv4', [FirewallController::class, 'ipv4']);
     Route::get('firewalls/ipv6', [FirewallController::class, 'ipv6']);
     Route::post('firewalls/ipv4', [FirewallController::class, 'ipv4save']);

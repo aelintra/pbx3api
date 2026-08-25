@@ -26,7 +26,7 @@ class LogController extends Controller
 		'asterisk/cdr-csv/Master.csv',
 		'asterisk/queue_log',
 		'syslog',
-		'shorewall.log',
+		'ufw.log',
 		'mail.log',
 		'fail2ban.log',
 		'auth.log',
