@@ -30,6 +30,19 @@ cp "${SOURCE_CONF}" "${TARGET_AVAILABLE}"
 # Align fastcgi socket with selected PHP-FPM service.
 sed -i "s|^[[:space:]]*fastcgi_pass[[:space:]]\\+unix:[^;]*;|        fastcgi_pass unix:${PHP_FPM_SOCKET};|" "${TARGET_AVAILABLE}"
 
+# PHP-FPM upload limits (MOH / backups). Stock Ubuntu is 2M/8M — too small for tenant MOH.
+PHP_UPLOADS_SRC="${PHP_UPLOADS_SRC:-${REPO_ROOT}/config/php/99-pbx3-uploads.ini}"
+PHP_VERSION_SHORT="$(printf '%s' "${PHP_FPM_SERVICE}" | sed -n 's/^php\([0-9.]*\)-fpm$/\1/p')"
+if [ -z "${PHP_VERSION_SHORT}" ]; then
+	PHP_VERSION_SHORT="8.3"
+fi
+PHP_UPLOADS_DST="/etc/php/${PHP_VERSION_SHORT}/fpm/conf.d/99-pbx3-uploads.ini"
+if [ -f "${PHP_UPLOADS_SRC}" ]; then
+	mkdir -p "/etc/php/${PHP_VERSION_SHORT}/fpm/conf.d"
+	cp "${PHP_UPLOADS_SRC}" "${PHP_UPLOADS_DST}"
+	echo "Installed PHP-FPM upload limits: ${PHP_UPLOADS_DST}"
+fi
+
 ln -sfn "${TARGET_AVAILABLE}" "${TARGET_ENABLED}"
 
 # Ubuntu's stock site also uses listen 80 default_server; only one allowed.
@@ -55,6 +68,8 @@ nginx -t
 systemctl enable nginx >/dev/null 2>&1 || true
 systemctl enable "${PHP_FPM_SERVICE}" >/dev/null 2>&1 || true
 systemctl start "${PHP_FPM_SERVICE}" >/dev/null 2>&1 || true
+# Reload FPM so 99-pbx3-uploads.ini takes effect on existing installs.
+systemctl reload "${PHP_FPM_SERVICE}" >/dev/null 2>&1 || systemctl restart "${PHP_FPM_SERVICE}" >/dev/null 2>&1 || true
 systemctl reload nginx >/dev/null 2>&1 || systemctl restart nginx >/dev/null 2>&1 || true
 
 echo "Installed nginx site: ${TARGET_AVAILABLE}"

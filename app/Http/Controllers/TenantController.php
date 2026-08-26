@@ -8,6 +8,7 @@ use App\Support\ExtLenPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
@@ -403,6 +404,18 @@ class TenantController extends Controller
         return $stem.'.'.$ext;
     }
 
+    /**
+     * Rescan MOH class directories so new/deleted files play without a full Commit.
+     * Uses Asterisk CLI via syshelper (same effect as AMI Action: Command / moh reload).
+     */
+    private function reloadMohClasses(): void
+    {
+        [, $err] = pbx3_request_syscmd("/usr/sbin/asterisk -rx 'moh reload'");
+        if ($err !== null) {
+            Log::warning('moh reload after MOH file change failed', ['error' => $err]);
+        }
+    }
+
     /** List custom MOH files for this tenant. */
     public function listMoh(Tenant $tenant)
     {
@@ -482,6 +495,7 @@ class TenantController extends Controller
 
         pbx3_request_syscmd('/bin/chmod +r '.escapeshellarg($target));
         pbx3_request_syscmd('/bin/chown asterisk:asterisk '.escapeshellarg($target));
+        $this->reloadMohClasses();
 
         return response()->json(['message' => "File {$safeName} uploaded", 'name' => $safeName], 200);
     }
@@ -516,6 +530,7 @@ class TenantController extends Controller
         if ($err !== null && is_file($path)) {
             return response()->json(['Error' => 'Failed to delete: '.$err], 409);
         }
+        $this->reloadMohClasses();
 
         return response()->json(['message' => "Deleted {$safe}"], 200);
     }
