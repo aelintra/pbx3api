@@ -396,7 +396,7 @@ class ExtensionController extends Controller
     }
 
 /**
- * Daytime (open) and nighttime (closed) CoS assignments for an extension.
+ * Standard (open) and After-hours (closed) CoS assignments for an extension.
  * Rules are tenant-scoped; open/closed lists are cos_pkey values present in junction tables.
  */
     public function showcos(Extension $extension)
@@ -432,7 +432,7 @@ class ExtensionController extends Controller
     }
 
 /**
- * Replace daytime (open) and nighttime (closed) CoS assignments for an extension.
+ * Replace Standard (open) and After-hours (closed) CoS assignments for an extension.
  * Body: { "open": ["rule1", ...], "closed": ["rule2", ...] } — full lists (not a patch).
  */
     public function updatecos(Request $request, Extension $extension)
