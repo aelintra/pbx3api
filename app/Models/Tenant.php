@@ -123,6 +123,7 @@ class Tenant extends Model
         'rec_mount',
         'recmaxage',
         'recmaxsize',
+        'rec_s3',
         'ringdelay',
         'spy_pass',
         'sysop',

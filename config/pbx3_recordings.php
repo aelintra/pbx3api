@@ -41,7 +41,7 @@ return [
     /** Max rows per pbx3:recordings-s3-upload run. */
     'upload_batch' => (int) env('PBX3_RECORDING_UPLOAD_BATCH', 50),
 
-    /** Comma-separated tenant shortuids; empty = all tenants with local rows. */
+    /** Comma-separated tenant shortuids; empty = no extra restriction (product gate is cluster.rec_s3). Break-glass only. */
     'upload_tenants' => env('PBX3_RECORDING_UPLOAD_TENANTS', ''),
 
     /** e.g. https://control.pbx3.com — no trailing slash required. */

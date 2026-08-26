@@ -74,6 +74,7 @@ class TenantController extends Controller
 			'rec_mount' => 'string|nullable',
 			'recmaxage' => 'integer|nullable',
 			'recmaxsize' => 'integer|nullable',
+			'rec_s3' => 'in:YES,NO',
 			'ringdelay' => 'integer',
 			'spy_pass' => 'nullable|string|max:64',
 			'sysop' => 'integer|nullable',

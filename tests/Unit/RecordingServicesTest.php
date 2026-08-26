@@ -59,6 +59,47 @@ test('storage codes match location and on_s3 flags', function () {
     }
 });
 
+test('catalog list keeps s3_only and s3_key rows even when local file is gone', function () {
+    // Mirror RecordingIndexService::listFromDatabase include rules.
+    $include = static function (bool $playable, string $location, string $s3Key): bool {
+        if ($playable) {
+            return true;
+        }
+        if ($location === 's3_only') {
+            return true;
+        }
+
+        return $s3Key !== '';
+    };
+
+    expect($include(false, 's3_only', 'tenants/9wvvnb/recordings/media/2024/05/19/a.wav'))->toBeTrue()
+        ->and($include(false, 'archive', 'tenants/9wvvnb/recordings/media/2024/05/19/a.wav'))->toBeTrue()
+        ->and($include(false, 'archive', ''))->toBeFalse()
+        ->and($include(true, 'archive', ''))->toBeTrue();
+});
+
+test('s3 upload eligibility intersects rec_s3 with optional env allowlist', function () {
+    // Mirror RecordingS3UploadService::tenantsEligibleForUpload rules.
+    $eligible = static function (array $optedIn, ?array $envAllow): array {
+        if ($envAllow === null) {
+            return array_values($optedIn);
+        }
+        $out = [];
+        foreach ($envAllow as $suid) {
+            if (in_array($suid, $optedIn, true)) {
+                $out[] = $suid;
+            }
+        }
+
+        return $out;
+    };
+
+    expect($eligible(['a', 'b'], null))->toBe(['a', 'b'])
+        ->and($eligible(['a', 'b'], ['b', 'c']))->toBe(['b'])
+        ->and($eligible([], null))->toBe([])
+        ->and($eligible(['a'], ['z']))->toBe([]);
+});
+
 test('legacy id round-trips spool path', function () {
     $paths = new RecordingPathHelper;
     $id = $paths->legacyIdFromSpoolPath('9wvvnb', 'call.wav');

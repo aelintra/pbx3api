@@ -5,6 +5,7 @@ namespace App\Services\Recordings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Async upload of local archive recordings to PBX3_RECORDINGS_BUCKET via gatekeeper
@@ -47,7 +48,10 @@ class RecordingS3UploadService
         }
 
         $limit = $limit ?? max(1, (int) config('pbx3_recordings.upload_batch', 50));
-        $allow = $this->tenantAllowlist();
+        $allow = $this->tenantsEligibleForUpload();
+        if ($allow === []) {
+            return $stats;
+        }
 
         // Page through candidates until we upload $limit files (or run out).
         // Older rows may have lost local files — do not burn the batch on skips alone.
@@ -65,13 +69,10 @@ class RecordingS3UploadService
                     RecordingPathHelper::LOCATION_ARCHIVE,
                     RecordingPathHelper::LOCATION_SPOOL,
                 ])
+                ->whereIn('cluster', $allow)
                 ->orderBy('epoch')
                 ->offset($offset)
                 ->limit($page);
-
-            if ($allow !== null) {
-                $query->whereIn('cluster', $allow);
-            }
 
             $rows = $query->get();
             if ($rows->isEmpty()) {
@@ -221,9 +222,53 @@ class RecordingS3UploadService
     }
 
     /**
-     * @return list<string>|null  null = all tenants
+     * Tenants allowed to upload: cluster.rec_s3=YES, optionally intersected with
+     * PBX3_RECORDING_UPLOAD_TENANTS break-glass allowlist.
+     *
+     * @return list<string>  empty = upload nobody this run
      */
-    private function tenantAllowlist(): ?array
+    private function tenantsEligibleForUpload(): array
+    {
+        $optedIn = [];
+        try {
+            if (Schema::hasColumn('cluster', 'rec_s3')) {
+                foreach (DB::table('cluster')->whereRaw("upper(trim(coalesce(rec_s3,''))) = 'YES'")->pluck('shortuid') as $suid) {
+                    $suid = trim((string) $suid);
+                    if ($suid !== '') {
+                        $optedIn[$suid] = true;
+                    }
+                }
+            } else {
+                // Pre-migration DBs: do not upload anyone until rec_s3 exists (fail closed).
+                Log::debug('recording s3 upload: cluster.rec_s3 missing — skip until apply-sqlite-add-rec-s3');
+            }
+        } catch (\Throwable $e) {
+            Log::warning('recording s3 upload: rec_s3 query failed', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+
+        $envAllow = $this->tenantAllowlistFromEnv();
+        if ($envAllow === null) {
+            return array_keys($optedIn);
+        }
+
+        $out = [];
+        foreach ($envAllow as $suid) {
+            if (isset($optedIn[$suid])) {
+                $out[] = $suid;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Break-glass env allowlist only (not the product switch).
+     *
+     * @return list<string>|null  null = no env restriction
+     */
+    private function tenantAllowlistFromEnv(): ?array
     {
         $raw = config('pbx3_recordings.upload_tenants');
         if (! is_string($raw) || trim($raw) === '') {
