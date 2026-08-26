@@ -137,6 +137,7 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::get('extensions', [ExtensionController::class, 'index']);
     Route::get('extensions/live', [ExtensionController::class, 'indexLive']);
     Route::get('extensions/export/pdf', [ExtensionController::class, 'exportPdf']);
+    Route::post('extensions/line-test/ensure', [ExtensionController::class, 'ensureLineTest']);
     Route::get('extensions/{extension}', [ExtensionController::class, 'show']);
     Route::get('extensions/{extension}/runtime', [ExtensionController::class, 'showruntime']);
     Route::get('extensions/{extension}/cos', [ExtensionController::class, 'showcos']);

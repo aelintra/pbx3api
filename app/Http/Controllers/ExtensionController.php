@@ -15,6 +15,7 @@ use App\Models\IpPhoneCosOpen;
 use App\Models\IpPhoneCosClosed;
 use App\Models\ClassOfService;
 use App\CustomClasses\Ami;
+use App\Support\LineTestExtension;
 
 class ExtensionController extends Controller
 {
@@ -63,9 +64,14 @@ class ExtensionController extends Controller
  *
  * @return Extensions
  */
-    public function index () {
+    public function index (Request $request) {
 
-    	$extensions = $this->applyClusterScope(Extension::query())->orderBy('pkey','asc')->get();
+    	$query = $this->applyClusterScope(Extension::query());
+    	// Hide support line-test WebRTC from customer Extensions list (Phase 2).
+    	if (! $request->boolean('include_system')) {
+    		LineTestExtension::scopeExcludeSystem($query);
+    	}
+    	$extensions = $query->orderBy('pkey','asc')->get();
 
     	// Build cluster id/shortuid/pkey -> tenant pkey map (id = KSUID, shortuid = 8-char, pkey = human-facing)
     	$clusterToPkey = [];
@@ -119,7 +125,7 @@ class ExtensionController extends Controller
  */
     public function exportPdf()
     {
-    	$extensions = $this->index();
+    	$extensions = $this->index(request());
     	return Pdf::loadView('exports.extensions-pdf', ['extensions' => $extensions])
     		->setPaper('a4', 'landscape')
     		->download('extensions.pdf');
@@ -141,7 +147,9 @@ class ExtensionController extends Controller
             ->where('technology', 'SIP')
             ->where(function ($q) {
                 $q->whereNull('active')->orWhere('active', '<>', 'NO');
-            })
+            });
+        LineTestExtension::scopeExcludeSystem($extensions);
+        $extensions = $extensions
             ->orderBy('pkey')
             ->limit(200)
             ->get(['pkey', 'shortuid']);
@@ -839,6 +847,116 @@ class ExtensionController extends Controller
         }
 
         return response()->json($extension->fresh(), 200);
+    }
+
+/**
+ * Resolve or create the tenant's hidden support line-test WebRTC (SPA Phase 2).
+ * Body: cluster (tenant pkey / shortuid / id). Returns extension with passwd visible.
+ * New rows need Commit before REGISTER works.
+ *
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function ensureLineTest(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'cluster' => 'required|string',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
+        if ($clusterShortuid === null) {
+            return response()->json(['cluster' => ['Invalid or missing cluster.']], 422);
+        }
+        $this->assertClusterAllowed($clusterShortuid);
+
+        $existing = LineTestExtension::scopeOnlySystem(Extension::query(), $clusterShortuid)->first();
+        if ($existing) {
+            return response()->json($this->lineTestPayload($existing, false), 200);
+        }
+
+        $extLen = ExtLenPolicy::forClusterIdentifier($clusterShortuid);
+        $pkey = LineTestExtension::allocatePkey($clusterShortuid, $extLen);
+        if ($pkey === null) {
+            return response()->json([
+                'message' => 'No free extension number in this tenant for the line-test WebRTC.',
+            ], 409);
+        }
+
+        $id = generate_ksuid();
+        $shortuid = generate_shortuid();
+        $attrs = [
+            'id' => $id,
+            'shortuid' => $shortuid,
+            'pkey' => $pkey,
+            'cluster' => $clusterShortuid,
+            'dvrvmail' => $pkey,
+            'desc' => LineTestExtension::DISPLAY_DESC,
+            'description' => LineTestExtension::DESCRIPTION_MARKER,
+            'device' => 'WebRTC',
+            'transport' => 'udp',
+            'protocol' => 'IPV4',
+            'technology' => 'SIP',
+            'provision' => null,
+            'active' => 'YES',
+            'named_call_group' => 'ALL',
+            'named_pickup_group' => 'ALL',
+        ];
+
+        $provisionwith = 'IP';
+        try {
+            $globals = get_globals();
+            if ($globals && isset($globals->fqdnprov) && strtoupper((string) $globals->fqdnprov) === 'YES') {
+                $provisionwith = 'FQDN';
+            }
+        } catch (\Throwable $e) {
+            // keep default
+        }
+        $attrs['provisionwith'] = $provisionwith;
+
+        try {
+            $extension = Extension::create($attrs);
+        } catch (\Exception $e) {
+            Log::warning('Line-test extension create failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'Error' => $e->getMessage(),
+                'message' => $e->getMessage(),
+            ], 409);
+        }
+
+        Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+        $this->create_default_cos_instances($extension);
+        set_commit_dirty();
+
+        $fresh = Extension::find($id);
+        return response()->json($this->lineTestPayload($fresh, true), 201);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function lineTestPayload(Extension $extension, bool $created): array
+    {
+        $cluster = $extension->cluster ?? null;
+        if ($cluster !== null && $cluster !== '') {
+            $row = DB::table('cluster')
+                ->where('pkey', $cluster)
+                ->orWhere('shortuid', $cluster)
+                ->orWhere('id', $cluster)
+                ->first(['pkey', 'fqdn', 'shortuid']);
+            $extension->tenant_pkey = $row ? $row->pkey : $cluster;
+            $extension->tenant_fqdn = $row && isset($row->fqdn) ? $row->fqdn : null;
+        } else {
+            $extension->tenant_pkey = $cluster;
+            $extension->tenant_fqdn = null;
+        }
+
+        $data = $extension->makeVisible('passwd')->toArray();
+        $data['created'] = $created;
+        $data['system_line_test'] = true;
+
+        return $data;
     }
 
 /**
