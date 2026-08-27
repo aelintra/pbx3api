@@ -40,7 +40,7 @@ class Extension extends Model
     /**
      * Mass-assignable (whitelist). Schema: sqlite_create_tenant.sql ipphone.
      * id/shortuid: only set by controller on create (generate_ksuid/generate_shortuid), not from request.
-     * Excludes z_* (system-only) and display-only/fixed: abstimeout, basemacaddr, devicemodel, passwd, stealtime, stolen, tls.
+     * Excludes z_* (system-only) and harvest/system: abstimeout, basemacaddr, devicevendor, devicemodel, firstseen, lastseen, passwd, stealtime, stolen, tls.
      */
     protected $fillable = [
         'id',
@@ -78,13 +78,13 @@ class Extension extends Model
         'pjsipuser',
     ];
 
-    /** Appended when serialized (no DB column). Derived from device. */
-    protected $appends = ['extension_type'];
+    /** Appended when serialized (no DB column). */
+    protected $appends = ['extension_type', 'handset_label'];
 
     /**
      * Extension type derived from device label: WebRTC | MAILBOX | SIP.
      * WebRTC and MAILBOX are fixed labels; all other device values are SIP (hard or soft).
-     * (Legacy Device template table removed 2026-08-25.)
+     * (Legacy Device template table removed 2026-08-25. device = type enum only.)
      */
     public function getExtensionTypeAttribute(): string
     {
@@ -99,6 +99,22 @@ class Extension extends Model
             return 'MAILBOX';
         }
         return 'SIP';
+    }
+
+    /**
+     * Display composite: "{devicemodel} ({devicevendor})" e.g. T46U (Yealink).
+     */
+    public function getHandsetLabelAttribute(): ?string
+    {
+        $model = trim((string) ($this->attributes['devicemodel'] ?? ''));
+        $vendor = trim((string) ($this->attributes['devicevendor'] ?? ''));
+        if ($model === '' && $vendor === '') {
+            return null;
+        }
+        if ($model !== '' && $vendor !== '') {
+            return $model . ' (' . $vendor . ')';
+        }
+        return $model !== '' ? $model : $vendor;
     }
 
 	/**

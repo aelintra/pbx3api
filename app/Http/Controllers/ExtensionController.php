@@ -286,11 +286,8 @@ class ExtensionController extends Controller
 
             if ($macaddr !== null && $macaddr !== '') {
                 $attrs['macaddr'] = $macaddr;
-                // OUI → vendor label when known; else General SIP (no Device template table).
-                $attrs['device'] = $this->getVendorFromMac($macaddr) ?? 'General SIP';
-            } else {
-                $attrs['device'] = 'General SIP';
             }
+            $attrs['device'] = 'General SIP';
         } else {
             $attrs['device'] = 'WebRTC';
             $attrs['transport'] = $request->input('transport', 'wss');
@@ -693,10 +690,7 @@ class ExtensionController extends Controller
             }                 
         });
 
-    	$device = null;
-		if ($request->post('macaddr')) {
-			$device = $this->getVendorFromMac($request->post('macaddr')) ?? 'General SIP';
-		}
+    	$device = 'General SIP';
 
     	$validator->after(function ($validator) use ($request) {
     			if (Extension::where('macaddr','=',$request->post('macaddr'))->count()) {
@@ -719,7 +713,7 @@ class ExtensionController extends Controller
         		'shortuid' => generate_shortuid(),
         		'pkey' => $request->post('pkey'),
         		'provision' => null,
-        		'device' => $device ?? 'General SIP',
+        		'device' => $device,
         		'technology' => 'SIP',
         		'cluster' => $clusterShortuid,
         		'macaddr' => $request->post('macaddr'),
@@ -822,13 +816,10 @@ class ExtensionController extends Controller
                 return response()->json(['macaddr' => ['This MAC already exists.']], 422);
             }
             $extension->macaddr = $newMac;
-            $extension->device = $this->getVendorFromMac($newMac) ?? 'General SIP';
-            $extension->technology = 'SIP';
-            $extension->provision = null;
+            // MAC is best-effort inventory only — do not rewrite device type from OUI.
         } elseif ($macRemoved) {
-            $extension->device = 'General SIP';
-            $extension->technology = 'SIP';
-            $extension->provision = null;
+            $extension->macaddr = null;
+            // Leave device (WebRTC|MAILBOX|General SIP) unchanged.
         }
 
         try {
@@ -1077,48 +1068,6 @@ class ExtensionController extends Controller
         return response()->json(null, 204);
     }
  
-
-
-/**
- * Search the vendor database for the OUI of a given MAC address.
- *
- * @param  string $mac 12 hex chars (no colons)
- * @return string|null short vendor name, e.g. Yealink, or null if not found
- */
-    private function getVendorFromMac($mac) {
-        $shortmac = strtoupper(preg_replace('/[^0-9A-F]/', '', substr($mac, 0, 6)));
-        if (strlen($shortmac) !== 6 || !preg_match('/^[0-9A-F]{6}$/', $shortmac)) {
-            return null;
-        }
-        $findmac = substr($shortmac, 0, 2) . ':' . substr($shortmac, 2, 2) . ':' . substr($shortmac, 4, 2);
-        $manufPath = '/opt/pbx3/cache/manuf.txt';
-        if (!is_readable($manufPath)) {
-            return null;
-        }
-        $vendorline = `grep -i "^$findmac" "$manufPath" 2>/dev/null`;
-        $vendorline = trim($vendorline);
-        if ($vendorline === '') {
-            return null;
-        }
-        // manuf.txt can be "OUI\trest" or "OUI rest" (tab or space). Strip OUI and match vendor in the rest.
-        $rest = trim(substr($vendorline, strlen($findmac)));
-        $supported = 'Snom|Panasonic|Yealink|Polycom|Fanvil|Cisco|Gigaset|Aastra|Grandstream|Vtech';
-        if (!preg_match('/(' . $supported . ')/i', $rest, $m)) {
-            return null;
-        }
-        $short_vendor = $m[1];
-        if (strcasecmp($short_vendor, 'yealink') === 0) {
-            $short_vendor = 'Yealink';
-        }
-        if (strcasecmp($short_vendor, 'snom') === 0) {
-            $short_vendor = 'Snom';
-        }
-        return $short_vendor;
-    }
-
-
-
-
 
 	private function create_default_cos_instances($extension) {
 		$aliases = cluster_identifier_aliases($extension->cluster);
