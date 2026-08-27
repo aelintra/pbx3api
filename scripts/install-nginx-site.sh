@@ -41,7 +41,20 @@ if [ -f "${PHP_UPLOADS_SRC}" ]; then
 	mkdir -p "/etc/php/${PHP_VERSION_SHORT}/fpm/conf.d"
 	cp "${PHP_UPLOADS_SRC}" "${PHP_UPLOADS_DST}"
 	echo "Installed PHP-FPM upload limits: ${PHP_UPLOADS_DST}"
+	if [ -d "/etc/php/${PHP_VERSION_SHORT}/cli/conf.d" ]; then
+		cp "${PHP_UPLOADS_SRC}" "/etc/php/${PHP_VERSION_SHORT}/cli/conf.d/99-pbx3-uploads.ini"
+	fi
 fi
+
+# Existing site may predate the 50M floor — bump in place even when not re-copying the whole conf.
+for _pbx3_api_site in /etc/nginx/sites-enabled/pbx3-api.conf /etc/nginx/sites-available/pbx3-api.conf; do
+	if [ -f "${_pbx3_api_site}" ] || [ -L "${_pbx3_api_site}" ]; then
+		if grep -qE 'client_max_body_size[[:space:]]+' "${_pbx3_api_site}"; then
+			sed -i -E 's/client_max_body_size[[:space:]]+[0-9]+[mMkKgG]?/client_max_body_size 50M/' "${_pbx3_api_site}"
+		fi
+	fi
+done
+unset _pbx3_api_site
 
 ln -sfn "${TARGET_AVAILABLE}" "${TARGET_ENABLED}"
 
