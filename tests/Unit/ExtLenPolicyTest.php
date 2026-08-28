@@ -30,11 +30,19 @@ test('minMatchLength for Asterisk patterns', function () {
         ->and(ExtLenPolicy::minMatchLength('_X!'))->toBe(1);
 });
 
-test('dialplanError enforces min match greater than ext_len', function () {
-    expect(ExtLenPolicy::dialplanError('_0. _00.', 3))->not->toBeNull()
-        ->and(ExtLenPolicy::dialplanError('_0XXX. _00XX.', 3))->toBeNull()
+test('dialplanError uses SARK floor min match >= 3', function () {
+    // Reject: larger than two chars required
+    expect(ExtLenPolicy::dialplanError('_0.', 3))->not->toBeNull()
         ->and(ExtLenPolicy::dialplanError('_9.', 3))->not->toBeNull()
-        ->and(ExtLenPolicy::dialplanError('_9XXXX', 3))->toBeNull()
+        ->and(ExtLenPolicy::dialplanError('_XX', 3))->not->toBeNull()
+        ->and(ExtLenPolicy::dialplanError('_X!', 3))->not->toBeNull();
+
+    // Allow: min >= 3 (ext_len ignored)
+    expect(ExtLenPolicy::dialplanError('_XXX', 3))->toBeNull()
+        ->and(ExtLenPolicy::dialplanError('_1XX 999', 3))->toBeNull()
+        ->and(ExtLenPolicy::dialplanError('999 112 101', 4))->toBeNull()
+        ->and(ExtLenPolicy::dialplanError('_00.', 5))->toBeNull()
+        ->and(ExtLenPolicy::dialplanError('_0XXX. _00XX.', 3))->toBeNull()
         ->and(ExtLenPolicy::dialplanError(ExtLenPolicy::UK_SEED_DIALPLAN, ExtLenPolicy::DEFAULT))->toBeNull();
 });
 

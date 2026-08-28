@@ -16,7 +16,14 @@ final class ExtLenPolicy
 
     public const DEFAULT = 3;
 
-    /** UK seed that satisfies min match > default ext_len=3 (L7a). */
+    /**
+     * OutRoute dialplan floor (SARK-aligned): min match must be **greater than 2**
+     * (i.e. at least 3). Exact extension matches always outrank patterns in Asterisk;
+     * operators who put extensions in 1xx accept the collision.
+     */
+    public const OUTROUTE_MIN_MATCH = 3;
+
+    /** UK seed that satisfies OUTROUTE_MIN_MATCH (L7a). */
     public const UK_SEED_DIALPLAN = '_0XXX. _00XX.';
 
     public static function normalize(mixed $raw): int
@@ -122,19 +129,22 @@ final class ExtLenPolicy
     }
 
     /**
-     * Validate space-separated OutRoute dialplan string against tenant ext_len.
-     * Every non-empty token must have min match length strictly greater than ext_len.
+     * Validate space-separated OutRoute dialplan string.
+     * Every non-empty token must have min match length ≥ OUTROUTE_MIN_MATCH (3).
+     * SARK rule: anything larger than two chars. $extLen retained for call-site
+     * compatibility; not used for the floor check.
      *
      * @return string|null error message, or null if OK
      */
-    public static function dialplanError(?string $dialplan, int $extLen): ?string
+    public static function dialplanError(?string $dialplan, int $extLen = self::DEFAULT): ?string
     {
-        $extLen = self::normalize($extLen);
+        unset($extLen); // call-site compat; OutRoute floor is not tenant ext_len
         $raw = trim((string) $dialplan);
         if ($raw === '') {
             return null; // emptiness enforced elsewhere when required
         }
         $raw = preg_replace('/\s+/', ' ', $raw) ?? $raw;
+        $floor = self::OUTROUTE_MIN_MATCH;
         foreach (explode(' ', $raw) as $token) {
             $token = trim($token);
             if ($token === '') {
@@ -144,8 +154,8 @@ final class ExtLenPolicy
             if ($min === null) {
                 return "Invalid dialplan pattern: {$token}";
             }
-            if ($min <= $extLen) {
-                return "Dialplan pattern {$token} minimum match length ({$min}) must be greater than tenant extension length ({$extLen}).";
+            if ($min < $floor) {
+                return "Dialplan pattern {$token} minimum match length ({$min}) must be at least {$floor}.";
             }
         }
 
