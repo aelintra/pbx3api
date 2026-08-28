@@ -878,11 +878,12 @@ if (!function_exists('idpwgen_run')) {
 
 if (!function_exists('ret_password')) {
     /**
-     * Generate a phone password using idpwgen (12 chars, digits + mixed case, no ambiguous).
+     * Generate a SIP/phone password using idpwgen.
+     * Softphone-friendly: 8 lowercase a–z only (~26^8 ≈ 209B combinations).
      */
-    function ret_password($length = 12) {
+    function ret_password($length = 8) {
         $path = env('IDPWGEN_PATH', '/opt/pbx3/golang/idpwgen');
-        $possible = '2346789bcdfghjkmnpqrtvwxyzBCDFGHJKLMNPQRTVWXYZ';
+        $possible = 'abcdefghijklmnopqrstuvwxyz';
         $maxlength = strlen($possible);
         if ($length > $maxlength) {
             $length = $maxlength;

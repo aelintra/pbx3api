@@ -341,7 +341,7 @@ class ExtensionController extends Controller
         }
 
         // SIP password: auto-generate 12 chars (passwd not fillable; set via direct update)
-        Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+        Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
 
         $this->create_default_cos_instances($extension);
 
@@ -558,7 +558,7 @@ class ExtensionController extends Controller
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
     	}
-    	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+    	Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
     	return $extension;
 	}
 
@@ -605,7 +605,7 @@ class ExtensionController extends Controller
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
     	}
-    	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+    	Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
 
 // create default Clsss of service contraints
 
@@ -658,7 +658,7 @@ class ExtensionController extends Controller
 	} catch (\Exception $e) {
 		return Response::json(['Error' => $e->getMessage()],409);
 	}
-	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+	Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
 
 // create default Class of service contraints
 
@@ -721,7 +721,7 @@ class ExtensionController extends Controller
         } catch (\Exception $e) {
    			return Response::json(['Error' => $e->getMessage()],409);
     	}
-    	Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+    	Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
 
 // create default Clsss of service contraints
 
@@ -916,7 +916,7 @@ class ExtensionController extends Controller
             ], 409);
         }
 
-        Extension::where('id', $extension->id)->update(['passwd' => ret_password(12)]);
+        Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
         $this->create_default_cos_instances($extension);
         set_commit_dirty();
 
@@ -964,7 +964,7 @@ class ExtensionController extends Controller
         if ($id === null || $id === '') {
             return response()->json(['Error' => 'Extension id is missing'], 409);
         }
-        $newPass = ret_password(12);
+        $newPass = ret_password();
         Extension::where('id', $id)->update(['passwd' => $newPass]);
         set_commit_dirty();
 
