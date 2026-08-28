@@ -102,7 +102,7 @@ class Extension extends Model
     }
 
     /**
-     * Display composite: "{devicemodel} ({devicevendor})" e.g. T46U (Yealink).
+     * Display composite: "{devicevendor} ({devicemodel})" e.g. Yealink (T46U).
      */
     public function getHandsetLabelAttribute(): ?string
     {
@@ -112,9 +112,9 @@ class Extension extends Model
             return null;
         }
         if ($model !== '' && $vendor !== '') {
-            return $model . ' (' . $vendor . ')';
+            return $vendor . ' (' . $model . ')';
         }
-        return $model !== '' ? $model : $vendor;
+        return $vendor !== '' ? $vendor : $model;
     }
 
 	/**

@@ -23,7 +23,7 @@
                 <th>Tenant</th>
                 <th>User</th>
                 <th>Type</th>
-                <th>Device</th>
+                <th>Handset</th>
                 <th>MAC</th>
                 <th>Transport</th>
                 <th>Active</th>
@@ -37,7 +37,7 @@
                 <td>{{ $e->tenant_pkey ?? $e->cluster ?? '—' }}</td>
                 <td>{{ trim($e->desc ?? $e->cname ?? $e->description ?? '') ?: '—' }}</td>
                 <td>{{ $e->extension_type ?? '—' }}</td>
-                <td>{{ $e->device ?? $e->technology ?? '—' }}</td>
+                <td>{{ $e->handset_label ?? '—' }}</td>
                 <td>{{ $e->macaddr ?? 'N/A' }}</td>
                 <td>{{ $e->transport ?? '—' }}</td>
                 <td>{{ $e->active ?? '—' }}</td>
