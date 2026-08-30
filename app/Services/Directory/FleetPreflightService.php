@@ -5,6 +5,7 @@ namespace App\Services\Directory;
 use App\Models\Sysglobal;
 use App\Services\Fleet\FleetPostureService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -255,7 +256,11 @@ class FleetPreflightService
         }
 
         $pkey = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
-        $row = DB::table('trunks')->where('pkey', $pkey)->first(['active', 'host']);
+        $cols = ['active', 'host'];
+        if (Schema::hasColumn('trunks', 'transform')) {
+            $cols[] = 'transform';
+        }
+        $row = DB::table('trunks')->where('pkey', $pkey)->first($cols);
         if ($row === null) {
             return [
                 'name' => 'Egress trunk',
@@ -270,6 +275,18 @@ class FleetPreflightService
                 'ok' => false,
                 'detail' => "{$pkey} exists but is not active",
             ];
+        }
+
+        if (Schema::hasColumn('trunks', 'transform')) {
+            $transform = trim((string) ($row->transform ?? ''));
+            if ($transform === '') {
+                return [
+                    'name' => 'Egress trunk',
+                    'ok' => false,
+                    'detail' => "{$pkey} transform empty — Phase-1 Mangle required "
+                        .'(UK 00:+ 0:+44); re-run seed-fleet-egress-trunk.sh',
+                ];
+            }
         }
 
         return [

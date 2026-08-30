@@ -248,6 +248,24 @@ class TrunkController extends Controller
     		return response()->json($validator->errors(),422);
     	}
 
+		// Phase 1 wire: fleet Egress must keep habit→+E.164 Mangle (NUMBER_WIRE “never neither”).
+		// Empty transform sends national 0… to the SBC; Brindley strip=2/pri_prefix=0 then mangles
+		// e.g. 01924910444 → 0924910444 (carrier 503 / Congestion).
+		$egressPkey = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
+		if (
+			app(FleetPostureService::class)->isFleetNode()
+			&& strcasecmp((string) $trunk->getAttribute('pkey'), $egressPkey) === 0
+			&& $request->exists('transform')
+			&& trim((string) $request->input('transform')) === ''
+		) {
+			return response()->json([
+				'transform' => [
+					'Fleet Egress transform cannot be empty while Phase-1 node Mangle is required '
+					.'(e.g. UK 00:+ 0:+44). See EGRESS_PLUS_E164_WIRE.md / NUMBER_WIRE_POLICY.md.',
+				],
+			], 422);
+		}
+
 // Move post variables to the model (cluster intentionally omitted — keep existing)
 		move_request_to_model($request,$trunk,$updateRules);
 		if ($request->has('pjsip_overlay')) {
