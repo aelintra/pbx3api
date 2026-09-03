@@ -136,7 +136,7 @@ class TrunkController extends Controller
 
 		if ($request->user() !== null && app(FleetPostureService::class)->isFleetNode()) {
 			return response()->json([
-				'message' => 'Fleet mode: carriers live on the SBC; do not create trunks on the node. Edit Egress for mangle/transform.',
+				'message' => 'Fleet mode: carriers live on the SBC; do not create trunks on the node. Edit Egress transform on the existing system peer.',
 			], 403);
 		}
 
@@ -220,20 +220,40 @@ class TrunkController extends Controller
 		// SIP registration mode (pjsipreg) is create-only; strip so PUT cannot change it (IAX2 still clears via normalize).
 		$request->request->remove('pjsipreg');
 
+		$manufactured = $this->isFleetManufacturedTrunk($trunk);
+		if ($manufactured) {
+			// FLEET_TRUNK_PEERING_DECISION §4.3.1 — peer identity is seeded; strip locked keys.
+			foreach ($this->fleetManufacturedLockedColumns() as $col) {
+				$request->request->remove($col);
+			}
+			$request->request->remove('pjsip_overlay');
+			// Heal / keep fleet mode: Active=NO would drop GenAst isFleetMode().
+			$request->merge(['active' => 'YES']);
+		}
+
 		$this->normalizeTrunkPjsipregOnWrite($request, $trunk);
 
 		$updateRules = $this->updateableColumns;
 		unset($updateRules['cluster']);
+		if ($manufactured) {
+			foreach ($this->fleetManufacturedLockedColumns() as $col) {
+				unset($updateRules[$col]);
+			}
+			// active forced above; still allow through move_request
+			$updateRules['active'] = 'in:YES,NO';
+		}
 
 // Validate (Request + Validator only; no Form Request)
     	$validator = Validator::make($request->all(), $updateRules);
 
-    	$validator->after(function ($validator) use ($request, $trunk) {
+    	$validator->after(function ($validator) use ($request, $trunk, $manufactured) {
 			$host = $request->host;
 			if ($host && strcasecmp($host, 'dynamic') !== 0 && ! valid_ip_or_domain($host)) {
 				$validator->errors()->add('host', "Host must be valid IP, valid domain name, or 'dynamic': " . $host);
 			}
-			$this->validateTrunkUpdatePjsipreg($validator, $request, $trunk);
+			if (!$manufactured) {
+				$this->validateTrunkUpdatePjsipreg($validator, $request, $trunk);
+			}
 			// pkey uniqueness when client sends a different pkey
 			$pkeySubmitted = $request->input('pkey');
 			if ($pkeySubmitted !== null && (string) $pkeySubmitted !== (string) $trunk->getAttribute('pkey')) {
@@ -251,10 +271,8 @@ class TrunkController extends Controller
 		// Phase 1 wire: fleet Egress must keep habit→+E.164 Mangle (NUMBER_WIRE “never neither”).
 		// Empty transform sends national 0… to the SBC; Brindley strip=2/pri_prefix=0 then mangles
 		// e.g. 01924910444 → 0924910444 (carrier 503 / Congestion).
-		$egressPkey = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
 		if (
-			app(FleetPostureService::class)->isFleetNode()
-			&& strcasecmp((string) $trunk->getAttribute('pkey'), $egressPkey) === 0
+			$manufactured
 			&& $request->exists('transform')
 			&& trim((string) $request->input('transform')) === ''
 		) {
@@ -268,7 +286,7 @@ class TrunkController extends Controller
 
 // Move post variables to the model (cluster intentionally omitted — keep existing)
 		move_request_to_model($request,$trunk,$updateRules);
-		if ($request->has('pjsip_overlay')) {
+		if (!$manufactured && $request->has('pjsip_overlay')) {
 			$ov = $request->input('pjsip_overlay');
 			$trunk->pjsip_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
 		}
@@ -299,6 +317,13 @@ class TrunkController extends Controller
  * @return NULL
  */
     public function delete(Trunk $trunk) {
+		if ($this->isFleetManufacturedTrunk($trunk)) {
+			return response()->json([
+				'message' => 'Fleet mode: Egress trunks are manufactured system peers; do not delete. '
+					.'Reseed via seed-fleet-egress-trunk.sh if the SBC host must change.',
+			], 403);
+		}
+
         $pkey = (string) $trunk->getAttribute('pkey');
         $trunk->delete();
         pbx3_delete_trunk_asterisk_instances($pkey);
@@ -306,6 +331,39 @@ class TrunkController extends Controller
 
         return response()->json(null, 204);
     }
+
+	/**
+	 * Fleet seeded Egress / EgressFailover — peer identity not operator-editable
+	 * (FLEET_TRUNK_PEERING_DECISION §4.3.1).
+	 */
+	private function isFleetManufacturedTrunk(Trunk $trunk): bool
+	{
+		if (!app(FleetPostureService::class)->isFleetNode()) {
+			return false;
+		}
+		$pkey = (string) $trunk->getAttribute('pkey');
+		$primary = (string) config('pbx3_fleet.egress_trunk_pkey', 'Egress');
+		$failover = (string) config('pbx3_fleet.egress_failover_pkey', 'EgressFailover');
+
+		return strcasecmp($pkey, $primary) === 0 || strcasecmp($pkey, $failover) === 0;
+	}
+
+	/** Columns stripped on PUT for manufactured fleet Egress (active forced YES separately). */
+	private function fleetManufacturedLockedColumns(): array
+	{
+		return [
+			'pkey',
+			'technology',
+			'host',
+			'peername',
+			'username',
+			'trunkname',
+			'password',
+			'privileged',
+			'match',
+			'active',
+		];
+	}
 
 	/**
 	 * Normalize pjsipreg for writes: IAX2 clears it; SIP accepts SND, RCV, NONE/empty → null (trusted).
