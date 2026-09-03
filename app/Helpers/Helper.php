@@ -725,6 +725,25 @@ if (!function_exists('get_ami_handle')) {
     } 
 }
 
+if (!function_exists('pbx_live_ip_display')) {
+    /**
+     * Normalize AMI contact host for the Extensions IP column.
+     * Browser WebRTC ICE uses a random mDNS label on the reserved TLD .invalid
+     * (not a routable address). Show WebRTC instead of leaking that string.
+     */
+    function pbx_live_ip_display($host) {
+        $host = trim((string) $host);
+        if ($host === '' || strcasecmp($host, 'unknown') === 0) {
+            return 'Unknown';
+        }
+        if (preg_match('/\.invalid$/i', $host)) {
+            return 'WebRTC';
+        }
+
+        return $host;
+    }
+}
+
 if (!function_exists('pjsip_endpoint_live')) {
     /**
      * Get live PJSIP endpoint data (IP and RTT) from Asterisk AMI.
@@ -796,11 +815,16 @@ if (!function_exists('pjsip_endpoint_live')) {
         }
         if ($out['ip'] === null) {
             $out['ip'] = 'Unknown';
+        } else {
+            $out['ip'] = pbx_live_ip_display($out['ip']);
         }
 
-        // ContactStatusDetail.Status: Reachable|Unreachable (AMI); CLI shows Avail|Unavail
+        // ContactStatusDetail.Status: Reachable|Unreachable (AMI); CLI shows Avail|Unavail.
+        // WebRTC contacts are NonQualified (qualify_frequency=0; ICE .invalid is not OPTIONS-probed).
         $statusRaw = strtolower((string) ($kv['Status'] ?? ''));
         if (in_array($statusRaw, ['reachable', 'avail'], true)) {
+            $out['qualify'] = 'Avail';
+        } elseif (in_array($statusRaw, ['nonqualified', 'nonqual'], true)) {
             $out['qualify'] = 'Avail';
         } elseif (in_array($statusRaw, ['unreachable', 'unavail', 'unavailable'], true)) {
             $out['qualify'] = 'Unavail';
