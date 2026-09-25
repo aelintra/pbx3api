@@ -150,24 +150,13 @@ class GreetingRecordController extends Controller
             return Response::json(['greeting' => ['Invalid file type (must be wav or mp3).']], 422);
         }
         $greeting->filename = $original; // store original upload name
-        $greeting->type = $type;
+        $greeting->type = 'wav';
 
-        $saved = "usergreeting{$greeting->pkey}.{$type}";
         $clusterDir = $clusterShortuid;
-        $rel = "{$clusterDir}/{$saved}";
-
-        try {
-            // Ensure tenant subdir exists (via syshelper; /usr/share/asterisk/sounds is privileged)
-            $this->ensureGreetingTenantDir($clusterDir);
-
-            // Write file to disk (storage/app/greetings... not used here; we write directly to disk root)
-            Storage::disk('greetings')->putFileAs($clusterDir, $file, $saved);
-
-            // Best-effort permissions (matches existing approach; no error if it fails)
-            @shell_exec("/bin/chown asterisk:asterisk " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
-            @shell_exec("/bin/chmod 664 " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
-        } catch (\Throwable $e) {
-            return Response::json(['Error' => 'Failed to save greeting audio: ' . $e->getMessage()], 409);
+        $rel = "{$clusterDir}/usergreeting{$greeting->pkey}.wav";
+        $err = $this->storeAsteriskGreeting($file, $clusterDir, $greeting->pkey);
+        if ($err !== null) {
+            return Response::json(['greeting' => [$err]], 422);
         }
 
         try {
@@ -229,20 +218,12 @@ class GreetingRecordController extends Controller
             }
 
             $greetingrecord->filename = $original;
-            $greetingrecord->type = $type;
-
-            $saved = "usergreeting{$greetingrecord->pkey}.{$type}";
             $clusterDir = $greetingrecord->cluster;
-            $rel = "{$clusterDir}/{$saved}";
-
-            try {
-                $this->ensureGreetingTenantDir($clusterDir);
-                Storage::disk('greetings')->putFileAs($clusterDir, $file, $saved);
-                @shell_exec("/bin/chown asterisk:asterisk " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
-                @shell_exec("/bin/chmod 664 " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
-            } catch (\Throwable $e) {
-                return Response::json(['Error' => 'Failed to replace greeting audio: ' . $e->getMessage()], 409);
+            $err = $this->storeAsteriskGreeting($file, $clusterDir, $greetingrecord->pkey);
+            if ($err !== null) {
+                return Response::json(['greeting' => [$err]], 422);
             }
+            $greetingrecord->type = 'wav';
         }
 
         try {
@@ -306,20 +287,12 @@ class GreetingRecordController extends Controller
         }
 
         $greetingrecord->filename = $original;
-        $greetingrecord->type = $type;
-
-        $saved = "usergreeting{$greetingrecord->pkey}.{$type}";
         $clusterDir = $greetingrecord->cluster;
-        $rel = "{$clusterDir}/{$saved}";
-
-        try {
-            $this->ensureGreetingTenantDir($clusterDir);
-            Storage::disk('greetings')->putFileAs($clusterDir, $file, $saved);
-            @shell_exec("/bin/chown asterisk:asterisk " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
-            @shell_exec("/bin/chmod 664 " . escapeshellarg("/usr/share/asterisk/sounds/{$rel}"));
-        } catch (\Throwable $e) {
-            return Response::json(['Error' => 'Failed to replace greeting audio: ' . $e->getMessage()], 409);
+        $err = $this->storeAsteriskGreeting($file, $clusterDir, $greetingrecord->pkey);
+        if ($err !== null) {
+            return Response::json(['greeting' => [$err]], 422);
         }
+        $greetingrecord->type = 'wav';
 
         try {
             if ($greetingrecord->isDirty()) {
@@ -336,6 +309,45 @@ class GreetingRecordController extends Controller
         }
 
         return response()->json($greetingrecord, 200);
+    }
+
+    /**
+     * Write a greeting as 8000 Hz, 16-bit, mono PCM WAV (Asterisk format_wav).
+     * Returns an error string, or null on success.
+     */
+    private function storeAsteriskGreeting($file, string $clusterDir, string $pkey): ?string
+    {
+        $src = $file ? $file->getRealPath() : null;
+        if (!$src || !is_readable($src)) {
+            return 'Upload temporary file missing.';
+        }
+
+        $wav = sys_get_temp_dir().'/ug'.bin2hex(random_bytes(6)).'.wav';
+        $cmd = '/usr/bin/sox '.escapeshellarg($src)
+            .' -r 8000 -c 1 -b 16 -e signed-integer '.escapeshellarg($wav).' -q';
+        exec($cmd.' 2>&1', $out, $code);
+        if ($code !== 0 || !is_file($wav) || filesize($wav) === 0) {
+            @unlink($wav);
+            return 'Could not convert audio to 8000 Hz, 16-bit, mono WAV.';
+        }
+
+        $rel = "{$clusterDir}/usergreeting{$pkey}.wav";
+        try {
+            $this->ensureGreetingTenantDir($clusterDir);
+            $written = Storage::disk('greetings')->put($rel, file_get_contents($wav));
+            if ($written === false) {
+                return 'Failed to save greeting audio.';
+            }
+            $full = "/usr/share/asterisk/sounds/{$rel}";
+            @shell_exec('/bin/chown asterisk:asterisk '.escapeshellarg($full));
+            @shell_exec('/bin/chmod 664 '.escapeshellarg($full));
+        } catch (\Throwable $e) {
+            return 'Failed to save greeting audio: '.$e->getMessage();
+        } finally {
+            @unlink($wav);
+        }
+
+        return null;
     }
 
     public function delete(Greeting $greetingrecord)
