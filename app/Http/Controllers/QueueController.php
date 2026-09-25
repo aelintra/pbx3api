@@ -36,6 +36,7 @@ class QueueController extends Controller
         'outcome' => 'string|nullable',
         'strategy' => 'in:ringall,roundrobin,leastrecent,fewestcalls,random,rrmemory',
         'timeout' => 'integer|nullable',
+        'caller_timeout' => 'integer|nullable|min:0',
         'queue_overlay' => 'nullable|string|max:16384',
     ];
 
@@ -116,6 +117,14 @@ class QueueController extends Controller
 // Move post variables to the model
         move_request_to_model($request, $queue, $this->updateableColumns);
         $queue->cluster = $clusterShortuid;
+        if ($request->exists('caller_timeout')) {
+            $ct = $request->input('caller_timeout');
+            if ($ct === null || $ct === '' || (is_numeric($ct) && (int) $ct <= 0)) {
+                $queue->caller_timeout = null;
+            } else {
+                $queue->caller_timeout = (int) $ct;
+            }
+        }
 
         $queue->id = generate_ksuid();
         $queue->shortuid = generate_shortuid();
@@ -127,6 +136,7 @@ class QueueController extends Controller
             return Response::json(['Error' => $e->getMessage()],409);
         }
 
+        set_commit_dirty();
         return $queue;
     }
 
@@ -163,6 +173,15 @@ class QueueController extends Controller
             $ov = $request->input('queue_overlay');
             $queue->queue_overlay = ($ov === null || (is_string($ov) && trim($ov) === '')) ? null : (is_string($ov) ? trim($ov) : $ov);
         }
+        // Caller Max Wait: blank/0 = unlimited (NULL). exists() so JSON null clears the field.
+        if ($request->exists('caller_timeout')) {
+            $ct = $request->input('caller_timeout');
+            if ($ct === null || $ct === '' || (is_numeric($ct) && (int) $ct <= 0)) {
+                $queue->caller_timeout = null;
+            } else {
+                $queue->caller_timeout = (int) $ct;
+            }
+        }
         $clusterShortuid = cluster_identifier_to_shortuid($request->input('cluster'));
         if ($clusterShortuid !== null) {
             $this->assertClusterAllowed($clusterShortuid);
@@ -179,6 +198,7 @@ class QueueController extends Controller
                 $dirty = $queue->getDirty();
                 Queue::where('id', $id)->update($dirty);
                 $queue->syncOriginal();
+                set_commit_dirty();
             }
 
         } catch (\Exception $e) {

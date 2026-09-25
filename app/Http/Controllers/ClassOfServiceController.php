@@ -96,6 +96,7 @@ class ClassOfServiceController extends Controller
 
         try {
             $classofservice->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -139,6 +140,7 @@ class ClassOfServiceController extends Controller
                 $dirty = $classofservice->getDirty();
                 ClassOfService::where('id', $id)->update($dirty);
                 $classofservice->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -151,6 +153,7 @@ class ClassOfServiceController extends Controller
     {
         $this->assertModelClusterAllowed($classofservice);
         $classofservice->delete();
+        set_commit_dirty();
         return response()->json(null, 204);
     }
 }

@@ -131,6 +131,7 @@ class AsteriskFileController extends Controller
         pbx3_request_syscmd('/usr/bin/dos2unix ' . escapeshellarg($path) . ' 2>/dev/null');
         pbx3_request_syscmd('/bin/chown root:asterisk ' . escapeshellarg($path) . ' 2>/dev/null');
         pbx3_request_syscmd('/bin/chmod 640 ' . escapeshellarg($path) . ' 2>/dev/null');
+        set_commit_dirty();
         return response()->json(['message' => 'Updated'], 200);
     }
 }

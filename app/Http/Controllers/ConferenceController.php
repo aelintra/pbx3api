@@ -93,6 +93,7 @@ class ConferenceController extends Controller
 
         try {
             $conference->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -143,6 +144,7 @@ class ConferenceController extends Controller
                 $dirty = $conference->getDirty();
                 Conference::where('id', $id)->update($dirty);
                 $conference->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -155,6 +157,7 @@ class ConferenceController extends Controller
     {
         $this->assertModelClusterAllowed($conference);
         $conference->delete();
+        set_commit_dirty();
         return response()->json(null, 204);
     }
 }

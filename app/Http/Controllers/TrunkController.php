@@ -195,6 +195,7 @@ class TrunkController extends Controller
     	try {
 
     		$trunk->save();
+    		set_commit_dirty();
 
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
@@ -301,6 +302,7 @@ class TrunkController extends Controller
     			$dirty = $trunk->getDirty();
     			Trunk::where('id', $id)->update($dirty);
     			$trunk->syncOriginal();
+    			set_commit_dirty();
     		}
         } catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);

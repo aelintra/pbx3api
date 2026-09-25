@@ -106,6 +106,7 @@ class RouteProfileController extends Controller
         try {
             DB::transaction(function () use ($profile, $request, $clusterShortuid) {
                 $profile->save();
+                set_commit_dirty();
                 $this->replaceLines($profile, $clusterShortuid, $request->input('lines', []));
             });
         } catch (\Exception $e) {
@@ -172,6 +173,7 @@ class RouteProfileController extends Controller
                     }
                     RouteProfile::where('id', $id)->update($routeprofile->getDirty());
                     $routeprofile->syncOriginal();
+                    set_commit_dirty();
                 }
                 if ($request->has('lines')) {
                     $this->replaceLines($routeprofile, $clusterShortuid, $request->input('lines', []));
@@ -191,6 +193,7 @@ class RouteProfileController extends Controller
             DB::transaction(function () use ($routeprofile) {
                 RouteProfileLine::where('profile', $routeprofile->shortuid)->delete();
                 $routeprofile->delete();
+                set_commit_dirty();
             });
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -253,26 +256,27 @@ class RouteProfileController extends Controller
     private function replaceLines(RouteProfile $profile, string $clusterShortuid, $lines): void
     {
         RouteProfileLine::where('profile', $profile->shortuid)->delete();
-        if (! is_array($lines)) {
-            return;
-        }
-        foreach ($lines as $line) {
-            if (! is_array($line)) {
-                continue;
+        if (is_array($lines)) {
+            foreach ($lines as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                $mode = ScheduleModes::normalize($line['mode'] ?? null, '');
+                $dest = trim((string) ($line['destination'] ?? ''));
+                if ($mode === '' || $dest === '') {
+                    continue;
+                }
+                $row = new RouteProfileLine;
+                $row->id = generate_ksuid();
+                $row->shortuid = generate_shortuid();
+                $row->profile = $profile->shortuid;
+                $row->cluster = $clusterShortuid;
+                $row->mode = $mode;
+                $row->destination = $dest;
+                $row->save();
             }
-            $mode = ScheduleModes::normalize($line['mode'] ?? null, '');
-            $dest = trim((string) ($line['destination'] ?? ''));
-            if ($mode === '' || $dest === '') {
-                continue;
-            }
-            $row = new RouteProfileLine;
-            $row->id = generate_ksuid();
-            $row->shortuid = generate_shortuid();
-            $row->profile = $profile->shortuid;
-            $row->cluster = $clusterShortuid;
-            $row->mode = $mode;
-            $row->destination = $dest;
-            $row->save();
         }
+        // Lines replaced (including cleared) always need GenAst.
+        set_commit_dirty();
     }
 }

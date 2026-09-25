@@ -505,6 +505,7 @@ class ExtensionController extends Controller
             return Response::json(['Error' => $e->getMessage()], 409);
         }
 
+        set_commit_dirty();
         return $this->showcos($extension);
     }
 

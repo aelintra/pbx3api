@@ -89,6 +89,7 @@ class CosCloseController extends Controller
 // create the model         
         try {
             $cosclose->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()],409);
         }
@@ -120,6 +121,7 @@ class CosCloseController extends Controller
         try {
             if ($cosclose->isDirty()) {
                 $cosclose->save();
+                set_commit_dirty();
             }
 
         } catch (\Exception $e) {
@@ -139,6 +141,7 @@ class CosCloseController extends Controller
     public function delete(CosClose $cosclose) {
         $this->assertModelClusterAllowed($cosclose);
         $cosclose->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

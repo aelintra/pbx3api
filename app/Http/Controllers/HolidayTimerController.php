@@ -114,6 +114,7 @@ class HolidayTimerController extends Controller
 
         try {
             $holidaytimer->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -183,6 +184,7 @@ class HolidayTimerController extends Controller
                 $dirty = $holidaytimer->getDirty();
                 HolidayTimer::where('id', $id)->update($dirty);
                 $holidaytimer->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -195,6 +197,7 @@ class HolidayTimerController extends Controller
     {
         $this->assertModelClusterAllowed($holidaytimer);
         $holidaytimer->delete();
+        set_commit_dirty();
         return response()->json(null, 204);
     }
 

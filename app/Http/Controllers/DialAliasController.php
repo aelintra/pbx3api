@@ -139,6 +139,7 @@ class DialAliasController extends Controller
 
         try {
             $row->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -265,6 +266,7 @@ class DialAliasController extends Controller
                 }
                 DialAlias::where('id', $id)->update($dialalias->getDirty());
                 $dialalias->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -289,6 +291,7 @@ class DialAliasController extends Controller
         }
 
         $dialalias->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

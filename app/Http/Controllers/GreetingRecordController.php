@@ -161,6 +161,7 @@ class GreetingRecordController extends Controller
 
         try {
             $greeting->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             // Roll back file if DB insert fails
             try {
@@ -235,6 +236,7 @@ class GreetingRecordController extends Controller
                 $dirty = $greetingrecord->getDirty();
                 Greeting::where('id', $id)->update($dirty);
                 $greetingrecord->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -303,6 +305,7 @@ class GreetingRecordController extends Controller
                 $dirty = $greetingrecord->getDirty();
                 Greeting::where('id', $id)->update($dirty);
                 $greetingrecord->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -366,6 +369,7 @@ class GreetingRecordController extends Controller
         }
 
         $greetingrecord->delete();
+        set_commit_dirty();
         return response()->json(null, 204);
     }
 }

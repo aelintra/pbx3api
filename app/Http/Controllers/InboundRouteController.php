@@ -192,6 +192,7 @@ class InboundRouteController extends Controller
                     );
                 }
                 $inboundroute->save();
+                set_commit_dirty();
             });
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()],409);
@@ -273,6 +274,7 @@ class InboundRouteController extends Controller
                 $dirty = $inboundroute->getDirty();
                 InboundRoute::where('id', $id)->update($dirty);
                 $inboundroute->syncOriginal();
+                set_commit_dirty();
             }
 
         } catch (\Exception $e) {
@@ -292,6 +294,7 @@ class InboundRouteController extends Controller
     public function delete(InboundRoute $inboundroute) {
         $this->assertModelClusterAllowed($inboundroute);
         $inboundroute->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }
@@ -366,6 +369,7 @@ class InboundRouteController extends Controller
         $profile->default_mode = 'open';
         $profile->description = 'Auto-created for inbound '.$didPkey;
         $profile->save();
+        set_commit_dirty();
 
         $this->insertProfileLine($profile->shortuid, $clusterShortuid, 'open', $openDest);
         $this->insertProfileLine($profile->shortuid, $clusterShortuid, 'closed', $closedDest);
@@ -411,5 +415,6 @@ class InboundRouteController extends Controller
         $row->mode = $mode;
         $row->destination = $destination;
         $row->save();
+        set_commit_dirty();
     }
 }

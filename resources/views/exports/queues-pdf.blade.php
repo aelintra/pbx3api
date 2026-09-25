@@ -24,7 +24,7 @@
                 <th>Name</th>
                 <th>Active</th>
                 <th>Strategy</th>
-                <th>Timeout</th>
+                <th>Agent ring</th>
             </tr>
         </thead>
         <tbody>

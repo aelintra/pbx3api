@@ -88,6 +88,7 @@ class CustomAppController extends Controller
 
         try {
             $customapp->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -137,6 +138,7 @@ class CustomAppController extends Controller
                 }
                 CustomApp::where('id', $id)->update($customapp->getDirty());
                 $customapp->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -153,6 +155,7 @@ class CustomAppController extends Controller
  */
     public function delete(CustomApp $customapp) {
         $customapp->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

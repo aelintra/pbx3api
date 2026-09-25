@@ -121,6 +121,7 @@ class RouteController extends Controller
 // create the model         
         try {
             $route->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()],409);
         }
@@ -180,6 +181,7 @@ class RouteController extends Controller
                 $dirty = $route->getDirty();
                 Route::where('id', $id)->update($dirty);
                 $route->syncOriginal();
+                set_commit_dirty();
             }
 
         } catch (\Exception $e) {
@@ -198,6 +200,7 @@ class RouteController extends Controller
  */
     public function delete(Route $route) {
         $route->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

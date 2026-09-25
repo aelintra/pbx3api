@@ -91,6 +91,7 @@ class ClidBlockController extends Controller
 
         try {
             $row->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -129,6 +130,7 @@ class ClidBlockController extends Controller
                 }
                 ClidBlock::where('id', $id)->update($clidblock->getDirty());
                 $clidblock->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
@@ -143,6 +145,7 @@ class ClidBlockController extends Controller
     {
         $this->assertModelClusterAllowed($clidblock);
         $clidblock->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

@@ -66,7 +66,8 @@ class AgentController extends Controller
     public function show (Agent $agent) {
 
     	$this->assertModelClusterAllowed($agent);
-    	return response()->json($agent, 200);
+    	// Include passwd only for single-agent (detail/edit); not in index/list
+    	return response()->json($agent->makeVisible('passwd'), 200);
     }
 
 /**
@@ -112,6 +113,7 @@ class AgentController extends Controller
 
         try {
             $agent->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
@@ -159,12 +161,13 @@ class AgentController extends Controller
                 $dirty = $agent->getDirty();
                 Agent::where('id', $id)->update($dirty);
                 $agent->syncOriginal();
+                set_commit_dirty();
             }
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()], 409);
         }
 
-        return response()->json($agent, 200);
+        return response()->json($agent->makeVisible('passwd'), 200);
     } 
 
 
@@ -176,6 +179,7 @@ class AgentController extends Controller
     public function delete(Agent $agent) {
         $this->assertModelClusterAllowed($agent);
         $agent->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

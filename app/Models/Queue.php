@@ -45,6 +45,7 @@ class Queue extends Model
         'outcome',
         'strategy',
         'timeout',
+        'caller_timeout',
         'queue_overlay',
     ];
 

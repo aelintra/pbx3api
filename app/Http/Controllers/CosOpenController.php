@@ -89,6 +89,7 @@ class CosOpenController extends Controller
 // create the model         
         try {
             $cosopen->save();
+            set_commit_dirty();
         } catch (\Exception $e) {
             return Response::json(['Error' => $e->getMessage()],409);
         }
@@ -120,6 +121,7 @@ class CosOpenController extends Controller
         try {
             if ($cosopen->isDirty()) {
                 $cosopen->save();
+                set_commit_dirty();
             }
 
         } catch (\Exception $e) {
@@ -139,6 +141,7 @@ class CosOpenController extends Controller
     public function delete(CosOpen $cosopen) {
         $this->assertModelClusterAllowed($cosopen);
         $cosopen->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

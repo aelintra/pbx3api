@@ -148,6 +148,7 @@ class IvrController extends Controller
     	try {
 
     		$ivr->save();
+    		set_commit_dirty();
 
     	} catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
@@ -203,6 +204,7 @@ class IvrController extends Controller
     			$dirty = $ivr->getDirty();
     			Ivr::where('id', $id)->update($dirty);
     			$ivr->syncOriginal();
+    			set_commit_dirty();
     		}
         } catch (\Exception $e) {
     		return Response::json(['Error' => $e->getMessage()],409);
@@ -221,6 +223,7 @@ class IvrController extends Controller
     public function delete(Ivr $ivr) {
         $this->assertModelClusterAllowed($ivr);
         $ivr->delete();
+        set_commit_dirty();
 
         return response()->json(null, 204);
     }

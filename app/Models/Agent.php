@@ -46,7 +46,7 @@ class Agent extends Model
         'queue6',
     ];
 
-    /** conf, num: internal; name: deprecated (use cname); passwd: secret — must never round-trip in JSON. */
+    /** conf, num: internal; name: deprecated (use cname); passwd: omit from list JSON — show() makeVisible for detail. */
     protected $hidden = [
         'conf',
         'num',

@@ -191,6 +191,7 @@ class TenantController extends Controller
     	try {
 
     		$tenant->save();
+    		set_commit_dirty();
             pbx3_update_fqdn_inline_optional();
             app(\App\Services\Tenant\SeedOutboundRouteOnTenantCreate::class)->seed($tenant);
             $cosSeed = app(\App\Services\Tenant\SeedCosHighRiskOnTenantCreate::class);
@@ -284,6 +285,7 @@ class TenantController extends Controller
     	try {
     		if ($tenant->isDirty()) {
     			$tenant->save();
+    			set_commit_dirty();
                 if ($tenant->wasChanged()) {
                     pbx3_update_fqdn_inline_optional();
                 }
@@ -350,6 +352,7 @@ class TenantController extends Controller
         app(\App\Services\Tenant\TenantMobilityService::class)->destroyTenantData($tenant);
         app(\App\Services\Tenant\PortableUserMobility::class)->removeOrStripForTenant($shortuid);
         pbx3_update_fqdn_inline_optional();
+        set_commit_dirty();
 
         return response()->json(['tenant ' .$id .' deleted'],200);
     }
