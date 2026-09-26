@@ -359,7 +359,12 @@ class TenantController extends Controller
 
     private const MOH_ROOT = '/usr/share/asterisk';
 
-    /** Absolute MOH directory for this tenant (CAGI / GenAst use shortuid). */
+    private function isDefaultTenant(Tenant $tenant): bool
+    {
+        return (string) $tenant->pkey === 'default';
+    }
+
+    /** Absolute custom MOH directory for this tenant (CAGI / GenAst use shortuid). */
     private function mohDir(Tenant $tenant): string
     {
         $su = trim((string) $tenant->shortuid);
@@ -368,6 +373,68 @@ class TenantController extends Controller
         }
 
         return self::MOH_ROOT.'/moh-'.$su;
+    }
+
+    private function systemMohDir(): string
+    {
+        return self::MOH_ROOT.'/moh';
+    }
+
+    /**
+     * List audio files in a MOH directory (basename + size).
+     *
+     * @return list<array{name: string, size: int}>
+     */
+    private function listMohFilesInDir(string $dir): array
+    {
+        $files = [];
+        if (is_dir($dir) && ($handle = opendir($dir))) {
+            while (false !== ($entry = readdir($handle))) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $path = $dir.'/'.$entry;
+                if (! is_file($path)) {
+                    continue;
+                }
+                $files[] = [
+                    'name' => $entry,
+                    'size' => filesize($path) ?: 0,
+                ];
+            }
+            closedir($handle);
+        }
+        usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $files;
+    }
+
+    /**
+     * Resolve which MOH directory to expose in the SPA.
+     * Default tenant with an empty/missing custom folder falls back to system `moh/`.
+     *
+     * @return array{path: string, directory: string, source: 'custom'|'system'}
+     */
+    private function resolveMohLocation(Tenant $tenant): array
+    {
+        $customPath = $this->mohDir($tenant);
+        $customLabel = 'moh-'.$tenant->shortuid;
+        if ($this->isDefaultTenant($tenant)) {
+            $customFiles = $this->listMohFilesInDir($customPath);
+            if ($customFiles === []) {
+                return [
+                    'path' => $this->systemMohDir(),
+                    'directory' => 'moh',
+                    'source' => 'system',
+                ];
+            }
+        }
+
+        return [
+            'path' => $customPath,
+            'directory' => $customLabel,
+            'source' => 'custom',
+        ];
     }
 
     private function ensureMohDir(Tenant $tenant): string
@@ -420,31 +487,16 @@ class TenantController extends Controller
         }
     }
 
-    /** List custom MOH files for this tenant. */
+    /** List custom MOH files for this tenant (default falls back to system `moh/`). */
     public function listMoh(Tenant $tenant)
     {
-        $dir = $this->mohDir($tenant);
-        $files = [];
-        if (is_dir($dir) && ($handle = opendir($dir))) {
-            while (false !== ($entry = readdir($handle))) {
-                if ($entry === '.' || $entry === '..') {
-                    continue;
-                }
-                $path = $dir.'/'.$entry;
-                if (! is_file($path)) {
-                    continue;
-                }
-                $files[] = [
-                    'name' => $entry,
-                    'size' => filesize($path) ?: 0,
-                ];
-            }
-            closedir($handle);
-        }
-        usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+        $loc = $this->resolveMohLocation($tenant);
+        $files = $this->listMohFilesInDir($loc['path']);
 
         return response()->json([
-            'directory' => 'moh-'.$tenant->shortuid,
+            'directory' => $loc['directory'],
+            'source' => $loc['source'],
+            'readonly' => $loc['source'] === 'system',
             'usemohcustom' => $tenant->usemohcustom === 'YES' ? 'YES' : 'NO',
             'files' => $files,
         ]);
@@ -511,7 +563,7 @@ class TenantController extends Controller
         if ($safe === '' || $safe !== $filename || str_contains($safe, '..')) {
             return response()->json(['Error' => 'Invalid filename'], 422);
         }
-        $path = $this->mohDir($tenant).'/'.$safe;
+        $path = $this->resolveMohLocation($tenant)['path'].'/'.$safe;
         if (! is_file($path)) {
             return response()->json(['Error' => 'File not found'], 404);
         }
@@ -519,14 +571,20 @@ class TenantController extends Controller
         return response()->file($path);
     }
 
-    /** Delete one custom MOH file. */
+    /** Delete one custom MOH file (not system default MOH). */
     public function deleteMoh(Tenant $tenant, string $filename)
     {
+        $loc = $this->resolveMohLocation($tenant);
+        if ($loc['source'] === 'system') {
+            return response()->json([
+                'Error' => 'System Music-on-Hold files cannot be deleted from this panel.',
+            ], 403);
+        }
         $safe = basename(str_replace('\\', '/', $filename));
         if ($safe === '' || $safe !== $filename || str_contains($safe, '..')) {
             return response()->json(['Error' => 'Invalid filename'], 422);
         }
-        $path = $this->mohDir($tenant).'/'.$safe;
+        $path = $loc['path'].'/'.$safe;
         if (! is_file($path)) {
             return response()->json(['Error' => 'File not found'], 404);
         }
