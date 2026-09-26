@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ExtLenPolicy
 {
-    public const MIN = 2;
+    public const MIN = 3;
 
     public const MAX = 5;
 

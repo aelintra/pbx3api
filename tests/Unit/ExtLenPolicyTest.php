@@ -8,7 +8,7 @@ test('normalize clamps and defaults', function () {
         ->and(ExtLenPolicy::normalize(4))->toBe(4)
         ->and(ExtLenPolicy::normalize(1))->toBe(3)
         ->and(ExtLenPolicy::normalize(9))->toBe(3)
-        ->and(ExtLenPolicy::normalize('2'))->toBe(2);
+        ->and(ExtLenPolicy::normalize('2'))->toBe(3);
 });
 
 test('extension pkey must be exactly ext_len digits', function () {
