@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\IpPhoneCosOpen;
 use App\Models\IpPhoneCosClosed;
 use App\Models\ClassOfService;
+use App\Models\CosProfile;
 use App\CustomClasses\Ami;
 use App\Support\LineTestExtension;
 
@@ -50,6 +51,7 @@ class ExtensionController extends Controller
 		// Comma-separated named group tokens; ALL = whole tenant (GenAst → $clst)
 		'named_call_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
 		'named_pickup_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
+		'cos_profile' => 'string|nullable',
 	];
 
 	/** Return column names that are updateable (for schema metadata). */
@@ -204,6 +206,7 @@ class ExtensionController extends Controller
             'vmailfwd' => 'nullable|email',
             'named_call_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
             'named_pickup_group' => ['nullable', 'string', 'max:512', 'regex:/^[A-Za-z0-9_,.\- ]*$/'],
+            'cos_profile' => 'nullable|string|max:64',
         ]);
 
         $validator->after(function ($validator) use ($request, $extensionTypeInput) {
@@ -224,6 +227,12 @@ class ExtensionController extends Controller
                 $mac = preg_replace('/[^0-9a-fA-F]/', '', $request->macaddr);
                 if ($mac !== '' && Extension::where('macaddr', $mac)->exists()) {
                     $validator->errors()->add('macaddr', 'This MAC already exists.');
+                }
+            }
+            if ($request->has('cos_profile') && $clusterShortuid !== null) {
+                $cp = trim((string) $request->input('cos_profile', ''));
+                if ($cp !== '' && strcasecmp($cp, 'None') !== 0 && ! CosProfile::belongsToCluster($cp, $clusterShortuid)) {
+                    $validator->errors()->add('cos_profile', 'Unknown CoS profile for this tenant.');
                 }
             }
         });
@@ -328,6 +337,12 @@ class ExtensionController extends Controller
             $attrs['named_pickup_group'] = $ng !== '' ? $ng : 'ALL';
         } else {
             $attrs['named_pickup_group'] = 'ALL';
+        }
+        if ($request->has('cos_profile')) {
+            $cp = trim((string) $request->input('cos_profile', ''));
+            if ($cp !== '' && strcasecmp($cp, 'None') !== 0) {
+                $attrs['cos_profile'] = $cp;
+            }
         }
 
         try {
@@ -765,6 +780,15 @@ class ExtensionController extends Controller
                     $validator->errors()->add('pkey', 'The pkey has already been taken in this cluster.');
                 }
             }
+            if ($request->has('cos_profile')) {
+                $cp = trim((string) $request->input('cos_profile', ''));
+                if ($cp !== '' && $cp !== 'None' && $cluster !== null) {
+                    $clst = cluster_identifier_to_shortuid((string) $cluster) ?? (string) $cluster;
+                    if (! CosProfile::belongsToCluster($cp, $clst)) {
+                        $validator->errors()->add('cos_profile', 'Unknown CoS profile for this tenant.');
+                    }
+                }
+            }
         });
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
@@ -788,6 +812,11 @@ class ExtensionController extends Controller
                 } elseif ($key === 'named_call_group' || $key === 'named_pickup_group') {
                     $ng = is_string($value) ? trim($value) : $value;
                     $extension->$key = ($ng === null || $ng === '') ? 'ALL' : $ng;
+                } elseif ($key === 'cos_profile') {
+                    $cp = is_string($value) ? trim($value) : $value;
+                    $extension->cos_profile = ($cp === null || $cp === '' || strcasecmp((string) $cp, 'None') === 0)
+                        ? null
+                        : $cp;
                 } else {
                     $extension->$key = is_string($value) ? trim($value) : $value;
                 }
@@ -1077,6 +1106,17 @@ class ExtensionController extends Controller
 		}
 		$cluster = cluster_identifier_to_shortuid($extension->cluster) ?? (string) $extension->cluster;
 
+		// Profile HoR: new extensions get tenant default profile when none supplied.
+		$existing = trim((string) ($extension->cos_profile ?? ''));
+		if ($existing === '') {
+			$defaultPkey = CosProfile::defaultPkeyForCluster($cluster);
+			if ($defaultPkey !== null && $defaultPkey !== '') {
+				Extension::where('id', $extension->id)->update(['cos_profile' => $defaultPkey]);
+				$extension->cos_profile = $defaultPkey;
+			}
+		}
+
+		// Keep junction seed for dual-read / SPA matrix until Slice D cutover (Q8).
 		$costable = ClassOfService::whereIn('cluster', $aliases)->get();
 
 		foreach ($costable as $cos) {

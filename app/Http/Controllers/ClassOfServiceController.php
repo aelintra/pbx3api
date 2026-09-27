@@ -62,7 +62,7 @@ class ClassOfServiceController extends Controller
         }
         $this->assertClusterAllowed($clusterShortuid);
 
-        // SPA create omits pkey → pkey = shortuid. Seeds/API may pass a stable name (e.g. HR_UK070).
+        // Optional stable pkey (e.g. HR_UK070 / PREMIUM_0900). SPA create sends Key; omit → pkey = shortuid.
         $rules = array_merge($this->updateableColumns, [
             'pkey' => 'nullable|alpha_dash',
             'cluster' => 'required|exists:cluster,pkey',

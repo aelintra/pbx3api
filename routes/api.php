@@ -14,6 +14,7 @@ use App\Http\Controllers\ClidBlockController;
 use App\Http\Controllers\CosCloseController;
 use App\Http\Controllers\CosOpenController;
 use App\Http\Controllers\ClassOfServiceController;
+use App\Http\Controllers\CosProfileController;
 use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CustomAppController;
 use App\Http\Controllers\DayTimerController;
@@ -221,6 +222,12 @@ Route::middleware(['auth:sanctum', 'ability:admin,tenant'])->group(function () {
     Route::post('cosrules', [ClassOfServiceController::class, 'save']);
     Route::put('cosrules/{classofservice}', [ClassOfServiceController::class, 'update']);
     Route::delete('cosrules/{classofservice}', [ClassOfServiceController::class, 'delete']);
+
+    Route::get('cosprofiles', [CosProfileController::class, 'index']);
+    Route::get('cosprofiles/{cosprofile}', [CosProfileController::class, 'show']);
+    Route::post('cosprofiles', [CosProfileController::class, 'save']);
+    Route::put('cosprofiles/{cosprofile}', [CosProfileController::class, 'update']);
+    Route::delete('cosprofiles/{cosprofile}', [CosProfileController::class, 'delete']);
 
     Route::get('greetings', [GreetingController::class, 'index']);
     Route::get('greetings/{greeting}', [GreetingController::class, 'download']);

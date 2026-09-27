@@ -70,6 +70,7 @@ class Extension extends Model
         'pjsip_overlay',
         'named_call_group',
         'named_pickup_group',
+        'cos_profile',
     ];
 
     /** Attributes excluded from array/JSON (e.g. passwd). Legacy pjsipuser deprecated — hide from API. */
