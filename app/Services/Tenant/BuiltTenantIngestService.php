@@ -389,12 +389,13 @@ class BuiltTenantIngestService
         $instanceId = (string) (Sysglobal::query()->value('id') ?? '');
 
         return implode("\n", [
-            'Next (catalog + SBC — do not leave node-only):',
+            'Next (catalog + SBC + DIDs — do not leave node-only):',
             "  1) register-tenant.sh --tenant-shortuid {$shortuid} --instance-id {$instanceId} --cname {$fqdn} --fqdn {$fqdn}",
             "     (then ensure meta pkey/label={$pkey} via Gatekeeper/Fleet or meta patch)",
             '  2) Fleet → Tenants → Register on SBC (or Gatekeeper domain enroll)',
-            '  3) SPA Commit on the home; desk/SIPp smoke',
-            'See FLEET_BUILT_TENANT_INGEST_REQUIREMENTS.md · LAB_FLEET_TENANTS.md',
+            '  3) Fleet → DIDs → Allocate (hop-1) to this shortuid if PSTN needed — not auto in ingest',
+            '  4) SPA Commit on the home; desk/SIPp smoke',
+            'See FLEET_BUILT_TENANT_INGEST_REQUIREMENTS.md · FLEET_DID_HOP1_LOCK.md · LAB_FLEET_TENANTS.md',
         ]);
     }
 
