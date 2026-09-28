@@ -171,6 +171,54 @@ Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {-
     return 1;
 })->purpose('Upload a local /opt/pbx3/bkup zip to instances/{ksuid}/backups/ on PBX3_ORG_BUCKET');
 
+Artisan::command('tenant:ingest-built {db : Path to sark-to-pbx3 split-tenant .db} {--dry-run : Plan only; no writes}', function (\App\Services\Tenant\BuiltTenantIngestService $ingest) {
+    try {
+        $result = $ingest->ingest($this->argument('db'), [
+            'dry_run' => (bool) $this->option('dry-run'),
+        ]);
+    } catch (\Throwable $e) {
+        $this->error($e->getMessage());
+
+        return 1;
+    }
+
+    $src = $result['source'] ?? [];
+    $planned = $result['planned'] ?? [];
+    $mode = ! empty($result['dry_run']) ? 'DRY-RUN' : 'APPLIED';
+    $this->info("{$mode} built-tenant ingest: ".($planned['pkey'] ?? $src['pkey'] ?? '?'));
+    $this->line('  source shortuid: '.($src['shortuid'] ?? '').'  id: '.($src['id'] ?? ''));
+    $this->line('  final  shortuid: '.($planned['shortuid'] ?? '').'  id: '.($planned['id'] ?? ''));
+    $this->line('  fqdn: '.($planned['fqdn'] ?? ''));
+    if (! empty($planned['remint_shortuid'])) {
+        $this->warn('  reminted shortuid: '.($src['shortuid'] ?? '').' → '.($planned['shortuid'] ?? ''));
+    }
+    if (! empty($planned['remint_id'])) {
+        $this->warn('  reminted cluster.id: '.($src['id'] ?? '').' → '.($planned['id'] ?? ''));
+    }
+    foreach ($result['warnings'] ?? [] as $w) {
+        $this->warn('  '.$w);
+    }
+    foreach ($result['blocking_errors'] ?? [] as $err) {
+        $this->error('  '.$err);
+    }
+    $counts = $result['imported_rows'] ?? $result['row_counts'] ?? [];
+    foreach ($counts as $table => $count) {
+        if ((int) $count > 0) {
+            $prefix = isset($result['imported_rows']) ? '+' : '';
+            $this->line("  {$table}: {$prefix}{$count}");
+        }
+    }
+    if (isset($result['route_fleet_normalized'])) {
+        $this->line('  route Egress normalize: '.$result['route_fleet_normalized'].' row(s)');
+    }
+    if (! empty($result['enroll_hint'])) {
+        $this->newLine();
+        $this->comment($result['enroll_hint']);
+    }
+
+    return empty($result['blocking_errors']) ? 0 : 1;
+})->purpose('Ingest a sark-to-pbx3 split-tenant .db into this home (FLEET_BUILT_TENANT_INGEST)');
+
 Artisan::command('tenant:export {tenant : cluster id, shortuid, or pkey} {--include-recordings : Bundle on-node recording files} {--detach-users : Remove/strip portable users from this instance after packing (move)} {--output= : Override output zip path}', function (TenantMobilityService $mobility) {
     try {
         $result = $mobility->export($this->argument('tenant'), [
