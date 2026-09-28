@@ -456,7 +456,7 @@ class TenantController extends Controller
         return $fullPath;
     }
 
-    /** Sanitize upload basename (SARK-style); returns null if unusable. */
+    /** Sanitize upload basename (legacy PBX-style); returns null if unusable. */
     private function sanitizeMohFilename(string $original): ?string
     {
         $base = basename(str_replace('\\', '/', $original));

@@ -22,7 +22,7 @@ class DestinationController extends Controller
      * Return endpoint index for destination dropdowns (Inbound routes, IVRs, Queues).
      * Requires ?cluster={tenantPkey} — without it the full instance would leak across tenants.
      * Trunks are excluded (destination lists invoke endpoints: queues, extensions, IVRs,
-     * custom apps, and per-extension leave-voicemail *{ext} — same as SARK / GenAst).
+     * custom apps, and per-extension leave-voicemail *{ext} — same as legacy PBX / GenAst).
      * Cluster filter matches both tenant pkey and tenant id (KSUID) so it works whether DB stores pkey or id.
      *
      * @param  Request  $request

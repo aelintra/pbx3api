@@ -128,13 +128,13 @@ TrunkController already follows the pattern:
 
 - **Document** which columns and tables use YES/NO (audit schema and list columns that are boolean-like; standardise on YES/NO).
 - **One-off migration or data fix** for existing data: UPDATE any rows where those columns hold ON, OFF, or other values to YES or NO as appropriate.
-- **Migration routines (SARK → PBX3):** The routines that convert old SARK databases to PBX3 must also output YES/NO for these columns when creating or transforming data, so newly migrated databases are consistent. Add or update the SARK→PBX3 migration code to normalise these fields to YES/NO.
+- **Migration routines (previous PBX → PBX3):** The routines that convert old previous PBX databases to PBX3 must also output YES/NO for these columns when creating or transforming data, so newly migrated databases are consistent. Add or update the previous PBX→PBX3 migration code to normalise these fields to YES/NO.
 
 ### 3.2 Deliverables (Task 3)
 
 - [ ] List of columns/tables in scope (YES/NO).
 - [ ] Migration or script to normalise existing PBX3 data to YES/NO.
-- [ ] SARK→PBX3 migration routines updated to emit YES/NO for these columns.
+- [ ] previous PBX→PBX3 migration routines updated to emit YES/NO for these columns.
 
 ---
 
@@ -142,7 +142,7 @@ TrunkController already follows the pattern:
 
 1. **Task 1 first.** Align models and validation with the DB so `updateableColumns` and rules only reference real columns.
 2. **Task 2.** Switch Trunk and Extension to Request + Validator only; update docs and SPA.
-3. **Task 3.** Database YES/NO consistency (data migration + SARK→PBX3 migration routines).
+3. **Task 3.** Database YES/NO consistency (data migration + previous PBX→PBX3 migration routines).
 
 ---
 
@@ -152,4 +152,4 @@ TrunkController already follows the pattern:
 |------|--------|----------|
 | **1. Models vs DB** | All API models and their controllers/Form Requests **and SPA create/detail views** vs instance + tenant SQL | No validation or model attributes for columns that don’t exist; Trunk (and others) fixed; **each resource’s SPA panels updated to follow the schema**. |
 | **2. Harmonise API** | Trunk + Extension update flow and docs | Single pattern: Request + Validator only; Trunk/Extension updates work like the rest of the app; SPA doesn’t need to send pkey for trunk update (only fields user edits). |
-| **3. DB YES/NO** | Data + SARK→PBX3 migration | All boolean-like columns use YES/NO; existing data migrated; SARK→PBX3 migration outputs YES/NO. |
+| **3. DB YES/NO** | Data + previous PBX→PBX3 migration | All boolean-like columns use YES/NO; existing data migrated; previous PBX→PBX3 migration outputs YES/NO. |

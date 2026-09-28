@@ -30,7 +30,7 @@ test('minMatchLength for Asterisk patterns', function () {
         ->and(ExtLenPolicy::minMatchLength('_X!'))->toBe(1);
 });
 
-test('dialplanError uses SARK floor min match >= 3', function () {
+test('dialplanError uses legacy PBX floor min match >= 3', function () {
     // Reject: larger than two chars required
     expect(ExtLenPolicy::dialplanError('_0.', 3))->not->toBeNull()
         ->and(ExtLenPolicy::dialplanError('_9.', 3))->not->toBeNull()

@@ -17,7 +17,7 @@ final class ExtLenPolicy
     public const DEFAULT = 3;
 
     /**
-     * OutRoute dialplan floor (SARK-aligned): min match must be **greater than 2**
+     * OutRoute dialplan floor (legacy-PBX-aligned): min match must be **greater than 2**
      * (i.e. at least 3). Exact extension matches always outrank patterns in Asterisk;
      * operators who put extensions in 1xx accept the collision.
      */
@@ -131,7 +131,7 @@ final class ExtLenPolicy
     /**
      * Validate space-separated OutRoute dialplan string.
      * Every non-empty token must have min match length ≥ OUTROUTE_MIN_MATCH (3).
-     * SARK rule: anything larger than two chars. $extLen retained for call-site
+     * legacy PBX rule: anything larger than two chars. $extLen retained for call-site
      * compatibility; not used for the floor check.
      *
      * @return string|null error message, or null if OK

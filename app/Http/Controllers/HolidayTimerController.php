@@ -231,7 +231,7 @@ class HolidayTimerController extends Controller
     }
 
     /**
-     * Prefer force_dest; dual-write route for timer/SARK path. Empty clears both when either key is present.
+     * Prefer force_dest; dual-write route for timer/legacy path. Empty clears both when either key is present.
      */
     private function syncForceDestAndRoute(Request $request, HolidayTimer $holidaytimer): void
     {

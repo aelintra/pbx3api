@@ -2,7 +2,7 @@
 
 **Lock:** [`pbx3/workingdocs/FLEET_BUILT_TENANT_INGEST_REQUIREMENTS.md`](../../pbx3/workingdocs/FLEET_BUILT_TENANT_INGEST_REQUIREMENTS.md)
 
-Ingest an **external** one-tenant pbx3 sqlite (sark-to-pbx3 split, another fleet, etc.) into this home. Strips `globals`/`trunks`; remints opaque `shortuid`/`id` on collision; always sets FQDN `{shortuid}.{apex}`; on fleet nodes normalizes that tenant’s `route.path*` → `Egress`.
+Ingest an **external** one-tenant pbx3 sqlite (offline-migrate split, another fleet, etc.) into this home. Strips `globals`/`trunks`; remints opaque `shortuid`/`id` on collision; always sets FQDN `{shortuid}.{apex}`; on fleet nodes normalizes that tenant’s `route.path*` → `Egress`.
 
 ```bash
 sudo -u www-data php artisan tenant:ingest-built /path/to/flixton.db --dry-run

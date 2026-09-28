@@ -180,7 +180,7 @@ class SysCommandController extends Controller
     }
 
     /**
-     * GET sysnotes — read-only system info for Home panel (equivalent to SARK printSysNotes).
+     * GET sysnotes — read-only system info for Home panel (equivalent to legacy printSysNotes).
      * Returns system, network, and resource data for display; no sensitive or editable fields.
      */
     public function sysnotes()

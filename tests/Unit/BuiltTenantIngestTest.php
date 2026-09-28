@@ -5,7 +5,8 @@ uses(Tests\TestCase::class);
 use App\Services\Tenant\BuiltTenantIngestService;
 use Illuminate\Support\Facades\DB;
 
-$flixtonSrc = '/Users/jeffstokoe/GiT/sark-to-pbx3/work/fixture-smoke-backups-20260927/pdh3s02-tenants/flixton.db';
+// Private offline-migrate worktree on ops Mac; set PBX3_INGEST_FIXTURE_DB to run this suite.
+$flixtonSrc = getenv('PBX3_INGEST_FIXTURE_DB') ?: '';
 
 /** @var string|null */
 $homeDb = null;

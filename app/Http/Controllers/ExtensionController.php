@@ -134,7 +134,7 @@ class ExtensionController extends Controller
     }
 
 /**
- * Return live PJSIP data (IP, latency) for SIP extensions that are not inactive (SARK: skip active == NO).
+ * Return live PJSIP data (IP, latency) for SIP extensions that are not inactive  (legacy PBX: skip active == NO).
  * Keyed by pkey for merging with list view. Inactive rows use Unknown in the UI (no key here).
  * Requires Asterisk running.
  *
@@ -278,7 +278,7 @@ class ExtensionController extends Controller
         }
         $attrs['provisionwith'] = $provisionwith;
 
-        // SPA "Name" → ipphone.desc; default Ext{pkey} when blank (legacy SARK-style)
+        // SPA "Name" → ipphone.desc; default Ext{pkey} when blank (legacy PBX-style)
         $desc = $request->input('desc');
         $attrs['desc'] = ($desc !== null && trim((string) $desc) !== '')
             ? trim((string) $desc)

@@ -171,7 +171,7 @@ Artisan::command('pbx3:upload-backup {filename : e.g. pbx3bak.1716123456.zip} {-
     return 1;
 })->purpose('Upload a local /opt/pbx3/bkup zip to instances/{ksuid}/backups/ on PBX3_ORG_BUCKET');
 
-Artisan::command('tenant:ingest-built {db : Path to sark-to-pbx3 split-tenant .db} {--dry-run : Plan only; no writes}', function (\App\Services\Tenant\BuiltTenantIngestService $ingest) {
+Artisan::command('tenant:ingest-built {db : Path to external one-tenant .db} {--dry-run : Plan only; no writes}', function (\App\Services\Tenant\BuiltTenantIngestService $ingest) {
     try {
         $result = $ingest->ingest($this->argument('db'), [
             'dry_run' => (bool) $this->option('dry-run'),
@@ -217,7 +217,7 @@ Artisan::command('tenant:ingest-built {db : Path to sark-to-pbx3 split-tenant .d
     }
 
     return empty($result['blocking_errors']) ? 0 : 1;
-})->purpose('Ingest a sark-to-pbx3 split-tenant .db into this home (FLEET_BUILT_TENANT_INGEST)');
+})->purpose('Ingest an external one-tenant .db into this home (FLEET_BUILT_TENANT_INGEST)');
 
 Artisan::command('tenant:export {tenant : cluster id, shortuid, or pkey} {--include-recordings : Bundle on-node recording files} {--detach-users : Remove/strip portable users from this instance after packing (move)} {--output= : Override output zip path}', function (TenantMobilityService $mobility) {
     try {

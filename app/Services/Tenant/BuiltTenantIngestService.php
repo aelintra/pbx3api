@@ -7,7 +7,7 @@ use App\Services\Fleet\FleetPostureService;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Ingest a sark-to-pbx3 split-tenant sqlite (.db) into this home.
+ * Ingest an external one-tenant pbx3 sqlite (.db) into this home.
  *
  * @see pbx3/workingdocs/FLEET_BUILT_TENANT_INGEST_REQUIREMENTS.md
  */
