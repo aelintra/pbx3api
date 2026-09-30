@@ -17,6 +17,8 @@ use App\Models\ClassOfService;
 use App\Models\CosProfile;
 use App\CustomClasses\Ami;
 use App\Support\LineTestExtension;
+use App\Support\ProvisionUrl;
+use Illuminate\Support\Facades\Schema;
 
 class ExtensionController extends Controller
 {
@@ -356,13 +358,17 @@ class ExtensionController extends Controller
         }
 
         // SIP password: auto-generate 12 chars (passwd not fillable; set via direct update)
-        Extension::where('id', $extension->id)->update(['passwd' => ret_password()]);
+        $secretPatch = ['passwd' => ret_password()];
+        if ($macaddr !== null && $macaddr !== '' && Schema::hasColumn('ipphone', 'sndcreds')) {
+            $secretPatch['sndcreds'] = 'Once';
+        }
+        Extension::where('id', $extension->id)->update($secretPatch);
 
         $this->create_default_cos_instances($extension);
 
         set_commit_dirty();
 
-        return response()->json($extension->fresh(), 201);
+        return response()->json($this->enrichProvisionFields($extension->fresh()), 201);
     }
 
 /**
@@ -381,6 +387,7 @@ class ExtensionController extends Controller
     	} else {
     		$extension->tenant_pkey = $cluster;
     	}
+    	$this->enrichProvisionFields($extension);
     	// Include passwd only for single-extension (detail/edit); not in index/list
     	return $extension->makeVisible('passwd');
     }
@@ -995,7 +1002,12 @@ class ExtensionController extends Controller
             return response()->json(['Error' => 'Extension id is missing'], 409);
         }
         $newPass = ret_password();
-        Extension::where('id', $id)->update(['passwd' => $newPass]);
+        $patch = ['passwd' => $newPass];
+        // Provision Once restore (locked): password regen must re-send secrets next GET.
+        if (Schema::hasColumn('ipphone', 'sndcreds')) {
+            $patch['sndcreds'] = 'Once';
+        }
+        Extension::where('id', $id)->update($patch);
         set_commit_dirty();
 
         $extension = Extension::find($id);
@@ -1011,7 +1023,65 @@ class ExtensionController extends Controller
             $extension->tenant_pkey = $cluster;
         }
 
+        $this->enrichProvisionFields($extension);
         return response()->json($extension->makeVisible('passwd'), 200);
+    }
+
+/**
+ * Reset provision credential state to Once (SPA "Reset provision state").
+ * Server-side only — no phone crypto. See PROVISIONING_SERVER_REQUIREMENTS.md §4.3.
+ */
+    public function resetProvisionState(Extension $extension)
+    {
+        $this->assertModelClusterAllowed($extension);
+        $id = $extension->id;
+        if ($id === null || $id === '') {
+            return response()->json(['Error' => 'Extension id is missing'], 409);
+        }
+        if (!Schema::hasColumn('ipphone', 'sndcreds')) {
+            return response()->json([
+                'Error' => 'sndcreds column missing — run apply-sqlite-add-provision-columns.sh on the home',
+            ], 409);
+        }
+        Extension::where('id', $id)->update(['sndcreds' => 'Once']);
+
+        $extension = Extension::find($id);
+        if (!$extension) {
+            return response()->json(['Error' => 'Extension not found after update'], 409);
+        }
+        $cluster = $extension->cluster ?? null;
+        if ($cluster !== null && $cluster !== '') {
+            $row = DB::table('cluster')->where('pkey', $cluster)->orWhere('shortuid', $cluster)->orWhere('id', $cluster)->first(['pkey']);
+            $extension->tenant_pkey = $row ? $row->pkey : $cluster;
+        } else {
+            $extension->tenant_pkey = $cluster;
+        }
+        $this->enrichProvisionFields($extension);
+        return response()->json($extension->makeVisible('passwd'), 200);
+    }
+
+    /**
+     * Attach provision_url (and ensure sndcreds / timestamps present when columns exist).
+     */
+    private function enrichProvisionFields(?Extension $extension): ?Extension
+    {
+        if (!$extension) {
+            return $extension;
+        }
+        $fqdn = '';
+        try {
+            $globals = get_globals();
+            if ($globals && !empty($globals->fqdn)) {
+                $fqdn = (string) $globals->fqdn;
+            }
+        } catch (\Throwable $e) {
+            $fqdn = '';
+        }
+        $extension->setAttribute(
+            'provision_url',
+            ProvisionUrl::forHome($fqdn, $extension->macaddr ?? null)
+        );
+        return $extension;
     }
 
 /**
