@@ -18,6 +18,7 @@ use App\Models\CosProfile;
 use App\CustomClasses\Ami;
 use App\Support\LineTestExtension;
 use App\Support\ProvisionUrl;
+use App\Services\Fleet\ProvisionMacIndexSync;
 use Illuminate\Support\Facades\Schema;
 
 class ExtensionController extends Controller
@@ -367,6 +368,24 @@ class ExtensionController extends Controller
         $this->create_default_cos_instances($extension);
 
         set_commit_dirty();
+
+        if ($macaddr !== null && $macaddr !== '') {
+            $tenant = $clusterShortuid ?? cluster_identifier_to_shortuid((string) ($extension->cluster ?? ''));
+            try {
+                app(ProvisionMacIndexSync::class)->claim($macaddr, (string) $tenant);
+            } catch (\RuntimeException $e) {
+                Extension::where('id', $extension->id)->update(['macaddr' => null]);
+                $code = (int) $e->getCode();
+                if ($code < 400 || $code > 599) {
+                    $code = 503;
+                }
+
+                return response()->json([
+                    'macaddr' => [$e->getMessage()],
+                    'Error' => $e->getMessage(),
+                ], $code);
+            }
+        }
 
         return response()->json($this->enrichProvisionFields($extension->fresh()), 201);
     }
@@ -857,6 +876,31 @@ class ExtensionController extends Controller
         } elseif ($macRemoved) {
             $extension->macaddr = null;
             // Leave device (WebRTC|MAILBOX|General SIP) unchanged.
+        }
+
+        // C3 — catalog MAC index before local persist (conflict must not leave half-state)
+        if ($macAdded || $macChanged || $macRemoved) {
+            $sync = app(ProvisionMacIndexSync::class);
+            try {
+                if ($macAdded || $macChanged) {
+                    $tenant = cluster_identifier_to_shortuid((string) ($extension->cluster ?? ''))
+                        ?? (string) $extension->cluster;
+                    $sync->claim((string) $newMac, $tenant);
+                }
+                if (($macChanged || $macRemoved) && $originalMac !== null) {
+                    $sync->clear($originalMac);
+                }
+            } catch (\RuntimeException $e) {
+                $code = (int) $e->getCode();
+                if ($code < 400 || $code > 599) {
+                    $code = 503;
+                }
+
+                return response()->json([
+                    'macaddr' => [$e->getMessage()],
+                    'Error' => $e->getMessage(),
+                ], $code);
+            }
         }
 
         try {
