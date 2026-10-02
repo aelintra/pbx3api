@@ -406,9 +406,15 @@ class TenantMobilityService
         try {
             $rowCounts = [];
             $clusterId = (string) $cluster->id;
-            $source->prepare('INSERT INTO tenant_export.cluster SELECT * FROM cluster WHERE id = ?')
-                ->execute([$clusterId]);
-            $rowCounts['cluster'] = 1;
+            // Named columns only — live ALTER order can diverge from sqlite_create_tenant.sql
+            // (provision cols tipped mid-flight). Positional SELECT * scrambles the mini-DB.
+            $rowCounts['cluster'] = $this->insertAttachedBySharedColumns(
+                $source,
+                'tenant_export',
+                'cluster',
+                'id = ?',
+                [$clusterId]
+            );
 
             $placeholders = implode(',', array_fill(0, count($aliases), '?'));
             foreach (self::TENANT_DATA_TABLES as $table) {
@@ -418,11 +424,13 @@ class TenantMobilityService
                 if (! $this->tableExistsOnConnection($source, 'tenant_export', $table)) {
                     continue;
                 }
-                $stmt = $source->prepare(
-                    "INSERT INTO tenant_export.{$table} SELECT * FROM {$table} WHERE cluster IN ({$placeholders})"
+                $rowCounts[$table] = $this->insertAttachedBySharedColumns(
+                    $source,
+                    'tenant_export',
+                    $table,
+                    "cluster IN ({$placeholders})",
+                    $aliases
                 );
-                $stmt->execute($aliases);
-                $rowCounts[$table] = $stmt->rowCount();
             }
 
             return $rowCounts;
@@ -472,7 +480,9 @@ class TenantMobilityService
 
     private function copyTableRows(\PDO $from, \PDO $to, string $table): int
     {
-        $columns = $this->tableColumns($from, $table);
+        $fromColumns = $this->tableColumns($from, $table);
+        $toColumns = $this->tableColumns($to, $table);
+        $columns = array_values(array_intersect($fromColumns, $toColumns));
         if ($columns === []) {
             return 0;
         }
@@ -482,7 +492,7 @@ class TenantMobilityService
         $insert = $to->prepare("INSERT INTO {$table} ({$colList}) VALUES ({$placeholders})");
 
         $count = 0;
-        foreach ($from->query("SELECT * FROM {$table}") as $row) {
+        foreach ($from->query("SELECT {$colList} FROM {$table}") as $row) {
             $values = [];
             foreach ($columns as $column) {
                 $values[] = $row[$column] ?? null;
@@ -494,10 +504,52 @@ class TenantMobilityService
         return $count;
     }
 
+    /**
+     * INSERT into an ATTACH'd schema using the intersection of column names
+     * (never positional SELECT * — live ALTER order ≠ CREATE TABLE order).
+     *
+     * @param  list<mixed>  $params
+     */
+    private function insertAttachedBySharedColumns(
+        \PDO $pdo,
+        string $attachedAlias,
+        string $table,
+        string $whereSql,
+        array $params
+    ): int {
+        $srcCols = $this->tableColumnsOnConnection($pdo, '', $table);
+        $dstCols = $this->tableColumnsOnConnection($pdo, $attachedAlias, $table);
+        $columns = array_values(array_intersect($srcCols, $dstCols));
+        if ($columns === []) {
+            return 0;
+        }
+        $quoted = array_map(static fn (string $c) => '"'.$c.'"', $columns);
+        $colList = implode(', ', $quoted);
+        $stmt = $pdo->prepare(
+            "INSERT INTO {$attachedAlias}.{$table} ({$colList}) SELECT {$colList} FROM {$table} WHERE {$whereSql}"
+        );
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
     /** @return list<string> */
     private function tableColumns(\PDO $pdo, string $table): array
     {
-        $stmt = $pdo->query("PRAGMA table_info({$table})");
+        return $this->tableColumnsOnConnection($pdo, '', $table);
+    }
+
+    /**
+     * @param  ''|'tenant_export'|'tenant_import'  $attachedAlias
+     * @return list<string>
+     */
+    private function tableColumnsOnConnection(\PDO $pdo, string $attachedAlias, string $table): array
+    {
+        // SQLite: PRAGMA schema.table_info(name) — not table_info(schema.name)
+        $pragma = $attachedAlias === ''
+            ? "PRAGMA table_info({$table})"
+            : "PRAGMA {$attachedAlias}.table_info({$table})";
+        $stmt = $pdo->query($pragma);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         return array_column($rows, 'name');
