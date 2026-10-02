@@ -18,7 +18,9 @@ use App\Models\CosProfile;
 use App\CustomClasses\Ami;
 use App\Support\LineTestExtension;
 use App\Support\ProvisionUrl;
+use App\Support\ProvisionStreamSupport;
 use App\Services\Fleet\ProvisionMacIndexSync;
+use App\Models\ProvisionStream;
 use Illuminate\Support\Facades\Schema;
 
 class ExtensionController extends Controller
@@ -918,7 +920,7 @@ class ExtensionController extends Controller
             return response()->json(['Error' => $e->getMessage()], 409);
         }
 
-        return response()->json($extension->fresh(), 200);
+        return response()->json($this->enrichProvisionFields($extension->fresh()), 200);
     }
 
 /**
@@ -1125,6 +1127,25 @@ class ExtensionController extends Controller
             'provision_url',
             ProvisionUrl::forHome($fqdn, $extension->macaddr ?? null)
         );
+
+        $provision = (string) ($extension->provision ?? '');
+        if (trim($provision) !== '') {
+            $cluster = cluster_identifier_to_shortuid((string) ($extension->cluster ?? ''))
+                ?? (string) ($extension->cluster ?? '');
+            $customerNames = [];
+            if ($cluster !== '' && Schema::hasTable('provision_stream')) {
+                $customerNames = ProvisionStream::where('cluster', $cluster)->pluck('pkey')->all();
+            }
+            $warnings = ProvisionStreamSupport::extensionIncludeWarnings(
+                $provision,
+                ProvisionStreamSupport::systemNames(),
+                $customerNames
+            );
+            $extension->setAttribute('provision_warnings', $warnings);
+        } else {
+            $extension->setAttribute('provision_warnings', []);
+        }
+
         return $extension;
     }
 
