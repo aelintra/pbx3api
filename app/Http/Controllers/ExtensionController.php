@@ -49,6 +49,8 @@ class ExtensionController extends Controller
 		'protocol' => 'in:IPV4,IPV6',
 		'provision' => 'string|nullable',
 		'provisionwith' => 'in:IP,FQDN',
+		// §4.3 — Once preferred; Always for vendors that re-fetch secrets every poll (e.g. Poly)
+		'sndcreds' => 'in:No,Once,Always',
 		'technology' => 'string|nullable',
 		'transport' => 'in:udp,tcp,tls,wss',
 		'vmailfwd' => 'email|nullable',
@@ -1049,9 +1051,10 @@ class ExtensionController extends Controller
         }
         $newPass = ret_password();
         $patch = ['passwd' => $newPass];
-        // Provision Once restore (locked): password regen must re-send secrets next GET.
+        // Password regen must re-send secrets: keep Always; else restore Once (§4.3).
         if (Schema::hasColumn('ipphone', 'sndcreds')) {
-            $patch['sndcreds'] = 'Once';
+            $cur = trim((string) ($extension->sndcreds ?? ''));
+            $patch['sndcreds'] = strcasecmp($cur, 'Always') === 0 ? 'Always' : 'Once';
         }
         Extension::where('id', $id)->update($patch);
         set_commit_dirty();
